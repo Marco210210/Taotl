@@ -16,7 +16,7 @@ const LOCAL_HISTORY_KEY = `${STORAGE_KEYS.rosterCache}:history-fallback`;
 export async function syncFinishedGame(game: ActiveGame): Promise<{ synced: boolean }> {
   const payload = toGameSyncPayload(game);
   try {
-    await apiClient.post<void>("/taotl/games", payload);
+    await apiClient.post<void>("/taotl/games/", payload);
     return { synced: true };
   } catch {
     const raw = await AsyncStorage.getItem(LOCAL_HISTORY_KEY);

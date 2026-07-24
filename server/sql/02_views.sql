@@ -4,7 +4,7 @@
 CREATE OR REPLACE VIEW game_standings_v AS
 SELECT
   g.id            AS game_id,
-  g.mode          AS mode,
+  g.game_mode     AS game_mode,
   g.num_players   AS num_players,
   g.created_at    AS started_at,
   g.finished_at   AS ended_at,
@@ -16,4 +16,4 @@ JOIN game_players gp ON gp.game_id = g.id
 JOIN players p ON p.id = gp.player_id
 LEFT JOIN rounds r ON r.game_id = g.id
 LEFT JOIN round_bids rb ON rb.round_id = r.id AND rb.player_id = p.id
-GROUP BY g.id, g.mode, g.num_players, g.created_at, g.finished_at, p.id, p.name;
+GROUP BY g.id, g.game_mode, g.num_players, g.created_at, g.finished_at, p.id, p.name;

@@ -36,7 +36,7 @@ export async function fetchRoster(): Promise<{ players: Player[]; fromCache: boo
 export async function createPlayer(name: string): Promise<Player> {
   const player: Player = { id: generateId("player"), name: name.trim(), photoUri: null };
   try {
-    await apiClient.post<PlayerDTO>("/players", { id: player.id, name: player.name });
+    await apiClient.post<PlayerDTO>("/players/", { id: player.id, name: player.name });
   } catch {
     // resta salvato solo in locale: verrà comunque usato nella rubrica.
   }

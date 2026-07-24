@@ -1,0 +1,46 @@
+name: Publish Expo Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: Descrizione breve dell'aggiornamento
+        required: true
+        default: Aggiornamento Taotl
+
+concurrency:
+  group: taotl-expo-update
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    name: Publish preview update
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.1
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish update
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          UPDATE_MESSAGE: ${{ inputs.message }}
+        run: >
+          npx eas-cli@latest update
+          --channel preview
+          --environment preview
+          --platform all
+          --message "$UPDATE_MESSAGE"
+          --non-interactive

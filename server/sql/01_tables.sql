@@ -6,18 +6,18 @@ CREATE TABLE players (
   name              VARCHAR2(120) NOT NULL,
   photo             BLOB,
   photo_media_type  VARCHAR2(60),
-  created_at        TIMESTAMP WITH TIME ZONE DEFAULT SYSTIMESTAMP NOT NULL
+  created_at        TIMESTAMP WITH TIME ZONE DEFAULT ON NULL SYSTIMESTAMP NOT NULL
 );
 
 CREATE TABLE games (
   id                VARCHAR2(60)  NOT NULL PRIMARY KEY, -- id generato dall'app
-  mode              VARCHAR2(20)  NOT NULL,
+  game_mode         VARCHAR2(20)  NOT NULL,
   num_players       NUMBER(3)     NOT NULL,
   start_dealer_id   VARCHAR2(60)  NOT NULL REFERENCES players(id),
   created_at        TIMESTAMP WITH TIME ZONE NOT NULL,
   finished_at       TIMESTAMP WITH TIME ZONE,
   synced_at         TIMESTAMP WITH TIME ZONE DEFAULT SYSTIMESTAMP NOT NULL,
-  CONSTRAINT chk_games_mode CHECK (mode IN ('classica', 'completa', 'breve', 'personalizzata'))
+  CONSTRAINT chk_games_mode CHECK (game_mode IN ('classica', 'completa', 'breve', 'personalizzata'))
 );
 
 CREATE TABLE game_players (

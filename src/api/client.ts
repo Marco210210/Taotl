@@ -44,7 +44,16 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
     const contentType = response.headers.get("content-type") ?? "";
     if (contentType.includes("application/json")) {
-      return (await response.json()) as T;
+      const payload = (await response.json()) as T | { items: T };
+      if (
+        payload !== null &&
+        typeof payload === "object" &&
+        "items" in payload &&
+        Array.isArray((payload as { items: unknown }).items)
+      ) {
+        return (payload as { items: T }).items;
+      }
+      return payload as T;
     }
     return undefined as T;
   } catch (err) {
