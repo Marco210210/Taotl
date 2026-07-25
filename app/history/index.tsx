@@ -7,16 +7,11 @@ import type { GameHistorySummaryDTO } from "@/api/types";
 import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
+import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme } from "@/theme";
 
-const MODE_LABELS: Record<string, string> = {
-  classica: "Classica",
-  completa: "Completa",
-  breve: "Breve",
-  personalizzata: "Personalizzata",
-};
-
 export default function HistoryScreen() {
+  const { locale, t } = useAppSettings();
   const [games, setGames] = useState<GameHistorySummaryDTO[]>([]);
   const [fromCache, setFromCache] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -39,14 +34,14 @@ export default function HistoryScreen() {
 
   return (
     <ScreenContainer>
-      <ScreenIntro title="Le tue partite" description="Tocca una partita per rivedere classifica e punti di ogni turno." />
+      <ScreenIntro title={t("history.title")} description={t("history.description")} />
       {fromCache && (
         <Text style={styles.helper}>
-          Non connesso al server: mostro solo le partite salvate su questo telefono in attesa di sincronizzazione.
+          {t("history.offline")}
         </Text>
       )}
-      {loading && <Text style={styles.helper}>Carico lo storico…</Text>}
-      {!loading && games.length === 0 && <Text style={styles.helper}>Nessuna partita salvata.</Text>}
+      {loading && <Text style={styles.helper}>{t("history.loading")}</Text>}
+      {!loading && games.length === 0 && <Text style={styles.helper}>{t("history.empty")}</Text>}
 
       {games.map((g) => (
         <Pressable
@@ -58,28 +53,28 @@ export default function HistoryScreen() {
           <Card style={styles.gameCard}>
             <View style={styles.titleRow}>
               <Text style={styles.date}>
-                {new Date(g.startedAt).toLocaleDateString("it-IT", {
+                {new Date(g.startedAt).toLocaleDateString(locale, {
                   day: "2-digit",
                   month: "short",
                   year: "numeric",
                 }).toUpperCase()}
               </Text>
-              <Text style={styles.meta}>{MODE_LABELS[g.mode] ?? g.mode} · {g.numPlayers} giocatori</Text>
+              <Text style={styles.meta}>{t(`mode.${g.mode}`)} · {g.numPlayers} {t("history.players")}</Text>
             </View>
             <View style={styles.winnerRow}>
               <View style={styles.mark}>
                 <Image source={require("../../assets/design/suit-mask.png")} resizeMode="contain" style={styles.markImage} />
               </View>
               <View style={styles.winnerInfo}>
-                <Text style={styles.winnerLabel}>VINCITORE</Text>
+                <Text style={styles.winnerLabel}>{t("history.winner")}</Text>
                 <Text style={styles.winnerName}>{g.standings[0]?.name ?? "—"}</Text>
                 <Text style={styles.others}>
-                  {g.standings.slice(1).map((standing) => standing.name).join(" · ") || "Partita a due"}
+                  {g.standings.slice(1).map((standing) => standing.name).join(" · ") || t("history.twoPlayers")}
                 </Text>
               </View>
               <Text style={styles.winnerScore}>{g.standings[0]?.total ?? 0}</Text>
             </View>
-            <Text style={styles.openHint}>Apri tutti i turni ›</Text>
+            <Text style={styles.openHint}>{t("history.openRounds")}</Text>
           </Card>
         </Pressable>
       ))}

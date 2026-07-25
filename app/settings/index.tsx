@@ -1,101 +1,231 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 
 import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
-import { TOTAL_CARDS } from "@/game/constants";
+import {
+  useAppSettings,
+  type LanguagePreference,
+  type ThemePreference,
+} from "@/state/AppSettingsContext";
 import { theme } from "@/theme";
 
 export default function SettingsScreen() {
+  const {
+    theme: themePreference,
+    language,
+    vibrationEnabled,
+    notificationsEnabled,
+    setTheme,
+    setLanguage,
+    setVibrationEnabled,
+    setNotificationsEnabled,
+    t,
+  } = useAppSettings();
+
   return (
     <ScreenContainer>
-      <Text style={styles.intro}>
-        Qui trovi le impostazioni che influenzano le regole. Per questa prima versione restano bloccate sui valori
-        ufficiali di Taotl, così non si cambia una partita per errore.
-      </Text>
+      <Text style={styles.intro}>{t("settings.intro")}</Text>
 
+      <Text style={styles.sectionLabel}>{t("settings.appearance")}</Text>
       <Card>
-        <SettingRow title="Carte nel mazzo" description="Usate per calcolare la modalità Completa">
-          <Text style={styles.value}>{TOTAL_CARDS}</Text>
-        </SettingRow>
-      </Card>
+        <SettingTitle
+          title={t("settings.theme")}
+          description={t("settings.themeDescription")}
+        />
+        <SegmentedPicker<ThemePreference>
+          value={themePreference}
+          onChange={setTheme}
+          options={[
+            { value: "system", label: t("settings.themeSystem") },
+            { value: "light", label: t("settings.themeLight") },
+            { value: "dark", label: t("settings.themeDark") },
+          ]}
+        />
 
-      <Card>
-        <SettingRow title="Blocco chiamata vietata" description="Il mazziere non può pareggiare carte e chiamate">
-          <StaticToggle />
-        </SettingRow>
         <View style={styles.divider} />
-        <SettingRow title="Punti attesi" description="Mostra subito quanto vale una chiamata rispettata">
-          <StaticToggle />
-        </SettingRow>
+
+        <SettingTitle
+          title={t("settings.language")}
+          description={t("settings.languageDescription")}
+        />
+        <SegmentedPicker<LanguagePreference>
+          value={language}
+          onChange={setLanguage}
+          options={[
+            { value: "system", label: t("settings.languageSystem") },
+            { value: "it", label: t("settings.languageItalian") },
+            { value: "en", label: t("settings.languageEnglish") },
+          ]}
+        />
       </Card>
 
-      <View style={styles.future}>
-        <Text style={styles.futureTitle}>PROSSIMAMENTE</Text>
-        <Text style={styles.futureText}>
-          Account, sincronizzazione tra dispositivi, password amministratore e vibrazione degli stepper.
-        </Text>
-      </View>
+      <Text style={styles.sectionLabel}>{t("settings.feedback")}</Text>
+      <Card>
+        <ToggleRow
+          title={t("settings.vibration")}
+          description={t("settings.vibrationDescription")}
+          value={vibrationEnabled}
+          onChange={setVibrationEnabled}
+        />
+        <View style={styles.divider} />
+        <ToggleRow
+          title={t("settings.notifications")}
+          description={t("settings.notificationsDescription")}
+          value={notificationsEnabled}
+          onChange={setNotificationsEnabled}
+        />
+      </Card>
+
+      <Text style={styles.note}>{t("settings.accountNote")}</Text>
     </ScreenContainer>
   );
 }
 
-function SettingRow({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
+function SettingTitle({ title, description }: { title: string; description: string }) {
   return (
-    <View style={styles.row}>
-      <View style={styles.info}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.description}>{description}</Text>
-      </View>
-      {children}
+    <View>
+      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.description}>{description}</Text>
     </View>
   );
 }
 
-function StaticToggle() {
+function ToggleRow({
+  title,
+  description,
+  value,
+  onChange,
+}: {
+  title: string;
+  description: string;
+  value: boolean;
+  onChange: (value: boolean) => void;
+}) {
   return (
-    <View style={styles.toggle}>
-      <View style={styles.knob} />
+    <View style={styles.toggleRow}>
+      <View style={styles.toggleInfo}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.description}>{description}</Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onChange}
+        trackColor={{ false: theme.colors.borderStrong as string, true: theme.colors.success as string }}
+        thumbColor={theme.colors.surface as string}
+      />
+    </View>
+  );
+}
+
+function SegmentedPicker<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <View style={styles.segmented}>
+      {options.map((option) => {
+        const selected = option.value === value;
+        return (
+          <Pressable
+            key={option.value}
+            accessibilityRole="radio"
+            accessibilityState={{ selected }}
+            onPress={() => onChange(option.value)}
+            style={({ pressed }) => [
+              styles.segment,
+              selected && styles.segmentSelected,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>
+              {option.label}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  intro: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 12.5, lineHeight: 19 },
-  row: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: 12 },
-  info: { flex: 1 },
-  title: { color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 14 },
-  description: { marginTop: 2, color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 10.5 },
-  value: {
-    minWidth: 48,
-    textAlign: "center",
-    color: theme.colors.text,
-    fontFamily: theme.font.family.extraBold,
-    fontSize: 20,
+  intro: {
+    color: theme.colors.textMuted,
+    fontFamily: theme.font.family.medium,
+    fontSize: 12.5,
+    lineHeight: 19,
   },
-  divider: { height: 1, backgroundColor: theme.colors.border },
-  toggle: {
-    width: 50,
-    height: 30,
-    padding: 3,
-    borderRadius: 99,
-    alignItems: "flex-end",
-    backgroundColor: theme.colors.success,
-  },
-  knob: { width: 24, height: 24, borderRadius: 12, backgroundColor: theme.colors.surface },
-  future: { padding: 15, borderRadius: 13, backgroundColor: theme.colors.inkSoft, gap: 4 },
-  futureTitle: {
+  sectionLabel: {
+    marginBottom: -8,
     color: theme.colors.textMuted,
     fontFamily: theme.font.family.bold,
     fontSize: 9.5,
-    letterSpacing: 1.2,
+    letterSpacing: 1.3,
   },
-  futureText: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 11.5, lineHeight: 17 },
+  title: {
+    color: theme.colors.text,
+    fontFamily: theme.font.family.bold,
+    fontSize: 14,
+  },
+  description: {
+    marginTop: 2,
+    color: theme.colors.textMuted,
+    fontFamily: theme.font.family.medium,
+    fontSize: 10.5,
+    lineHeight: 15,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 4,
+    backgroundColor: theme.colors.border,
+  },
+  segmented: {
+    flexDirection: "row",
+    padding: 3,
+    borderRadius: 11,
+    backgroundColor: theme.colors.inkSoft,
+  },
+  segment: {
+    minHeight: 38,
+    flex: 1,
+    paddingHorizontal: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 9,
+  },
+  segmentSelected: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  segmentText: {
+    color: theme.colors.textMuted,
+    fontFamily: theme.font.family.semibold,
+    fontSize: 10.5,
+    textAlign: "center",
+  },
+  segmentTextSelected: {
+    color: theme.colors.text,
+    fontFamily: theme.font.family.extraBold,
+  },
+  toggleRow: {
+    minHeight: 58,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  toggleInfo: { flex: 1 },
+  note: {
+    paddingHorizontal: 8,
+    color: theme.colors.textMuted,
+    fontFamily: theme.font.family.medium,
+    fontSize: 10.5,
+    lineHeight: 16,
+    textAlign: "center",
+  },
+  pressed: { opacity: 0.7 },
 });

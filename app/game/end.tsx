@@ -7,12 +7,14 @@ import { syncFinishedGame } from "@/api/games";
 import { BrandMark } from "@/components/BrandMark";
 import { Button } from "@/components/Button";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { useAppSettings } from "@/state/AppSettingsContext";
 import { useGame } from "@/state/GameContext";
 import { theme } from "@/theme";
 
 type SyncStatus = "syncing" | "synced" | "offline";
 
 export default function GameEndScreen() {
+  const { t } = useAppSettings();
   const { game, ranked, resetGame } = useGame();
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("syncing");
 
@@ -31,8 +33,8 @@ export default function GameEndScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>Nessuna partita da mostrare.</Text>
-          <Button label="Torna alla home" onPress={() => router.replace("/")} />
+          <Text style={styles.emptyText}>{t("end.none")}</Text>
+          <Button label={t("standings.home")} onPress={() => router.replace("/")} />
         </View>
       </SafeAreaView>
     );
@@ -52,15 +54,15 @@ export default function GameEndScreen() {
         <View style={styles.seal}>
           <BrandMark compact inverse />
         </View>
-        <Text style={styles.kicker}>PARTITA CHIUSA</Text>
-        <Text style={styles.winner}>{winner?.name ?? "Partita conclusa"}</Text>
+        <Text style={styles.kicker}>{t("end.closed")}</Text>
+        <Text style={styles.winner}>{winner?.name ?? t("end.finished")}</Text>
         <Text style={styles.summary}>
-          vince con {ranked[0]?.total ?? 0} punti · {game.rounds.length} turni · {game.players.length} giocatori
+          {t("end.winsWith")} {ranked[0]?.total ?? 0} {t("end.points")} · {game.rounds.length} {t("end.rounds")} · {game.players.length} {t("home.players")}
         </Text>
         <Text style={styles.sync}>
-          {syncStatus === "syncing" && "Salvataggio in corso…"}
-          {syncStatus === "synced" && "Partita salvata nello storico online"}
-          {syncStatus === "offline" && "Salvata sul telefono; sarà sincronizzata quando il server torna disponibile"}
+          {syncStatus === "syncing" && t("end.saving")}
+          {syncStatus === "synced" && t("end.savedOnline")}
+          {syncStatus === "offline" && t("end.savedOffline")}
         </Text>
 
         <View style={styles.ranking}>
@@ -79,8 +81,8 @@ export default function GameEndScreen() {
         </View>
 
         <View style={styles.actions}>
-          <Button label="Rivedi tutti i turni" variant="ghost" onPress={() => router.push("/game/standings")} />
-          <Button label="Salva e torna alla home" variant="yellow" onPress={home} />
+          <Button label={t("end.review")} variant="ghost" onPress={() => router.push("/game/standings")} />
+          <Button label={t("end.saveHome")} variant="yellow" onPress={home} />
         </View>
       </ScrollView>
     </SafeAreaView>

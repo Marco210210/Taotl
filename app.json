@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.taotl.conteggio"
@@ -38,7 +38,9 @@
         }
       ],
       "expo-font",
-      "./plugins/with-android-build-memory"
+      "./plugins/with-android-build-memory",
+      "expo-localization",
+      "expo-secure-store"
     ],
     "extra": {
       "router": {},

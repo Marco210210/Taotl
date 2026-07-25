@@ -4,10 +4,12 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Button } from "@/components/Button";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { useAppSettings } from "@/state/AppSettingsContext";
 import { useGame } from "@/state/GameContext";
 import { theme } from "@/theme";
 
 export default function CorrectDealerScreen() {
+  const { t } = useAppSettings();
   const { game, currentRoundInfo, setCurrentDealer } = useGame();
 
   if (
@@ -18,10 +20,9 @@ export default function CorrectDealerScreen() {
     return (
       <ScreenContainer>
         <Text style={styles.helper}>
-          Il mazziere si può correggere soltanto durante il primo turno. Dopo, ruota automaticamente seguendo
-          l&apos;ordine iniziale dei giocatori.
+          {t("fixDealer.limit")}
         </Text>
-        <Button label="Torna indietro" onPress={() => router.back()} />
+        <Button label={t("fixDealer.back")} onPress={() => router.dismissTo("/game/bids")} />
       </ScreenContainer>
     );
   }
@@ -33,16 +34,15 @@ export default function CorrectDealerScreen() {
 
   const selectDealer = (dealerId: string) => {
     setCurrentDealer(dealerId);
-    router.back();
+    router.dismissTo("/game/bids");
   };
 
   return (
     <ScreenContainer>
       <View>
-        <Text style={styles.heading}>Correggi il primo mazziere</Text>
+        <Text style={styles.heading}>{t("fixDealer.title")}</Text>
         <Text style={styles.helper}>
-          Seleziona chi sta dando realmente le carte nel primo turno. L&apos;ordine dei giocatori non cambia: dai
-          turni successivi il mazziere ruoterà automaticamente.
+          {t("fixDealer.description")}
         </Text>
       </View>
 
@@ -55,7 +55,7 @@ export default function CorrectDealerScreen() {
           >
             <PlayerAvatar name={player.name} photoUri={player.photoUri} size={42} />
             <Text style={styles.name}>{player.name}</Text>
-            {currentDealerId === player.id && <Text style={styles.tag}>Attuale</Text>}
+            {currentDealerId === player.id && <Text style={styles.tag}>{t("fixDealer.current")}</Text>}
           </Pressable>
         ))}
       </View>

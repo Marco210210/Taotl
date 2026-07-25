@@ -1,5 +1,7 @@
+import * as Haptics from "expo-haptics";
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme } from "@/theme";
 
 type Variant = "primary" | "secondary" | "danger" | "success" | "yellow" | "ghost";
@@ -23,13 +25,17 @@ export function Button({
   subtitle?: string;
   trailing?: string;
 }) {
+  const { vibrationEnabled } = useAppSettings();
   const isDisabled = disabled || loading;
   const hasLightLabel =
     variant === "primary" || variant === "secondary" || variant === "danger" || variant === "success";
 
   return (
     <TouchableOpacity
-      onPress={onPress}
+      onPress={() => {
+        if (vibrationEnabled) void Haptics.selectionAsync().catch(() => {});
+        onPress();
+      }}
       disabled={isDisabled}
       accessibilityRole="button"
       accessibilityState={{ disabled: isDisabled }}

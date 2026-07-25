@@ -6,42 +6,21 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { getFixedSequence } from "@/game/modes";
 import type { GameMode } from "@/game/types";
+import { useAppSettings } from "@/state/AppSettingsContext";
 import { useGame } from "@/state/GameContext";
 import { useSetup } from "@/state/SetupContext";
 import { theme } from "@/theme";
 
-const MODE_OPTIONS: { value: GameMode; title: string; description: string }[] = [
-  {
-    value: "classica",
-    title: "Classica",
-    description: "Sei turni con la distribuzione Taotl prevista per il numero di giocatori.",
-  },
-  {
-    value: "completa",
-    title: "Completa",
-    description: "Dal massimo distribuibile con il mazzo da 72 carte fino a una carta.",
-  },
-  {
-    value: "breve",
-    title: "Breve",
-    description: "La partita rapida: 6, 5, 4, 3, 2, 1 carte.",
-  },
-  {
-    value: "personalizzata",
-    title: "Personalizzata",
-    description: "Scegli le carte turno per turno. Minimo 6 turni, finale obbligatorio 3–2–1.",
-  },
-];
-
 export default function SetupModeScreen() {
+  const { t } = useAppSettings();
   const { mode, setMode, selectedPlayers, dealerId, reset } = useSetup();
   const { startGame } = useGame();
 
   if (selectedPlayers.length === 0 || !dealerId) {
     return (
       <ScreenContainer>
-        <ScreenIntro title="Manca il mazziere" description="Completa prima ordine e mazziere." />
-        <Button label="Torna a ordine e mazziere" onPress={() => router.replace("/setup/dealer")} />
+        <ScreenIntro title={t("mode.missingTitle")} description={t("mode.missingDescription")} />
+        <Button label={t("mode.backDealer")} onPress={() => router.replace("/setup/dealer")} />
       </ScreenContainer>
     );
   }
@@ -55,17 +34,22 @@ export default function SetupModeScreen() {
 
   return (
     <ScreenContainer
-      footer={<Button label="Inizia la partita" trailing="→" onPress={start} disabled={!mode} />}
+      footer={<Button label={t("mode.start")} trailing="→" onPress={start} disabled={!mode} />}
     >
       <ScreenIntro
-        title="Scegli la modalità"
-        description={`${selectedPlayers.length} giocatori · il mazziere è ${
+        title={t("mode.title")}
+        description={`${selectedPlayers.length} ${t("home.players")} · ${t("mode.dealerIs")} ${
           selectedPlayers.find((player) => player.id === dealerId)?.name
         }`}
       />
 
       <View style={styles.list}>
-        {MODE_OPTIONS.map((option) => {
+        {(["classica", "completa", "breve", "personalizzata"] as GameMode[]).map((value) => {
+          const option = {
+            value,
+            title: t(`mode.${value}`),
+            description: t(`mode.${value}Description`),
+          };
           const selected = mode === option.value;
           const sequence = option.value === "personalizzata"
             ? []
@@ -81,7 +65,7 @@ export default function SetupModeScreen() {
               <View style={styles.optionHeader}>
                 <Text style={styles.optionTitle}>{option.title}</Text>
                 <Text style={[styles.turnCount, selected && styles.turnCountSelected]}>
-                  {option.value === "personalizzata" ? "6+ TURNI" : `${sequence.length} TURNI`}
+                  {option.value === "personalizzata" ? `6+ ${t("mode.turns")}` : `${sequence.length} ${t("mode.turns")}`}
                 </Text>
               </View>
               <Text style={styles.optionDescription}>{option.description}</Text>
@@ -96,7 +80,7 @@ export default function SetupModeScreen() {
               )}
               {option.value === "personalizzata" && selected && (
                 <View style={styles.customPanel}>
-                  <Text style={styles.customTitle}>DECIDI DAL VIVO</Text>
+                  <Text style={styles.customTitle}>{t("mode.live")}</Text>
                   <Text style={styles.customText}>
                     Prima di ogni turno l’app ti chiederà quante carte avete distribuito e impedirà sequenze che
                     finirebbero prima del sesto turno.

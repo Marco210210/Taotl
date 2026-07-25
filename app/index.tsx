@@ -5,34 +5,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandMark } from "@/components/BrandMark";
 import { Button } from "@/components/Button";
 import { getFixedSequence } from "@/game/modes";
+import { useAppSettings } from "@/state/AppSettingsContext";
 import { useGame } from "@/state/GameContext";
 import { theme } from "@/theme";
 
-const MENU_ITEMS = [
-  {
-    label: "Storico\npartite",
-    route: "/history" as const,
-    icon: require("../assets/design/suit-heart.png"),
-  },
-  {
-    label: "Profili e\nstatistiche",
-    route: "/profile" as const,
-    icon: require("../assets/design/suit-diamond.png"),
-  },
-  {
-    label: "Regole e\npunteggi",
-    route: "/rules" as const,
-    icon: require("../assets/design/suit-club.png"),
-  },
-  {
-    label: "Impostazioni",
-    route: "/settings" as const,
-    icon: require("../assets/design/suit-spear.png"),
-  },
-] as const;
-
 export default function HomeScreen() {
+  const { t } = useAppSettings();
   const { game, isHydrated, ranked, resetGame } = useGame();
+  const menuItems = [
+    { label: t("home.history"), route: "/history" as const, icon: require("../assets/design/suit-heart.png") },
+    { label: t("home.profiles"), route: "/profile" as const, icon: require("../assets/design/suit-diamond.png") },
+    { label: t("home.rules"), route: "/rules" as const, icon: require("../assets/design/suit-club.png") },
+    { label: t("home.settings"), route: "/settings" as const, icon: require("../assets/design/suit-spear.png") },
+  ];
 
   const hasActiveGame = !!game && game.status !== "finished";
   const hasFinishedGame = !!game && game.status === "finished";
@@ -51,11 +36,11 @@ export default function HomeScreen() {
   const deleteActiveGame = () => {
     if (!game || game.status === "finished") return;
     Alert.alert(
-      "Eliminare la partita in corso?",
-      "I turni e i punteggi di questa partita verranno eliminati da questo telefono. L’operazione non si può annullare.",
+      t("home.deleteActiveTitle"),
+      t("home.deleteActiveBody"),
       [
-        { text: "Annulla", style: "cancel" },
-        { text: "Elimina partita", style: "destructive", onPress: resetGame },
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("home.deleteGame"), style: "destructive", onPress: resetGame },
       ],
     );
   };
@@ -65,24 +50,24 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.page}>
         <View style={styles.hero}>
           <BrandMark />
-          <Text style={styles.heroCopy}>Conta i punti. Goditi la partita.</Text>
+          <Text style={styles.heroCopy}>{t("home.tagline")}</Text>
         </View>
 
         <View style={styles.content}>
           {isHydrated && hasActiveGame && game && (
             <Pressable onPress={resumeGame} style={({ pressed }) => [styles.activeCard, pressed && styles.pressed]}>
               <View style={styles.activeTop}>
-                <Text style={styles.activeLabel}>PARTITA IN CORSO</Text>
+                <Text style={styles.activeLabel}>{t("home.activeGame")}</Text>
                 <Text style={styles.roundMeta}>
-                  Turno {currentRound}
+                  {t("home.round")} {currentRound}
                   {totalRounds ? `/${totalRounds}` : ""}
                 </Text>
               </View>
               <View style={styles.leaderRow}>
                 <View>
-                  <Text style={styles.leaderName}>{leader?.name ?? `${game.players.length} giocatori`}</Text>
+                  <Text style={styles.leaderName}>{leader?.name ?? `${game.players.length} ${t("home.players")}`}</Text>
                   <Text style={styles.activeMeta}>
-                    {game.players.length} giocatori · modalità {game.mode}
+                    {game.players.length} {t("home.players")} · {t("home.mode")} {t(`mode.${game.mode}`)}
                   </Text>
                 </View>
                 <Text style={styles.leaderScore}>{leaderEntry?.total ?? 0}</Text>
@@ -95,7 +80,7 @@ export default function HomeScreen() {
                   ]}
                 />
               </View>
-              <Text style={styles.resumeHint}>Tocca per continuare →</Text>
+              <Text style={styles.resumeHint}>{t("home.resume")}</Text>
             </Pressable>
           )}
 
@@ -105,25 +90,25 @@ export default function HomeScreen() {
               style={({ pressed }) => [styles.activeCard, pressed && styles.pressed]}
             >
               <View style={styles.activeTop}>
-                <Text style={styles.activeLabel}>ULTIMA PARTITA</Text>
-                <Text style={styles.roundMeta}>Conclusa</Text>
+                <Text style={styles.activeLabel}>{t("home.lastGame")}</Text>
+                <Text style={styles.roundMeta}>{t("home.finished")}</Text>
               </View>
-              <Text style={styles.leaderName}>Vedi il risultato finale →</Text>
+              <Text style={styles.leaderName}>{t("home.finalResult")}</Text>
             </Pressable>
           )}
 
           <Button
-            label="Nuova partita"
-            subtitle="Scegli i giocatori e comincia"
+            label={t("home.newGame")}
+            subtitle={t("home.newGameSubtitle")}
             trailing="→"
             onPress={() => router.push("/setup/players")}
           />
 
           <View style={styles.grid}>
-            {MENU_ITEMS.map((item) => (
+            {menuItems.map((item) => (
               <Pressable
                 key={item.route}
-                onPress={() => router.push(item.route)}
+                onPress={() => router.navigate(item.route)}
                 style={({ pressed }) => [styles.tile, pressed && styles.pressed]}
               >
                 <Image source={item.icon} resizeMode="contain" style={styles.tileIcon} />
@@ -132,14 +117,14 @@ export default function HomeScreen() {
             ))}
           </View>
 
-          <Pressable onPress={() => router.push("/roster")} style={styles.rosterLink}>
-            <Text style={styles.rosterText}>Gestisci la rubrica giocatori</Text>
+          <Pressable onPress={() => router.navigate("/roster")} style={styles.rosterLink}>
+            <Text style={styles.rosterText}>{t("home.manageRoster")}</Text>
             <Text style={styles.rosterArrow}>›</Text>
           </Pressable>
 
           {hasActiveGame && (
             <Pressable onPress={deleteActiveGame} style={styles.deleteLink}>
-              <Text style={styles.deleteText}>Elimina la partita in corso</Text>
+              <Text style={styles.deleteText}>{t("home.deleteActive")}</Text>
             </Pressable>
           )}
         </View>

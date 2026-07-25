@@ -3,15 +3,20 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { MAX_PLAYERS, MIN_PLAYERS } from "@/game/constants";
+import { useAppSettings } from "@/state/AppSettingsContext";
+import { useAccount } from "@/state/AccountContext";
 import { useSetup } from "@/state/SetupContext";
 import { useRoster } from "@/state/useRoster";
 import { theme } from "@/theme";
 
 export default function SetupPlayersScreen() {
+  const { t } = useAppSettings();
+  const { account, room } = useAccount();
   const { players, loading, addPlayer } = useRoster();
   const { selectedPlayers, togglePlayer } = useSetup();
   const [newName, setNewName] = useState("");
@@ -35,8 +40,8 @@ export default function SetupPlayersScreen() {
   };
 
   const footerLabel = canContinue
-    ? `Ordine e mazziere · ${selectedPlayers.length}`
-    : `Servono almeno ${MIN_PLAYERS} giocatori`;
+    ? `${t("players.continue")} · ${selectedPlayers.length}`
+    : `${t("players.minimum")} ${MIN_PLAYERS} ${t("home.players")}`;
 
   return (
     <ScreenContainer
@@ -51,15 +56,41 @@ export default function SetupPlayersScreen() {
       }
     >
       <ScreenIntro
-        title="Chi gioca?"
-        description={`Scegli da ${MIN_PLAYERS} a ${MAX_PLAYERS} giocatori. Potrai sistemare l’ordine nel passaggio successivo.`}
+        title={t("players.who")}
+        description={t("players.description")}
       />
+
+      <Card style={styles.verifiedCard}>
+        <View style={styles.verifiedHeader}>
+          <View style={[styles.verifiedDot, account && room && styles.verifiedDotActive]} />
+          <Text style={styles.verifiedTitle}>{t("players.verifiedRoom")}</Text>
+          {room && (
+            <Text style={styles.verifiedCode}>{room.code}</Text>
+          )}
+        </View>
+        <Text style={styles.verifiedBody}>
+          {room
+            ? `${room.participants.length} ${t("players.verifiedCount")}`
+            : account
+              ? t("account.tableDescription")
+              : t("players.guestNote")}
+        </Text>
+        <Pressable
+          onPress={() => router.push({ pathname: "/account", params: { from: "setup" } })}
+          style={({ pressed }) => [styles.verifiedLink, pressed && styles.pressed]}
+        >
+          <Text style={styles.verifiedLinkText}>
+            {account ? t("players.openRoom") : t("players.verifyIdentity")}
+          </Text>
+          <Text style={styles.manageArrow}>›</Text>
+        </Pressable>
+      </Card>
 
       <View style={styles.addRow}>
         <TextInput
           value={newName}
           onChangeText={setNewName}
-          placeholder="Aggiungi un giocatore"
+          placeholder={t("players.addPlaceholder")}
           placeholderTextColor={theme.colors.textMuted}
           style={styles.input}
           onSubmitEditing={handleAddPlayer}
@@ -67,7 +98,7 @@ export default function SetupPlayersScreen() {
         />
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Aggiungi giocatore"
+          accessibilityLabel={t("players.addAccessibility")}
           disabled={!newName.trim() || adding}
           onPress={handleAddPlayer}
           style={({ pressed }) => [styles.addButton, (!newName.trim() || adding) && styles.disabled, pressed && styles.pressed]}
@@ -77,9 +108,9 @@ export default function SetupPlayersScreen() {
       </View>
 
       <View style={styles.list}>
-        {loading && <Text style={styles.helper}>Carico la rubrica…</Text>}
+        {loading && <Text style={styles.helper}>{t("players.loading")}</Text>}
         {!loading && players.length === 0 && (
-          <Text style={styles.empty}>Non ci sono ancora giocatori. Scrivi il primo nome qui sopra.</Text>
+          <Text style={styles.empty}>{t("players.empty")}</Text>
         )}
         {players.map((player) => {
           const selected = selectedIds.has(player.id);
@@ -101,7 +132,9 @@ export default function SetupPlayersScreen() {
               <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={38} />
               <View style={styles.playerInfo}>
                 <Text style={styles.playerName}>{player.name}</Text>
-                <Text style={styles.playerMeta}>{selected ? `posizione ${order + 1}` : "Tocca per selezionare"}</Text>
+                <Text style={styles.playerMeta}>
+                  {selected ? `${t("players.position")} ${order + 1}` : t("players.tapSelect")}
+                </Text>
               </View>
               <View style={[styles.check, selected && styles.checkSelected]}>
                 <Text pointerEvents="none" style={[styles.checkText, selected && styles.checkTextSelected]}>
@@ -113,8 +146,11 @@ export default function SetupPlayersScreen() {
         })}
       </View>
 
-      <Pressable onPress={() => router.push("/roster")} style={styles.manageLink}>
-        <Text style={styles.manageText}>Modifica nomi, foto e profili</Text>
+      <Pressable
+        onPress={() => router.push({ pathname: "/roster", params: { from: "setup" } })}
+        style={styles.manageLink}
+      >
+        <Text style={styles.manageText}>{t("players.manage")}</Text>
         <Text style={styles.manageArrow}>›</Text>
       </Pressable>
     </ScreenContainer>
@@ -122,6 +158,26 @@ export default function SetupPlayersScreen() {
 }
 
 const styles = StyleSheet.create({
+  verifiedCard: { gap: 8 },
+  verifiedHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  verifiedDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: theme.colors.textFaint },
+  verifiedDotActive: { backgroundColor: theme.colors.success },
+  verifiedTitle: {
+    flex: 1,
+    color: theme.colors.text,
+    fontFamily: theme.font.family.extraBold,
+    fontSize: 10,
+    letterSpacing: 1,
+  },
+  verifiedCode: {
+    color: theme.colors.success,
+    fontFamily: theme.font.family.extraBold,
+    fontSize: 13,
+    letterSpacing: 2,
+  },
+  verifiedBody: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 11, lineHeight: 17 },
+  verifiedLink: { minHeight: 38, flexDirection: "row", alignItems: "center" },
+  verifiedLinkText: { flex: 1, color: theme.colors.success, fontFamily: theme.font.family.bold, fontSize: 11 },
   addRow: { flexDirection: "row", gap: 8, alignItems: "center" },
   input: {
     flex: 1,

@@ -31,12 +31,17 @@ export function validateBid(params: {
   return null;
 }
 
-export function validateScarto(scarto: number, cardsInHand: number): string | null {
+export function validateScarto(scarto: number, cardsInHand: number, language: AppLanguage = "it"): string | null {
   if (!Number.isInteger(scarto) || scarto < 1) {
-    return "Inserisci di quante prese ha sbagliato (almeno 1).";
+    return language === "en"
+      ? "Enter how many tricks the player missed by (at least 1)."
+      : "Inserisci di quante prese ha sbagliato (almeno 1).";
   }
   if (scarto > cardsInHand) {
-    return `Lo scarto non può superare le ${cardsInHand} carte in mano.`;
+    return language === "en"
+      ? `The difference cannot exceed the ${cardsInHand} cards in hand.`
+      : `Lo scarto non può superare le ${cardsInHand} carte in mano.`;
   }
   return null;
 }
+import type { AppLanguage } from "@/i18n/translations";

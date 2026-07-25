@@ -12,10 +12,14 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import type { Player } from "@/game/types";
+import { useAccount } from "@/state/AccountContext";
+import { useAppSettings } from "@/state/AppSettingsContext";
 import { STORAGE_KEYS } from "@/state/storageKeys";
 import { theme } from "@/theme";
 
 export default function MyProfileScreen() {
+  const { locale, t } = useAppSettings();
+  const { account } = useAccount();
   const [players, setPlayers] = useState<Player[]>([]);
   const [games, setGames] = useState<GameHistorySummaryDTO[]>([]);
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
@@ -72,7 +76,7 @@ export default function MyProfileScreen() {
     return (
       <ScreenContainer style={styles.center}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.helper}>Carico il tuo profilo…</Text>
+        <Text style={styles.helper}>{t("profile.loading")}</Text>
       </ScreenContainer>
     );
   }
@@ -81,18 +85,18 @@ export default function MyProfileScreen() {
     return (
       <ScreenContainer>
         <ScreenIntro
-          title="Chi sei?"
-          description="Scegli il tuo giocatore. La scelta resta su questo dispositivo e serve a filtrare partite e statistiche personali."
+          title={t("profile.who")}
+          description={t("profile.chooseDescription")}
         />
         {players.map((player) => (
           <Pressable key={player.id} onPress={() => selectPlayer(player)} style={styles.playerRow}>
             <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={46} />
             <Text style={styles.playerName}>{player.name}</Text>
-            <Text style={styles.selectHint}>Scegli ›</Text>
+            <Text style={styles.selectHint}>{t("profile.choose")}</Text>
           </Pressable>
         ))}
         {players.length === 0 && (
-          <Text style={styles.helper}>Prima aggiungi il tuo nome nella rubrica giocatori.</Text>
+          <Text style={styles.helper}>{t("profile.addFirst")}</Text>
         )}
       </ScreenContainer>
     );
@@ -100,45 +104,70 @@ export default function MyProfileScreen() {
 
   return (
     <ScreenContainer>
+      <Card style={styles.accountCard}>
+        {account ? (
+          <>
+            <Text style={styles.accountEyebrow}>{t("profile.verifiedAccount")}</Text>
+            <Text style={styles.accountName}>{account.displayName}</Text>
+            <Text style={styles.accountHandle}>@{account.handle}</Text>
+            <Button
+              label={t("profile.openAccount")}
+              variant="ghost"
+              onPress={() => router.push({ pathname: "/account", params: { from: "profile" } })}
+            />
+          </>
+        ) : (
+          <>
+            <Text style={styles.accountName}>{t("profile.createAccount")}</Text>
+            <Text style={styles.accountDescription}>{t("profile.createAccountDescription")}</Text>
+            <Button
+              label={t("profile.createAccount")}
+              variant="success"
+              onPress={() => router.push({ pathname: "/account", params: { from: "profile" } })}
+            />
+          </>
+        )}
+      </Card>
+
       <Card style={styles.profileCard}>
         <PlayerAvatar name={myPlayer.name} photoUri={myPlayer.photoUri} colorKey={myPlayer.id} size={78} />
         <Text style={styles.profileName}>{myPlayer.name}</Text>
-        <Text style={styles.localTag}>Profilo di questo dispositivo</Text>
-        <Button label="Cambia giocatore" variant="ghost" onPress={() => setChoosing(true)} />
+        <Text style={styles.localTag}>{t("profile.local")}</Text>
+        <Button label={t("profile.change")} variant="ghost" onPress={() => setChoosing(true)} />
       </Card>
 
       <View style={styles.statsGrid}>
         <Card style={styles.statCard}>
           <Text style={styles.statValue}>{myGames.length}</Text>
-          <Text style={styles.statLabel}>Partite</Text>
+          <Text style={styles.statLabel}>{t("profile.games")}</Text>
         </Card>
         <Card style={styles.statCard}>
           <Text style={styles.statValue}>{stats.wins}</Text>
-          <Text style={styles.statLabel}>Vittorie</Text>
+          <Text style={styles.statLabel}>{t("profile.wins")}</Text>
         </Card>
         <Card style={styles.statCard}>
           <Text style={styles.statValue}>{stats.average.toFixed(1)}</Text>
-          <Text style={styles.statLabel}>Media punti</Text>
+          <Text style={styles.statLabel}>{t("profile.average")}</Text>
         </Card>
       </View>
 
-      <Text style={styles.sectionTitle}>Le mie partite</Text>
+      <Text style={styles.sectionTitle}>{t("profile.myGames")}</Text>
       {myGames.map((game) => {
         const mine = game.standings.find((entry) => entry.playerId === myPlayer.id);
         const position = game.standings.findIndex((entry) => entry.playerId === myPlayer.id) + 1;
         return (
           <Pressable
             key={game.id}
-            onPress={() => router.push({ pathname: "/history/[id]", params: { id: game.id } })}
+            onPress={() => router.push({ pathname: "/history/[id]", params: { id: game.id, from: "profile" } })}
             style={({ pressed }) => pressed && styles.pressed}
           >
             <Card>
               <View style={styles.gameRow}>
                 <View style={styles.gameInfo}>
                   <Text style={styles.gameTitle}>
-                    {new Date(game.startedAt).toLocaleDateString("it-IT")} · {game.numPlayers} giocatori
+                    {new Date(game.startedAt).toLocaleDateString(locale)} · {game.numPlayers} {t("history.players")}
                   </Text>
-                  <Text style={styles.helper}>Posizione {position}ª</Text>
+                  <Text style={styles.helper}>{t("profile.position")} {position}</Text>
                 </View>
                 <Text style={[styles.gameScore, (mine?.total ?? 0) < 0 && styles.negative]}>
                   {mine?.total ?? 0}
@@ -148,7 +177,7 @@ export default function MyProfileScreen() {
           </Pressable>
         );
       })}
-      {myGames.length === 0 && <Text style={styles.helper}>Non risultano ancora partite con questo profilo.</Text>}
+      {myGames.length === 0 && <Text style={styles.helper}>{t("profile.noGames")}</Text>}
     </ScreenContainer>
   );
 }
@@ -175,6 +204,23 @@ const styles = StyleSheet.create({
   playerName: { flex: 1, color: theme.colors.text, fontSize: theme.font.body, fontFamily: theme.font.family.bold },
   selectHint: { color: theme.colors.success, fontSize: theme.font.small, fontFamily: theme.font.family.extraBold },
   profileCard: { alignItems: "center", paddingVertical: 20 },
+  accountCard: { alignItems: "center", paddingVertical: 18 },
+  accountEyebrow: {
+    color: theme.colors.success,
+    fontSize: 10,
+    fontFamily: theme.font.family.extraBold,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  accountName: { color: theme.colors.text, fontSize: 18, fontFamily: theme.font.family.extraBold, textAlign: "center" },
+  accountHandle: { color: theme.colors.textMuted, fontSize: 12, fontFamily: theme.font.family.bold },
+  accountDescription: {
+    color: theme.colors.textMuted,
+    fontSize: 11,
+    lineHeight: 17,
+    fontFamily: theme.font.family.medium,
+    textAlign: "center",
+  },
   profileName: { color: theme.colors.text, fontSize: theme.font.title, fontFamily: theme.font.family.extraBold },
   localTag: { color: theme.colors.textMuted, fontSize: theme.font.small, fontFamily: theme.font.family.medium },
   statsGrid: { flexDirection: "row", gap: theme.spacing(1) },
