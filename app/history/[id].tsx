@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 
@@ -6,19 +6,16 @@ import { deleteFinishedGame, fetchGameHistoryDetail } from "@/api/games";
 import type { GameHistoryDetailDTO } from "@/api/types";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { LinearBackButton } from "@/components/LinearBackButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
+import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme } from "@/theme";
 
-const MODE_LABELS: Record<string, string> = {
-  classica: "Classica",
-  completa: "Completa",
-  breve: "Breve",
-  personalizzata: "Personalizzata",
-};
-
 export default function HistoryDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { locale, t } = useAppSettings();
+  const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
+  const backDestination = from === "profile" ? "/profile" : "/history";
   const [game, setGame] = useState<GameHistoryDetailDTO | null>(null);
   const [fromCache, setFromCache] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -35,7 +32,7 @@ export default function HistoryDetailScreen() {
         setFromCache(result.fromCache);
       })
       .catch((reason) => {
-        if (active) setError(reason instanceof Error ? reason.message : "Partita non disponibile.");
+        if (active) setError(reason instanceof Error ? reason.message : t("history.unavailable"));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -53,22 +50,22 @@ export default function HistoryDetailScreen() {
   const requestDelete = () => {
     if (!game) return;
     Alert.alert(
-      "Eliminare questa partita?",
-      "La partita e tutti i punteggi dei suoi turni verranno eliminati definitivamente dallo storico.",
+      t("history.deleteTitle"),
+      t("history.deleteBody"),
       [
-        { text: "Annulla", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Elimina",
+          text: t("common.delete"),
           style: "destructive",
           onPress: async () => {
             setDeleting(true);
             try {
               await deleteFinishedGame(game.id);
-              router.replace("/history");
+              router.dismissTo(backDestination);
             } catch (reason) {
               Alert.alert(
-                "Eliminazione non riuscita",
-                reason instanceof Error ? reason.message : "Controlla la connessione e riprova.",
+                t("history.deleteFailed"),
+                reason instanceof Error ? reason.message : t("history.retry"),
               );
               setDeleting(false);
             }
@@ -80,34 +77,42 @@ export default function HistoryDetailScreen() {
 
   if (loading) {
     return (
-      <ScreenContainer style={styles.center}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.helper}>Carico tutti i turni…</Text>
-      </ScreenContainer>
+      <>
+        <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} /> }} />
+        <ScreenContainer style={styles.center}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.helper}>{t("history.loadingRounds")}</Text>
+        </ScreenContainer>
+      </>
     );
   }
 
   if (!game || error) {
     return (
-      <ScreenContainer style={styles.center}>
-        <Text style={styles.error}>{error ?? "Partita non trovata."}</Text>
-        <Button label="Torna allo storico" variant="secondary" onPress={() => router.back()} />
-      </ScreenContainer>
+      <>
+        <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} /> }} />
+        <ScreenContainer style={styles.center}>
+          <Text style={styles.error}>{error ?? t("history.notFound")}</Text>
+          <Button label={t("history.back")} variant="secondary" onPress={() => router.dismissTo(backDestination)} />
+        </ScreenContainer>
+      </>
     );
   }
 
   return (
-    <ScreenContainer>
+    <>
+      <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} /> }} />
+      <ScreenContainer>
       <View>
         <ScreenIntro
-          title={MODE_LABELS[game.mode] ?? game.mode}
-          description={`${new Date(game.startedAt).toLocaleString("it-IT")} · ${game.numPlayers} giocatori`}
+          title={t(`mode.${game.mode}`)}
+          description={`${new Date(game.startedAt).toLocaleString(locale)} · ${game.numPlayers} ${t("history.players")}`}
         />
-        {fromCache && <Text style={styles.cacheNotice}>Dettaglio recuperato dalla copia di questo telefono.</Text>}
+        {fromCache && <Text style={styles.cacheNotice}>{t("history.localCopy")}</Text>}
       </View>
 
       <Card>
-        <Text style={styles.sectionTitle}>Classifica finale</Text>
+        <Text style={styles.sectionTitle}>{t("history.finalStandings")}</Text>
         {game.standings.map((standing, index) => (
           <View key={standing.playerId} style={styles.row}>
             <Text style={styles.position}>{index + 1}</Text>
@@ -117,14 +122,14 @@ export default function HistoryDetailScreen() {
         ))}
       </Card>
 
-      <Text style={styles.sectionTitle}>Tutti i turni</Text>
+      <Text style={styles.sectionTitle}>{t("history.allRounds")}</Text>
       {game.rounds.map((round) => (
         <Card key={round.index}>
           <Text style={styles.roundTitle}>
-            Turno {round.index} · {round.cardsDealt} carte
+            {t("game.round")} {round.index} · {round.cardsDealt} {t("game.cards")}
           </Text>
           <Text style={styles.helper}>
-            Mazziere: {playerById.get(round.dealerId) ?? "—"} · Presa ±{round.presaValue} · Rispetto +{" "}
+            {t("history.dealer")}: {playerById.get(round.dealerId) ?? "—"} · {t("game.trick")} ±{round.presaValue} · {t("game.respect")} +{" "}
             {round.rispettoValue}
           </Text>
           {round.results.map((result) => (
@@ -132,8 +137,8 @@ export default function HistoryDetailScreen() {
               <View style={styles.resultInfo}>
                 <Text style={styles.name}>{result.name}</Text>
                 <Text style={styles.helper}>
-                  Chiamata {result.bid} ·{" "}
-                  {result.respected ? "rispettata" : `non rispettata, scarto ${result.scarto}`}
+                  {t("history.bid")} {result.bid} ·{" "}
+                  {result.respected ? t("history.respected") : `${t("history.notRespected")} ${result.scarto}`}
                 </Text>
               </View>
               <Text style={[styles.score, result.score < 0 && styles.negative]}>
@@ -145,9 +150,10 @@ export default function HistoryDetailScreen() {
         </Card>
       ))}
 
-      <Button label="Elimina partita" variant="danger" loading={deleting} onPress={requestDelete} />
-      <Text style={styles.deleteNote}>La password amministratore verrà aggiunta in una fase successiva.</Text>
-    </ScreenContainer>
+      <Button label={t("history.deleteGame")} variant="danger" loading={deleting} onPress={requestDelete} />
+      <Text style={styles.deleteNote}>{t("history.adminFuture")}</Text>
+      </ScreenContainer>
+    </>
   );
 }
 

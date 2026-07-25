@@ -12,6 +12,7 @@ import { StatBox } from "@/components/StatBox";
 import { maxFirstTurnCards, validatePersonalizzataCards } from "@/game/modes";
 import type { ActiveGame, Bid, Player, RoundInfo } from "@/game/types";
 import { getForbiddenBidForDealer } from "@/game/validation";
+import { useAppSettings } from "@/state/AppSettingsContext";
 import { useGame } from "@/state/GameContext";
 import { theme } from "@/theme";
 
@@ -46,6 +47,7 @@ function CardsStep({
   previousCardsDealt: number | null;
   onConfirm: (cardsDealt: number) => void;
 }) {
+  const { resolvedLanguage, t } = useAppSettings();
   const numPlayers = game.players.length;
   const roundIndex = game.rounds.length + 1;
   const defaultMax = previousCardsDealt !== null ? previousCardsDealt - 1 : maxFirstTurnCards(numPlayers);
@@ -58,7 +60,7 @@ function CardsStep({
       previousCardsDealt,
       numPlayers,
       roundIndex,
-    });
+    }, resolvedLanguage);
     if (nextError) {
       setError(nextError);
       return;
@@ -69,34 +71,34 @@ function CardsStep({
 
   return (
     <ScreenContainer
-      footer={<Button label="Conferma le carte" trailing="→" variant="secondary" onPress={handleConfirm} />}
+      footer={<Button label={t("game.confirmCards")} trailing="→" variant="secondary" onPress={handleConfirm} />}
     >
       <ScreenIntro
-        title={`Turno ${roundIndex}`}
+        title={`${t("game.round")} ${roundIndex}`}
         description={
           previousCardsDealt !== null
-            ? `Nel turno precedente erano ${previousCardsDealt}. Scegli un numero più basso.`
-            : `Scegli quante carte distribuire. Con ${numPlayers} giocatori il massimo è ${maxFirstTurnCards(numPlayers)}.`
+            ? `${t("game.previousCards")} ${previousCardsDealt}. ${t("game.chooseLower")}`
+            : `${t("game.chooseCards")} ${numPlayers} ${t("home.players")}: ${t("game.maximum")} ${maxFirstTurnCards(numPlayers)}.`
         }
       />
 
       {game.rounds.length > 0 && <MiniStandings />}
 
       <Card style={styles.cardsCard}>
-        <Text style={styles.eyebrow}>CARTE A TESTA</Text>
+        <Text style={styles.eyebrow}>{t("game.cardsEach")}</Text>
         <NumberStepper value={value} min={1} max={Math.max(1, defaultMax)} onChange={setValue} />
-        <Text style={styles.cardsHint}>La partita deve durare almeno 6 turni e chiudersi con 3, 2, 1.</Text>
+        <Text style={styles.cardsHint}>{t("game.customHint")}</Text>
       </Card>
 
       {!!error && <Text style={styles.error}>{error}</Text>}
 
       <View style={styles.utilityRow}>
         <Pressable onPress={() => router.push("/game/standings")} style={styles.utilityButton}>
-          <Text style={styles.utilityText}>Classifica</Text>
+          <Text style={styles.utilityText}>{t("game.standings")}</Text>
         </Pressable>
         {roundIndex === 1 && (
           <Pressable onPress={() => router.push("/game/dealer")} style={styles.utilityButton}>
-            <Text style={styles.utilityText}>Correggi primo mazziere</Text>
+            <Text style={styles.utilityText}>{t("game.fixDealer")}</Text>
           </Pressable>
         )}
       </View>
@@ -105,15 +107,16 @@ function CardsStep({
 }
 
 function MiniStandings() {
+  const { t } = useAppSettings();
   const { game, ranked } = useGame();
   if (!game) return null;
   const playerById = new Map(game.players.map((player) => [player.id, player]));
   return (
     <View style={styles.miniStandings}>
       <View style={styles.miniHeader}>
-        <Text style={styles.eyebrow}>CLASSIFICA ATTUALE</Text>
+        <Text style={styles.eyebrow}>{t("game.currentStandings")}</Text>
         <Pressable onPress={() => router.push("/game/standings")}>
-          <Text style={styles.miniLink}>Dettaglio ›</Text>
+          <Text style={styles.miniLink}>{t("game.detail")}</Text>
         </Pressable>
       </View>
       {ranked.slice(0, 4).map((entry, index) => (
@@ -136,6 +139,7 @@ function BiddingStep({
   roundInfo: RoundInfo;
   onConfirm: (bids: Bid[]) => void;
 }) {
+  const { t } = useAppSettings();
   const [calls, setCalls] = useState<Record<string, number>>(() =>
     Object.fromEntries(roundInfo.biddingOrder.map((playerId) => [playerId, 0])),
   );
@@ -175,13 +179,13 @@ function BiddingStep({
       footer={
         <View style={styles.bidFooter}>
           <View style={styles.sumLine}>
-            <Text style={styles.sumLabel}>Somma delle chiamate</Text>
+            <Text style={styles.sumLabel}>{t("game.bidsSum")}</Text>
             <Text style={[styles.sumValue, !valid && styles.invalidSum]}>
-              {total} / {roundInfo.cardsDealt} carte
+              {total} / {roundInfo.cardsDealt} {t("game.cards")}
             </Text>
           </View>
           <Button
-            label={valid ? "Registra gli esiti" : `La somma non può fare ${roundInfo.cardsDealt}`}
+            label={valid ? t("game.recordResults") : `${t("game.sumCannot")} ${roundInfo.cardsDealt}`}
             trailing={valid ? "→" : undefined}
             variant="secondary"
             onPress={confirm}
@@ -191,23 +195,23 @@ function BiddingStep({
       }
     >
       <ScreenIntro
-        title={`Chiamate · turno ${roundInfo.index}`}
-        description="Inserisci tutte le chiamate. Il mazziere è già in fondo e il valore vietato viene saltato."
+        title={`${t("game.bidsTitle")} · ${t("game.round").toLowerCase()} ${roundInfo.index}`}
+        description={t("game.bidsDescription")}
       />
 
       <View style={styles.statsRow}>
-        <StatBox label="CARTE A TESTA" value={roundInfo.cardsDealt} />
-        <StatBox label="PRESA" value={`± ${roundInfo.presaValue}`} />
-        <StatBox label="RISPETTO" value={`+ ${roundInfo.rispettoValue}`} />
+        <StatBox label={t("game.cardsEach")} value={roundInfo.cardsDealt} />
+        <StatBox label={t("game.trick")} value={`± ${roundInfo.presaValue}`} />
+        <StatBox label={t("game.respect")} value={`+ ${roundInfo.rispettoValue}`} />
       </View>
 
       <View style={styles.utilityRow}>
         <Pressable onPress={() => router.push("/game/standings")} style={styles.utilityButton}>
-          <Text style={styles.utilityText}>Classifica</Text>
+          <Text style={styles.utilityText}>{t("game.standings")}</Text>
         </Pressable>
         {roundInfo.index === 1 && (
           <Pressable onPress={() => router.push("/game/dealer")} style={styles.utilityButton}>
-            <Text style={styles.utilityText}>Correggi primo mazziere</Text>
+            <Text style={styles.utilityText}>{t("game.fixDealer")}</Text>
           </Pressable>
         )}
       </View>
@@ -226,8 +230,8 @@ function BiddingStep({
                 <Text style={styles.callName}>{player.name}</Text>
                 <Text style={[styles.callMeta, isDealer && styles.dealerMeta]}>
                   {isDealer
-                    ? `mazziere · non può chiamare ${forbiddenBid ?? "—"}`
-                    : `${value} ${value === 1 ? "presa" : "prese"} = ${expected} punti se rispetta`}
+                    ? `${t("game.dealer")} · ${t("game.cannotBid")} ${forbiddenBid ?? "—"}`
+                    : `${value} ${value === 1 ? t("game.trickSingle") : t("game.trickPlural")} = ${expected} ${t("game.pointsIfRespected")}`}
                 </Text>
               </View>
               <NumberStepper

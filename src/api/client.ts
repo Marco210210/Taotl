@@ -7,7 +7,7 @@ export class ApiUnavailableError extends Error {
   }
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const baseUrl = getApiBaseUrl();
   if (!baseUrl) {
     throw new ApiUnavailableError();
@@ -74,6 +74,14 @@ export const apiClient = {
   put: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: "PUT", body: body !== undefined ? JSON.stringify(body) : undefined }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  getAuthenticated: <T>(path: string, token: string) =>
+    request<T>(path, { method: "GET", headers: { Authorization: `Bearer ${token}` } }),
+  postAuthenticated: <T>(path: string, token: string, body?: unknown) =>
+    request<T>(path, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }),
   putBinary: <T>(path: string, body: Blob, contentType: string) =>
     request<T>(path, { method: "PUT", body: body as unknown as BodyInit, headers: { "Content-Type": contentType } }),
 };

@@ -6,10 +6,12 @@ import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View 
 import { Button } from "@/components/Button";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { useAppSettings } from "@/state/AppSettingsContext";
 import { useRoster } from "@/state/useRoster";
 import { theme } from "@/theme";
 
 export default function EditPlayerScreen() {
+  const { t } = useAppSettings();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { players, loading, addPlayer, renamePlayer, setPlayerPhoto, removePlayer } = useRoster();
   const existing = id ? players.find((p) => p.id === id) : undefined;
@@ -33,8 +35,8 @@ export default function EditPlayerScreen() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert(
-        "Permesso necessario",
-        "Per scegliere una foto, consenti a Taotl di accedere alla libreria immagini.",
+        t("player.permissionTitle"),
+        t("player.permissionBody"),
       );
       return;
     }
@@ -63,7 +65,7 @@ export default function EditPlayerScreen() {
         }
       } else {
         if (id) {
-          throw new Error("Il profilo richiesto non è stato trovato.");
+          throw new Error(t("player.notFound"));
         }
         const created = await addPlayer(trimmed);
         playerId = created.id;
@@ -71,11 +73,11 @@ export default function EditPlayerScreen() {
       if (photoUri && photoUri !== existing?.photoUri) {
         await setPlayerPhoto(playerId, photoUri, photoType);
       }
-      router.back();
+      router.dismissTo("/roster");
     } catch (error) {
       Alert.alert(
-        "Salvataggio non riuscito",
-        error instanceof Error ? error.message : "Controlla la connessione e riprova.",
+        t("player.saveFailed"),
+        error instanceof Error ? error.message : t("history.retry"),
       );
     } finally {
       setSaving(false);
@@ -85,22 +87,22 @@ export default function EditPlayerScreen() {
   const handleDelete = () => {
     if (!existing) return;
     Alert.alert(
-      "Eliminare il profilo?",
-      `${existing.name} sparirà dalla rubrica. Le partite già giocate resteranno nello storico.`,
+      t("player.deleteTitle"),
+      `${existing.name} ${t("player.deleteBody")}`,
       [
-        { text: "Annulla", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Elimina",
+          text: t("common.delete"),
           style: "destructive",
           onPress: async () => {
             setDeleting(true);
             try {
               await removePlayer(existing.id);
-              router.back();
+              router.dismissTo("/roster");
             } catch (error) {
               Alert.alert(
-                "Eliminazione non riuscita",
-                error instanceof Error ? error.message : "Controlla la connessione e riprova.",
+                t("player.deleteFailed"),
+                error instanceof Error ? error.message : t("history.retry"),
               );
               setDeleting(false);
             }
@@ -114,7 +116,7 @@ export default function EditPlayerScreen() {
     return (
       <ScreenContainer style={styles.loading}>
         <ActivityIndicator color={theme.colors.primary} size="large" />
-        <Text style={styles.avatarHint}>Caricamento profilo…</Text>
+        <Text style={styles.avatarHint}>{t("player.loading")}</Text>
       </ScreenContainer>
     );
   }
@@ -122,8 +124,8 @@ export default function EditPlayerScreen() {
   if (id && !loading && !existing) {
     return (
       <ScreenContainer style={styles.content}>
-        <Text style={styles.error}>Questo profilo non esiste più o non è raggiungibile.</Text>
-        <Button label="Torna alla rubrica" onPress={() => router.back()} variant="secondary" />
+        <Text style={styles.error}>{t("player.missing")}</Text>
+        <Button label={t("player.backRoster")} onPress={() => router.dismissTo("/roster")} variant="secondary" />
       </ScreenContainer>
     );
   }
@@ -132,24 +134,26 @@ export default function EditPlayerScreen() {
     <ScreenContainer style={styles.content}>
       <Pressable onPress={pickImage} style={styles.avatarWrapper}>
         <PlayerAvatar name={name || "?"} photoUri={photoUri} size={96} />
-        <Text style={styles.avatarHint}>Tocca per {photoUri ? "cambiare" : "aggiungere"} la foto</Text>
+        <Text style={styles.avatarHint}>
+          {t("player.tapPhoto")} {photoUri ? t("player.change") : t("player.addPhoto")} {t("player.photo")}
+        </Text>
       </Pressable>
 
       <View>
-        <Text style={styles.label}>Nome</Text>
+        <Text style={styles.label}>{t("player.name")}</Text>
         <TextInput
           value={name}
           onChangeText={setName}
-          placeholder="Nome giocatore"
+          placeholder={t("player.namePlaceholder")}
           placeholderTextColor={theme.colors.textMuted}
           style={styles.input}
         />
       </View>
 
-      <Button label="Salva" onPress={handleSave} loading={saving} disabled={!name.trim()} />
+      <Button label={t("common.save")} onPress={handleSave} loading={saving} disabled={!name.trim()} />
       {existing && (
         <Button
-          label="Elimina profilo"
+          label={t("player.deleteProfile")}
           onPress={handleDelete}
           variant="danger"
           loading={deleting}

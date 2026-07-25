@@ -1,22 +1,56 @@
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
-import { PanResponder, Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Animated, PanResponder, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
+import { useAppSettings } from "@/state/AppSettingsContext";
 import { useSetup } from "@/state/SetupContext";
 import { theme } from "@/theme";
 
+const ROW_SLOT_HEIGHT = 72;
+
 export default function SetupDealerScreen() {
+  const { t } = useAppSettings();
   const { selectedPlayers, dealerId, setDealerId, movePlayer } = useSetup();
+  const [dragPreview, setDragPreview] = useState<{ from: number; to: number } | null>(null);
+
+  const updateDragPreview = (from: number, offsetY: number) => {
+    const to = Math.max(
+      0,
+      Math.min(selectedPlayers.length - 1, from + Math.round(offsetY / ROW_SLOT_HEIGHT)),
+    );
+    setDragPreview((current) => (
+      current?.from === from && current.to === to ? current : { from, to }
+    ));
+    return to;
+  };
+
+  const finishDrag = (from: number, to: number) => {
+    if (from !== to) movePlayer(from, to);
+    setDragPreview(null);
+  };
+
+  const cancelDrag = () => setDragPreview(null);
+
+  const previewIndexFor = (index: number) => {
+    if (!dragPreview || index === dragPreview.from) return index;
+    if (dragPreview.from < dragPreview.to && index > dragPreview.from && index <= dragPreview.to) {
+      return index - 1;
+    }
+    if (dragPreview.from > dragPreview.to && index >= dragPreview.to && index < dragPreview.from) {
+      return index + 1;
+    }
+    return index;
+  };
 
   if (selectedPlayers.length === 0) {
     return (
       <ScreenContainer>
-        <ScreenIntro title="Mancano i giocatori" description="Torna indietro e scegli prima chi partecipa." />
-        <Button label="Scegli i giocatori" onPress={() => router.replace("/setup/players")} />
+        <ScreenIntro title={t("dealer.missingTitle")} description={t("dealer.missingDescription")} />
+        <Button label={t("dealer.choosePlayers")} onPress={() => router.replace("/setup/players")} />
       </ScreenContainer>
     );
   }
@@ -25,7 +59,7 @@ export default function SetupDealerScreen() {
     <ScreenContainer
       footer={
         <Button
-          label="Scegli la modalità"
+          label={t("dealer.chooseMode")}
           trailing="→"
           variant="secondary"
           onPress={() => router.push("/setup/mode")}
@@ -34,12 +68,12 @@ export default function SetupDealerScreen() {
       }
     >
       <ScreenIntro
-        title="Ordine e mazziere"
-        description="Metti i giocatori nello stesso ordine in cui sono seduti. Poi tocca chi darà le carte al primo turno."
+        title={t("dealer.title")}
+        description={t("dealer.description")}
       />
-      <Text style={styles.reorderHint}>Trascina ↕ oppure usa le frecce per cambiare posizione.</Text>
+      <Text style={styles.reorderHint}>{t("dealer.reorderHint")}</Text>
 
-      <View style={styles.list}>
+      <View style={[styles.list, { height: selectedPlayers.length * ROW_SLOT_HEIGHT }]}>
         {selectedPlayers.map((player, index) => (
           <DealerRow
             key={player.id}
@@ -49,6 +83,17 @@ export default function SetupDealerScreen() {
             selected={dealerId === player.id}
             onSelect={() => setDealerId(player.id)}
             onMove={movePlayer}
+            previewIndex={previewIndexFor(index)}
+            onDragStart={() => setDragPreview({ from: index, to: index })}
+            onDragMove={updateDragPreview}
+            onDragEnd={finishDrag}
+            onDragCancel={cancelDrag}
+            labels={{
+              badge: t("dealer.badge"),
+              moveUp: t("dealer.moveUp"),
+              moveDown: t("dealer.moveDown"),
+              drag: t("dealer.drag"),
+            }}
           />
         ))}
       </View>
@@ -63,6 +108,12 @@ function DealerRow({
   selected,
   onSelect,
   onMove,
+  previewIndex,
+  onDragStart,
+  onDragMove,
+  onDragEnd,
+  onDragCancel,
+  labels,
 }: {
   player: ReturnType<typeof useSetup>["selectedPlayers"][number];
   index: number;
@@ -70,68 +121,190 @@ function DealerRow({
   selected: boolean;
   onSelect: () => void;
   onMove: (fromIndex: number, toIndex: number) => void;
+  previewIndex: number;
+  onDragStart: () => void;
+  onDragMove: (fromIndex: number, offsetY: number) => number;
+  onDragEnd: (fromIndex: number, toIndex: number) => void;
+  onDragCancel: () => void;
+  labels: { badge: string; moveUp: string; moveDown: string; drag: string };
 }) {
   const [dragging, setDragging] = useState(false);
+  const position = useRef(new Animated.Value(index * ROW_SLOT_HEIGHT)).current;
+  const dragOffset = useRef(new Animated.Value(0)).current;
+  const lift = useRef(new Animated.Value(0)).current;
+  const targetIndex = useRef(index);
+
+  useEffect(() => {
+    if (dragging) return;
+    Animated.spring(position, {
+      toValue: previewIndex * ROW_SLOT_HEIGHT,
+      damping: 19,
+      stiffness: 230,
+      mass: 0.72,
+      useNativeDriver: true,
+    }).start();
+  }, [dragging, position, previewIndex]);
+
   const panResponder = useMemo(
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dy) > 4,
-        onPanResponderGrant: () => setDragging(true),
-        onPanResponderRelease: (_, gesture) => {
-          const offset = Math.round(gesture.dy / 62);
-          const target = Math.max(0, Math.min(playerCount - 1, index + offset));
-          setDragging(false);
-          onMove(index, target);
+        onPanResponderGrant: () => {
+          targetIndex.current = index;
+          dragOffset.setValue(0);
+          setDragging(true);
+          onDragStart();
+          Animated.spring(lift, {
+            toValue: 1,
+            damping: 16,
+            stiffness: 260,
+            useNativeDriver: true,
+          }).start();
         },
-        onPanResponderTerminate: () => setDragging(false),
+        onPanResponderMove: (_, gesture) => {
+          dragOffset.setValue(gesture.dy);
+          targetIndex.current = onDragMove(index, gesture.dy);
+        },
+        onPanResponderRelease: (_, gesture) => {
+          const target = Math.max(0, Math.min(playerCount - 1, targetIndex.current));
+          Animated.parallel([
+            Animated.spring(dragOffset, {
+              toValue: (target - index) * ROW_SLOT_HEIGHT,
+              damping: 18,
+              stiffness: 250,
+              mass: 0.7,
+              useNativeDriver: true,
+            }),
+            Animated.spring(lift, {
+              toValue: 0,
+              damping: 18,
+              stiffness: 250,
+              useNativeDriver: true,
+            }),
+          ]).start(() => {
+            position.setValue(target * ROW_SLOT_HEIGHT);
+            dragOffset.setValue(0);
+            setDragging(false);
+            onDragEnd(index, target);
+          });
+        },
+        onPanResponderTerminate: () => {
+          Animated.parallel([
+            Animated.spring(dragOffset, {
+              toValue: 0,
+              damping: 18,
+              stiffness: 250,
+              useNativeDriver: true,
+            }),
+            Animated.spring(lift, {
+              toValue: 0,
+              damping: 18,
+              stiffness: 250,
+              useNativeDriver: true,
+            }),
+          ]).start(() => {
+            setDragging(false);
+            onDragCancel();
+          });
+        },
       }),
-    [index, onMove, playerCount],
+    [
+      dragOffset,
+      index,
+      lift,
+      onDragCancel,
+      onDragEnd,
+      onDragMove,
+      onDragStart,
+      playerCount,
+      position,
+    ],
   );
 
   return (
-    <Pressable
-      onPress={onSelect}
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
-      style={({ pressed }) => [styles.row, selected && styles.rowSelected, dragging && styles.dragging, pressed && styles.pressed]}
+    <Animated.View
+      style={[
+        styles.animatedRow,
+        dragging && styles.animatedRowDragging,
+        {
+          transform: [
+            { translateY: Animated.add(position, dragOffset) },
+            {
+              scale: lift.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, 1.025],
+              }),
+            },
+          ],
+          shadowOpacity: lift.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 0.2],
+          }),
+        },
+      ]}
     >
-      <Text style={styles.position}>{index + 1}</Text>
-      <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={36} />
-      <Text style={styles.name}>{player.name}</Text>
-      <View style={[styles.dealerPill, selected && styles.dealerPillSelected]}>
-        <Text style={[styles.dealerText, selected && styles.dealerTextSelected]}>MAZZIERE</Text>
-      </View>
-      <View style={styles.controls}>
-        <Pressable
-          accessibilityLabel={`Sposta ${player.name} su`}
-          disabled={index === 0}
-          onPress={() => onMove(index, index - 1)}
-          style={[styles.arrow, index === 0 && styles.arrowDisabled]}
-        >
-          <Text pointerEvents="none" style={styles.arrowText}>▲</Text>
-        </Pressable>
-        <Pressable
-          accessibilityLabel={`Sposta ${player.name} giù`}
-          disabled={index === playerCount - 1}
-          onPress={() => onMove(index, index + 1)}
-          style={[styles.arrow, index === playerCount - 1 && styles.arrowDisabled]}
-        >
-          <Text pointerEvents="none" style={styles.arrowText}>▼</Text>
-        </Pressable>
-      </View>
-      <View {...panResponder.panHandlers} style={styles.dragHandle} accessibilityLabel={`Trascina ${player.name}`}>
-        <Text pointerEvents="none" style={styles.dragText}>↕</Text>
-      </View>
-    </Pressable>
+      <Pressable
+        onPress={onSelect}
+        accessibilityRole="radio"
+        accessibilityState={{ selected }}
+        style={({ pressed }) => [
+          styles.row,
+          selected && styles.rowSelected,
+          dragging && styles.dragging,
+          pressed && !dragging && styles.pressed,
+        ]}
+      >
+        <Text style={styles.position}>{index + 1}</Text>
+        <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={36} />
+        <Text style={styles.name}>{player.name}</Text>
+        <View style={[styles.dealerPill, selected && styles.dealerPillSelected]}>
+          <Text style={[styles.dealerText, selected && styles.dealerTextSelected]}>{labels.badge}</Text>
+        </View>
+        <View style={styles.controls}>
+          <Pressable
+            accessibilityLabel={`${labels.moveUp}: ${player.name}`}
+            disabled={index === 0 || dragging}
+            onPress={() => onMove(index, index - 1)}
+            style={[styles.arrow, (index === 0 || dragging) && styles.arrowDisabled]}
+          >
+            <Text pointerEvents="none" style={styles.arrowText}>▲</Text>
+          </Pressable>
+          <Pressable
+            accessibilityLabel={`${labels.moveDown}: ${player.name}`}
+            disabled={index === playerCount - 1 || dragging}
+            onPress={() => onMove(index, index + 1)}
+            style={[styles.arrow, (index === playerCount - 1 || dragging) && styles.arrowDisabled]}
+          >
+            <Text pointerEvents="none" style={styles.arrowText}>▼</Text>
+          </Pressable>
+        </View>
+        <View {...panResponder.panHandlers} style={styles.dragHandle} accessibilityLabel={`${labels.drag}: ${player.name}`}>
+          <Text pointerEvents="none" style={styles.dragText}>⠿</Text>
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   reorderHint: { color: theme.colors.success, fontFamily: theme.font.family.semibold, fontSize: 11.5 },
-  list: { gap: 8 },
+  list: { position: "relative" },
+  animatedRow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 64,
+    zIndex: 1,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 18,
+    elevation: 1,
+  },
+  animatedRowDragging: { zIndex: 20, elevation: 12 },
   row: {
-    minHeight: 64,
+    height: 64,
     flexDirection: "row",
     alignItems: "center",
     gap: 9,
@@ -173,7 +346,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
     borderLeftColor: theme.colors.border,
   },
-  dragText: { color: theme.colors.textMuted, fontSize: 20 },
-  dragging: { opacity: 0.58, borderColor: theme.colors.success },
+  dragText: { color: theme.colors.textMuted, fontSize: 22, letterSpacing: -2 },
+  dragging: { borderColor: theme.colors.success, backgroundColor: theme.colors.surface },
   pressed: { opacity: 0.76 },
 });

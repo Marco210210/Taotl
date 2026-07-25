@@ -1,5 +1,7 @@
+import * as Haptics from "expo-haptics";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme } from "@/theme";
 
 export function NumberStepper({
@@ -17,19 +19,24 @@ export function NumberStepper({
   disabled?: boolean;
   disabledValues?: number[];
 }) {
+  const { resolvedLanguage, vibrationEnabled } = useAppSettings();
   const disabledSet = new Set(disabledValues);
   const previousValue = findAllowedValue(value, -1, min, max, disabledSet);
   const nextValue = findAllowedValue(value, 1, min, max, disabledSet);
   const canDecrement = !disabled && previousValue !== null;
   const canIncrement = !disabled && nextValue !== null;
+  const changeValue = (next: number) => {
+    if (vibrationEnabled) void Haptics.selectionAsync().catch(() => {});
+    onChange(next);
+  };
 
   return (
     <View style={styles.row}>
       <Pressable
-        onPress={() => canDecrement && previousValue !== null && onChange(previousValue)}
+        onPress={() => canDecrement && previousValue !== null && changeValue(previousValue)}
         disabled={!canDecrement}
         accessibilityRole="button"
-        accessibilityLabel="Diminuisci"
+        accessibilityLabel={resolvedLanguage === "en" ? "Decrease" : "Diminuisci"}
         accessibilityState={{ disabled: !canDecrement }}
         style={[styles.btn, !canDecrement && styles.btnDisabled]}
       >
@@ -37,10 +44,10 @@ export function NumberStepper({
       </Pressable>
       <Text style={styles.value}>{value}</Text>
       <Pressable
-        onPress={() => canIncrement && nextValue !== null && onChange(nextValue)}
+        onPress={() => canIncrement && nextValue !== null && changeValue(nextValue)}
         disabled={!canIncrement}
         accessibilityRole="button"
-        accessibilityLabel="Aumenta"
+        accessibilityLabel={resolvedLanguage === "en" ? "Increase" : "Aumenta"}
         accessibilityState={{ disabled: !canIncrement }}
         style={[styles.btn, !canIncrement && styles.btnDisabled]}
       >

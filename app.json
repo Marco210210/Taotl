@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.taotl.conteggio"
@@ -37,7 +37,9 @@
           "microphonePermission": false
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-localization",
+      "expo-secure-store"
     ],
     "extra": {
       "router": {}

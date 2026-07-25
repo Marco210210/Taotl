@@ -19,6 +19,9 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { GameProvider } from "@/state/GameContext";
 import { SetupProvider } from "@/state/SetupContext";
+import { LinearBackButton } from "@/components/LinearBackButton";
+import { AccountProvider } from "@/state/AccountContext";
+import { AppSettingsProvider, useAppSettings } from "@/state/AppSettingsContext";
 import { theme } from "@/theme";
 
 void SplashScreen.preventAutoHideAsync();
@@ -41,40 +44,156 @@ export default function RootLayout() {
   if (!ready) return null;
 
   return (
+    <AppSettingsProvider>
+      <AppNavigation />
+    </AppSettingsProvider>
+  );
+}
+
+function AppNavigation() {
+  const { resolvedTheme, t } = useAppSettings();
+
+  return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <GameProvider>
-          <SetupProvider>
-            <StatusBar style="dark" />
+        <AccountProvider>
+          <GameProvider>
+            <SetupProvider>
+            <StatusBar style={resolvedTheme === "dark" ? "light" : "dark"} />
             <Stack
               screenOptions={{
-                headerStyle: { backgroundColor: theme.colors.surface },
-                headerTintColor: theme.colors.text,
+                headerStyle: { backgroundColor: theme.colors.surface as string },
+                headerTintColor: theme.colors.text as string,
                 headerTitleStyle: { fontFamily: theme.font.family.bold, fontSize: 15 },
                 headerShadowVisible: false,
-                headerBackTitle: "Indietro",
+                headerBackTitle: t("common.back"),
                 contentStyle: { backgroundColor: theme.colors.background },
               }}
             >
               <Stack.Screen name="index" options={{ headerShown: false }} />
-              <Stack.Screen name="setup/players" options={{ title: "Giocatori" }} />
-              <Stack.Screen name="setup/mode" options={{ title: "Modalità" }} />
-              <Stack.Screen name="setup/dealer" options={{ title: "Mazziere" }} />
-              <Stack.Screen name="game/bids" options={{ title: "Chiamate", headerBackVisible: false }} />
-              <Stack.Screen name="game/dealer" options={{ title: "Correggi primo mazziere" }} />
-              <Stack.Screen name="game/scoring" options={{ title: "Punteggio turno", headerBackVisible: false }} />
-              <Stack.Screen name="game/standings" options={{ title: "Classifica" }} />
+              <Stack.Screen
+                name="setup/players"
+                options={{
+                  title: t("nav.players"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerLeft: () => <LinearBackButton destination="/" />,
+                }}
+              />
+              <Stack.Screen
+                name="setup/mode"
+                options={{
+                  title: t("nav.mode"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerLeft: () => <LinearBackButton destination="/setup/dealer" />,
+                }}
+              />
+              <Stack.Screen
+                name="setup/dealer"
+                options={{
+                  title: t("nav.dealer"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerLeft: () => <LinearBackButton destination="/setup/players" />,
+                }}
+              />
+              <Stack.Screen name="game/bids" options={{ title: t("nav.bids"), headerBackVisible: false }} />
+              <Stack.Screen
+                name="game/dealer"
+                options={{
+                  title: t("nav.fixDealer"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerLeft: () => <LinearBackButton destination="/game/bids" />,
+                }}
+              />
+              <Stack.Screen name="game/scoring" options={{ title: t("nav.scoring"), headerBackVisible: false }} />
+              <Stack.Screen
+                name="game/standings"
+                options={{
+                  title: t("nav.standings"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerLeft: () => <LinearBackButton destination="/game/bids" />,
+                }}
+              />
               <Stack.Screen name="game/end" options={{ headerShown: false }} />
-              <Stack.Screen name="roster/index" options={{ title: "Rubrica giocatori" }} />
-              <Stack.Screen name="roster/edit" options={{ title: "Giocatore" }} />
-              <Stack.Screen name="profile/index" options={{ title: "Il mio profilo" }} />
-              <Stack.Screen name="history/index" options={{ title: "Storico partite" }} />
-              <Stack.Screen name="history/[id]" options={{ title: "Dettaglio partita" }} />
-              <Stack.Screen name="rules/index" options={{ title: "Regole e punteggi" }} />
-              <Stack.Screen name="settings/index" options={{ title: "Impostazioni" }} />
+              <Stack.Screen
+                name="roster/index"
+                options={{
+                  title: t("nav.roster"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerLeft: () => <LinearBackButton destination="/" />,
+                }}
+              />
+              <Stack.Screen
+                name="roster/edit"
+                options={{
+                  title: t("nav.player"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerLeft: () => <LinearBackButton destination="/roster" />,
+                }}
+              />
+              <Stack.Screen
+                name="profile/index"
+                options={{
+                  title: t("nav.profile"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerLeft: () => <LinearBackButton destination="/" />,
+                }}
+              />
+              <Stack.Screen
+                name="history/index"
+                options={{
+                  title: t("nav.history"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerLeft: () => <LinearBackButton destination="/" />,
+                }}
+              />
+              <Stack.Screen
+                name="history/[id]"
+                options={{
+                  title: t("nav.gameDetail"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerLeft: () => <LinearBackButton destination="/history" />,
+                }}
+              />
+              <Stack.Screen
+                name="rules/index"
+                options={{
+                  title: t("nav.rules"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerLeft: () => <LinearBackButton destination="/" />,
+                }}
+              />
+              <Stack.Screen
+                name="settings/index"
+                options={{
+                  title: t("nav.settings"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerLeft: () => <LinearBackButton destination="/" />,
+                }}
+              />
+              <Stack.Screen
+                name="account/index"
+                options={{
+                  title: t("nav.account"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                }}
+              />
             </Stack>
-          </SetupProvider>
-        </GameProvider>
+            </SetupProvider>
+          </GameProvider>
+        </AccountProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

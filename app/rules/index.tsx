@@ -3,6 +3,7 @@ import { Image, StyleSheet, Text, View } from "react-native";
 import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { TOTAL_CARDS } from "@/game/constants";
+import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme } from "@/theme";
 
 const SUITS = [
@@ -14,38 +15,29 @@ const SUITS = [
 ];
 
 export default function RulesScreen() {
+  const { t } = useAppSettings();
   return (
     <ScreenContainer>
       <View style={styles.formulaCard}>
-        <Text style={styles.eyebrow}>COME SI CALCOLANO I PUNTI</Text>
-        <Text style={styles.formula}>chiamata × 5N + 10N{`\n`}se rispetti</Text>
-        <Text style={styles.negativeFormula}>− 5N × scarto se sbagli</Text>
-        <Text style={styles.note}>N è il numero del turno: presa e rispetto aumentano mentre la partita avanza.</Text>
+        <Text style={styles.eyebrow}>{t("rules.how")}</Text>
+        <Text style={styles.formula}>{t("rules.formula")}</Text>
+        <Text style={styles.negativeFormula}>{t("rules.negativeFormula")}</Text>
+        <Text style={styles.note}>{t("rules.formulaNote")}</Text>
       </View>
 
       <Card>
-        <Text style={styles.title}>Il vincolo del mazziere</Text>
-        <Text style={styles.body}>
-          Il mazziere parla per ultimo. Non può fare una chiamata che porti la somma totale esattamente al numero
-          di carte distribuite. Taotl calcola quel valore e lo salta nello stepper.
-        </Text>
+        <Text style={styles.title}>{t("rules.dealerTitle")}</Text>
+        <Text style={styles.body}>{t("rules.dealerBody")}</Text>
       </Card>
 
       <Card>
-        <Text style={styles.title}>Esito del turno</Text>
-        <Text style={styles.body}>
-          Se rispetti la chiamata ottieni il valore delle prese più il valore rispetto. Se sbagli perdi il valore
-          di una presa per ogni presa di scarto. In ogni turno almeno un giocatore deve sbagliare.
-        </Text>
+        <Text style={styles.title}>{t("rules.resultTitle")}</Text>
+        <Text style={styles.body}>{t("rules.resultBody")}</Text>
       </Card>
 
       <Card>
-        <Text style={styles.title}>Modalità</Text>
-        <Text style={styles.body}>
-          Classica usa sei turni stabiliti in base ai partecipanti. Completa parte dal massimo consentito dal
-          mazzo da {TOTAL_CARDS} carte. Breve usa 6–5–4–3–2–1. Personalizzata permette di scegliere dal vivo, ma
-          dura almeno sei turni e termina sempre con 3–2–1.
-        </Text>
+        <Text style={styles.title}>{t("rules.modesTitle")}</Text>
+        <Text style={styles.body}>{t("rules.modesBody").replace("72", String(TOTAL_CARDS))}</Text>
       </Card>
 
       <View style={styles.suits}>

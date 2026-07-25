@@ -1,14 +1,19 @@
 import { useCallback } from "react";
-import { router, useFocusEffect } from "expo-router";
+import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/Button";
+import { LinearBackButton } from "@/components/LinearBackButton";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { useAppSettings } from "@/state/AppSettingsContext";
 import { useRoster } from "@/state/useRoster";
 import { theme } from "@/theme";
 
 export default function RosterScreen() {
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  const backDestination = from === "setup" ? "/setup/players" : "/";
+  const { t } = useAppSettings();
   const { players, loading, fromCache, reload } = useRoster();
 
   useFocusEffect(
@@ -18,19 +23,21 @@ export default function RosterScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safe} edges={["bottom", "left", "right"]}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} tintColor={theme.colors.primary} />}
-      >
-        <Text style={styles.heading}>Rubrica giocatori</Text>
+    <>
+      <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} /> }} />
+      <SafeAreaView style={styles.safe} edges={["bottom", "left", "right"]}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} tintColor={theme.colors.primary} />}
+        >
+        <Text style={styles.heading}>{t("roster.title")}</Text>
         {fromCache && (
           <Text style={styles.helper}>
-            Server non raggiungibile: mostro la copia salvata su questo telefono.
+            {t("roster.offline")}
           </Text>
         )}
 
-        <Button label="Aggiungi giocatore" onPress={() => router.push("/roster/edit")} />
+        <Button label={t("roster.add")} onPress={() => router.push("/roster/edit")} />
 
         <View style={styles.list}>
           {players.map((player) => (
@@ -44,11 +51,12 @@ export default function RosterScreen() {
             </Pressable>
           ))}
           {!loading && players.length === 0 && (
-            <Text style={styles.helper}>Nessun giocatore ancora. Aggiungine uno qui sopra.</Text>
+            <Text style={styles.helper}>{t("roster.empty")}</Text>
           )}
         </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </>
   );
 }
 

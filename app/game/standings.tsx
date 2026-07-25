@@ -6,17 +6,19 @@ import { Card } from "@/components/Card";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
+import { useAppSettings } from "@/state/AppSettingsContext";
 import { useGame } from "@/state/GameContext";
 import { theme } from "@/theme";
 
 export default function StandingsScreen() {
+  const { t } = useAppSettings();
   const { game, ranked } = useGame();
 
   if (!game) {
     return (
       <ScreenContainer>
-        <ScreenIntro title="Nessuna classifica" description="Non c’è una partita in corso." />
-        <Button label="Torna alla home" onPress={() => router.replace("/")} />
+        <ScreenIntro title={t("standings.none")} description={t("standings.noGame")} />
+        <Button label={t("standings.home")} onPress={() => router.replace("/")} />
       </ScreenContainer>
     );
   }
@@ -27,10 +29,10 @@ export default function StandingsScreen() {
   const nextCards = game.pendingCardsDealt;
   const footerLabel =
     game.status === "finished"
-      ? "Vedi il risultato finale"
+      ? t("standings.final")
       : game.status === "scoring"
-        ? "Torna agli esiti"
-        : `Turno ${game.rounds.length + 1}${nextCards ? ` · ${nextCards} carte` : ""}`;
+        ? t("standings.backResults")
+        : `${t("game.round")} ${game.rounds.length + 1}${nextCards ? ` · ${nextCards} ${t("game.cards")}` : ""}`;
   const continueGame = () => {
     if (game.status === "finished") router.replace("/game/end");
     else if (game.status === "scoring") router.replace("/game/scoring");
@@ -49,8 +51,8 @@ export default function StandingsScreen() {
       }
     >
       <ScreenIntro
-        title="Classifica"
-        description={`Dopo ${game.rounds.length} ${game.rounds.length === 1 ? "turno giocato" : "turni giocati"}`}
+        title={t("standings.title")}
+        description={`${t("standings.after")} ${game.rounds.length} ${game.rounds.length === 1 ? t("standings.roundPlayed") : t("standings.roundsPlayed")}`}
       />
 
       <View style={styles.ranking}>
@@ -66,7 +68,7 @@ export default function StandingsScreen() {
                 <Text style={styles.name}>{player.name}</Text>
                 {delta !== undefined && (
                   <Text style={[styles.delta, delta < 0 && styles.negative]}>
-                    ultimo turno {delta >= 0 ? "+" : ""}
+                    {t("standings.lastRound")} {delta >= 0 ? "+" : ""}
                     {delta}
                   </Text>
                 )}
@@ -79,13 +81,13 @@ export default function StandingsScreen() {
 
       {game.rounds.length > 0 && (
         <Card style={styles.roundLog}>
-          <Text style={styles.sectionTitle}>TURNO PER TURNO</Text>
+          <Text style={styles.sectionTitle}>{t("standings.roundByRound")}</Text>
           {[...game.rounds].reverse().map((round, roundIndex) => (
             <View key={round.info.index} style={[styles.roundBlock, roundIndex > 0 && styles.roundDivider]}>
               <View style={styles.roundHeader}>
-                <Text style={styles.roundTitle}>Turno {round.info.index}</Text>
+                <Text style={styles.roundTitle}>{t("game.round")} {round.info.index}</Text>
                 <Text style={styles.roundMeta}>
-                  {round.info.cardsDealt} carte · presa ±{round.info.presaValue} · rispetto +{round.info.rispettoValue}
+                  {round.info.cardsDealt} {t("game.cards")} · {t("game.trick").toLowerCase()} ±{round.info.presaValue} · {t("game.respect").toLowerCase()} +{round.info.rispettoValue}
                 </Text>
               </View>
               <View style={styles.resultChips}>

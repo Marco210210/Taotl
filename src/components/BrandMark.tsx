@@ -1,5 +1,6 @@
 import { Image, StyleSheet, Text, View } from "react-native";
 
+import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme } from "@/theme";
 
 export function BrandMark({
@@ -9,6 +10,7 @@ export function BrandMark({
   compact?: boolean;
   inverse?: boolean;
 }) {
+  const { t } = useAppSettings();
   const tileColor = inverse ? theme.colors.success : theme.colors.background;
 
   return (
@@ -23,7 +25,7 @@ export function BrandMark({
       {!compact && (
         <View>
           <Text style={[styles.wordmark, inverse && styles.inverseText]}>TAOTL</Text>
-          <Text style={[styles.kicker, inverse && styles.inverseKicker]}>SEGNAPUNTI</Text>
+          <Text style={[styles.kicker, inverse && styles.inverseKicker]}>{t("brand.scorekeeper")}</Text>
         </View>
       )}
     </View>

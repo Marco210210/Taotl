@@ -12,6 +12,7 @@ import { StatBox } from "@/components/StatBox";
 import { computePlayerScore } from "@/game/scoring";
 import type { RoundPlayerResult } from "@/game/types";
 import { validateScarto } from "@/game/validation";
+import { useAppSettings } from "@/state/AppSettingsContext";
 import { useGame } from "@/state/GameContext";
 import { theme } from "@/theme";
 
@@ -21,6 +22,7 @@ interface Draft {
 }
 
 export default function ScoringScreen() {
+  const { resolvedLanguage, t } = useAppSettings();
   const { game, currentRoundInfo, confirmRoundResults } = useGame();
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const isSubmitting = useRef(false);
@@ -54,7 +56,7 @@ export default function ScoringScreen() {
     const draft = drafts[b.playerId];
     if (!draft || draft.respected === null) return false;
     if (draft.respected === false) {
-      return validateScarto(draft.scarto, currentRoundInfo.cardsDealt) === null;
+      return validateScarto(draft.scarto, currentRoundInfo.cardsDealt, resolvedLanguage) === null;
     }
     return true;
   });
@@ -94,7 +96,7 @@ export default function ScoringScreen() {
     <ScreenContainer
       footer={
         <Button
-          label={canConfirm ? "Chiudi il turno" : "Segna tutti gli esiti"}
+          label={canConfirm ? t("game.closeRound") : t("game.markAll")}
           trailing={canConfirm ? "→" : undefined}
           variant="success"
           onPress={handleConfirm}
@@ -103,17 +105,17 @@ export default function ScoringScreen() {
       }
     >
       <ScreenIntro
-        title={`Esiti · turno ${currentRoundInfo.index}`}
-        description="Segna chi ha rispettato la chiamata. Almeno una persona deve aver sbagliato."
+        title={`${t("game.resultsTitle")} · ${t("game.round").toLowerCase()} ${currentRoundInfo.index}`}
+        description={t("game.resultsDescription")}
       />
       <View style={styles.statsRow}>
-        <StatBox label="CARTE A TESTA" value={currentRoundInfo.cardsDealt} />
-        <StatBox label="PRESA" value={`± ${currentRoundInfo.presaValue}`} />
-        <StatBox label="RISPETTO" value={`+ ${currentRoundInfo.rispettoValue}`} />
+        <StatBox label={t("game.cardsEach")} value={currentRoundInfo.cardsDealt} />
+        <StatBox label={t("game.trick")} value={`± ${currentRoundInfo.presaValue}`} />
+        <StatBox label={t("game.respect")} value={`+ ${currentRoundInfo.rispettoValue}`} />
       </View>
 
       <Pressable onPress={() => router.push("/game/standings")} style={styles.standingsButton}>
-        <Text style={styles.standingsText}>Vedi la classifica attuale ›</Text>
+        <Text style={styles.standingsText}>{t("game.viewStandings")}</Text>
       </Pressable>
 
       {game.pendingBids.map((bid) => {
@@ -121,7 +123,7 @@ export default function ScoringScreen() {
         const draft = drafts[bid.playerId];
         if (!player || !draft) return null;
         const scartoError =
-          draft.respected === false ? validateScarto(draft.scarto, currentRoundInfo.cardsDealt) : null;
+          draft.respected === false ? validateScarto(draft.scarto, currentRoundInfo.cardsDealt, resolvedLanguage) : null;
         const preview =
           draft.respected === null
             ? null
@@ -139,7 +141,9 @@ export default function ScoringScreen() {
               <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={36} />
               <View style={styles.playerInfo}>
                 <Text style={styles.playerName}>{player.name}</Text>
-                <Text style={styles.helper}>ha chiamato {bid.bid} {bid.bid === 1 ? "presa" : "prese"}</Text>
+                <Text style={styles.helper}>
+                  {t("game.called")} {bid.bid} {bid.bid === 1 ? t("game.trickSingle") : t("game.trickPlural")}
+                </Text>
               </View>
               <Text style={[styles.score, preview === null && styles.scorePending, (preview ?? 0) < 0 && styles.scoreNegative]}>
                 {preview === null ? "—" : (
@@ -157,7 +161,7 @@ export default function ScoringScreen() {
                 style={[styles.respectBtn, draft.respected === true && styles.respectBtnYes]}
               >
                 <Text style={[styles.respectLabel, draft.respected === true && styles.activeRespectLabel]}>
-                  Rispettata
+                  {t("game.respected")}
                 </Text>
               </Pressable>
               <Pressable
@@ -165,14 +169,14 @@ export default function ScoringScreen() {
                 style={[styles.respectBtn, draft.respected === false && styles.respectBtnNo]}
               >
                 <Text style={[styles.respectLabel, draft.respected === false && styles.activeRespectLabel]}>
-                  Sbagliata
+                  {t("game.missed")}
                 </Text>
               </Pressable>
             </View>
 
             {draft.respected === false && (
               <View style={styles.scartoRow}>
-                <Text style={styles.scartoLabel}>Prese di scarto</Text>
+                <Text style={styles.scartoLabel}>{t("game.missedBy")}</Text>
                 <NumberStepper
                   value={draft.scarto}
                   min={1}
@@ -188,7 +192,7 @@ export default function ScoringScreen() {
 
       {allPlayersDecided && !hasMissedBid && (
         <Text style={styles.constraintError}>
-          Non possono rispettare tutti: in ogni turno almeno un giocatore deve non rispettare la chiamata.
+          {t("game.everyoneConstraint")}
         </Text>
       )}
     </ScreenContainer>
