@@ -6,7 +6,9 @@ CREATE TABLE players (
   name              VARCHAR2(120) NOT NULL,
   photo             BLOB,
   photo_media_type  VARCHAR2(60),
-  created_at        TIMESTAMP WITH TIME ZONE DEFAULT ON NULL SYSTIMESTAMP NOT NULL
+  is_active         CHAR(1) DEFAULT ON NULL 'Y' NOT NULL,
+  created_at        TIMESTAMP WITH TIME ZONE DEFAULT ON NULL SYSTIMESTAMP NOT NULL,
+  CONSTRAINT chk_players_active CHECK (is_active IN ('Y', 'N'))
 );
 
 CREATE TABLE games (

@@ -1,10 +1,13 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as FileSystem from "expo-file-system/legacy";
+import { Platform } from "react-native";
 
 import type { Player } from "@/game/types";
 import { STORAGE_KEYS } from "@/state/storageKeys";
 import { generateId } from "@/utils/id";
 
 import { apiClient, photoUrlForPlayer } from "./client";
+import { getApiBaseUrl, getAppKey } from "./config";
 import type { PlayerDTO } from "./types";
 
 async function readCache(): Promise<Player[]> {
@@ -17,7 +20,11 @@ async function writeCache(players: Player[]): Promise<void> {
 }
 
 function fromDTO(dto: PlayerDTO): Player {
-  return { id: dto.id, name: dto.name, photoUri: dto.hasPhoto ? photoUrlForPlayer(dto.id) : null };
+  return {
+    id: dto.id,
+    name: dto.name,
+    photoUri: dto.hasPhoto ? photoUrlForPlayer(dto.id, Date.now()) : null,
+  };
 }
 
 // Prova il backend; se non è raggiungibile usa/aggiorna la cache locale, così la rubrica
@@ -35,10 +42,8 @@ export async function fetchRoster(): Promise<{ players: Player[]; fromCache: boo
 
 export async function createPlayer(name: string): Promise<Player> {
   const player: Player = { id: generateId("player"), name: name.trim(), photoUri: null };
-  try {
+  if (getApiBaseUrl()) {
     await apiClient.post<PlayerDTO>("/players/", { id: player.id, name: player.name });
-  } catch {
-    // resta salvato solo in locale: verrà comunque usato nella rubrica.
   }
   const cache = await readCache();
   await writeCache([...cache, player]);
@@ -46,30 +51,56 @@ export async function createPlayer(name: string): Promise<Player> {
 }
 
 export async function updatePlayerName(id: string, name: string): Promise<void> {
-  try {
+  if (getApiBaseUrl()) {
     await apiClient.put<void>(`/players/${id}`, { name: name.trim() });
-  } catch {
-    // ignorato: la modifica locale sotto è comunque applicata.
   }
   const cache = await readCache();
   await writeCache(cache.map((p) => (p.id === id ? { ...p, name: name.trim() } : p)));
 }
 
-export async function uploadPlayerPhoto(id: string, localUri: string): Promise<string | null> {
-  try {
-    const fileResponse = await fetch(localUri);
-    const blob = await fileResponse.blob();
-    const contentType = blob.type || "image/jpeg";
-    await apiClient.putBinary<void>(`/players/${id}/photo`, blob, contentType);
-    const url = photoUrlForPlayer(id);
-    const cache = await readCache();
-    await writeCache(cache.map((p) => (p.id === id ? { ...p, photoUri: url } : p)));
-    return url;
-  } catch {
-    // Senza backend la foto non può essere resa persistente lato server: la teniamo
-    // comunque in cache locale usando l'URI del file scelto, per questa sessione.
+export async function deletePlayer(id: string): Promise<void> {
+  if (getApiBaseUrl()) {
+    await apiClient.delete<void>(`/players/${id}`);
+  }
+  const cache = await readCache();
+  await writeCache(cache.filter((p) => p.id !== id));
+}
+
+export async function uploadPlayerPhoto(
+  id: string,
+  localUri: string,
+  contentType = "image/jpeg",
+): Promise<string | null> {
+  const baseUrl = getApiBaseUrl();
+  if (!baseUrl) {
     const cache = await readCache();
     await writeCache(cache.map((p) => (p.id === id ? { ...p, photoUri: localUri } : p)));
     return localUri;
   }
+
+  if (Platform.OS === "web") {
+    const localResponse = await fetch(localUri);
+    const blob = await localResponse.blob();
+    await apiClient.putBinary<void>(`/players/${id}/photo`, blob, blob.type || contentType);
+  } else {
+    const appKey = getAppKey();
+    const response = await FileSystem.uploadAsync(`${baseUrl}/players/${id}/photo`, localUri, {
+      httpMethod: "PUT",
+      uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+      headers: {
+        ...(appKey ? { "X-App-Key": appKey } : {}),
+        "Content-Type": contentType,
+        Accept: "application/json",
+      },
+    });
+
+    if (response.status < 200 || response.status >= 300) {
+      throw new Error(`Caricamento della foto fallito (${response.status}).`);
+    }
+  }
+
+  const url = photoUrlForPlayer(id, Date.now());
+  const cache = await readCache();
+  await writeCache(cache.map((p) => (p.id === id ? { ...p, photoUri: url } : p)));
+  return url;
 }

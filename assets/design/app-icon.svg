@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" fill="#17784B"/>
+  <rect x="202" y="202" width="620" height="620" rx="150" fill="#F8F8F5"/>
+  <image href="suit-mask.png" x="292" y="292" width="440" height="440"/>
+</svg>

@@ -6,8 +6,11 @@ import type { GameMode, Player } from "@/game/types";
 interface SetupContextValue {
   selectedPlayers: Player[];
   mode: GameMode | null;
+  dealerId: string | null;
   togglePlayer: (player: Player) => void;
+  movePlayer: (fromIndex: number, toIndex: number) => void;
   setMode: (mode: GameMode) => void;
+  setDealerId: (playerId: string) => void;
   reset: () => void;
 }
 
@@ -16,6 +19,7 @@ const SetupContext = createContext<SetupContextValue | null>(null);
 export function SetupProvider({ children }: PropsWithChildren) {
   const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
   const [mode, setModeState] = useState<GameMode | null>(null);
+  const [dealerId, setDealerIdState] = useState<string | null>(null);
 
   const togglePlayer = useCallback((player: Player) => {
     setSelectedPlayers((prev) => {
@@ -26,15 +30,35 @@ export function SetupProvider({ children }: PropsWithChildren) {
   }, []);
 
   const setMode = useCallback((next: GameMode) => setModeState(next), []);
+  const setDealerId = useCallback((playerId: string) => setDealerIdState(playerId), []);
+
+  const movePlayer = useCallback((fromIndex: number, toIndex: number) => {
+    setSelectedPlayers((previous) => {
+      if (
+        fromIndex === toIndex ||
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= previous.length ||
+        toIndex >= previous.length
+      ) {
+        return previous;
+      }
+      const next = [...previous];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
+  }, []);
 
   const reset = useCallback(() => {
     setSelectedPlayers([]);
     setModeState(null);
+    setDealerIdState(null);
   }, []);
 
   const value = useMemo<SetupContextValue>(
-    () => ({ selectedPlayers, mode, togglePlayer, setMode, reset }),
-    [selectedPlayers, mode, togglePlayer, setMode, reset]
+    () => ({ selectedPlayers, mode, dealerId, togglePlayer, movePlayer, setMode, setDealerId, reset }),
+    [selectedPlayers, mode, dealerId, togglePlayer, movePlayer, setMode, setDealerId, reset]
   );
 
   return <SetupContext.Provider value={value}>{children}</SetupContext.Provider>;

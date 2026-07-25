@@ -8,7 +8,8 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "app.taotl.conteggio"
     },
     "android": {
       "package": "app.taotl.conteggio",
@@ -21,11 +22,22 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "lang": "it",
+      "description": "Taotl: conteggio partite, turni e classifiche.",
+      "themeColor": "#F8F8F5"
     },
     "plugins": [
       "expo-router",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Taotl usa la libreria immagini solo per scegliere la foto del profilo.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-font"
     ],
     "extra": {
       "router": {},

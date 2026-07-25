@@ -8,29 +8,40 @@ export function NumberStepper({
   max,
   onChange,
   disabled,
+  disabledValues = [],
 }: {
   value: number;
   min: number;
   max: number;
   onChange: (value: number) => void;
   disabled?: boolean;
+  disabledValues?: number[];
 }) {
-  const canDecrement = !disabled && value > min;
-  const canIncrement = !disabled && value < max;
+  const disabledSet = new Set(disabledValues);
+  const previousValue = findAllowedValue(value, -1, min, max, disabledSet);
+  const nextValue = findAllowedValue(value, 1, min, max, disabledSet);
+  const canDecrement = !disabled && previousValue !== null;
+  const canIncrement = !disabled && nextValue !== null;
 
   return (
     <View style={styles.row}>
       <Pressable
-        onPress={() => canDecrement && onChange(value - 1)}
+        onPress={() => canDecrement && previousValue !== null && onChange(previousValue)}
         disabled={!canDecrement}
+        accessibilityRole="button"
+        accessibilityLabel="Diminuisci"
+        accessibilityState={{ disabled: !canDecrement }}
         style={[styles.btn, !canDecrement && styles.btnDisabled]}
       >
         <Text style={styles.btnLabel}>−</Text>
       </Pressable>
       <Text style={styles.value}>{value}</Text>
       <Pressable
-        onPress={() => canIncrement && onChange(value + 1)}
+        onPress={() => canIncrement && nextValue !== null && onChange(nextValue)}
         disabled={!canIncrement}
+        accessibilityRole="button"
+        accessibilityLabel="Aumenta"
+        accessibilityState={{ disabled: !canIncrement }}
         style={[styles.btn, !canIncrement && styles.btnDisabled]}
       >
         <Text style={styles.btnLabel}>+</Text>
@@ -39,19 +50,37 @@ export function NumberStepper({
   );
 }
 
+function findAllowedValue(
+  current: number,
+  direction: -1 | 1,
+  min: number,
+  max: number,
+  disabledValues: Set<number>,
+): number | null {
+  for (let candidate = current + direction; candidate >= min && candidate <= max; candidate += direction) {
+    if (!disabledValues.has(candidate)) return candidate;
+  }
+  return null;
+}
+
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: theme.spacing(2) },
   btn: {
     width: 44,
     height: 44,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.surfaceAlt,
+    borderRadius: 13,
+    backgroundColor: theme.colors.inkSoft,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: theme.colors.border,
   },
   btnDisabled: { opacity: 0.35 },
-  btnLabel: { color: theme.colors.text, fontSize: 22, fontWeight: "700" },
-  value: { color: theme.colors.text, fontSize: 28, fontWeight: "800", minWidth: 56, textAlign: "center" },
+  btnLabel: { color: theme.colors.text, fontSize: 24, fontFamily: theme.font.family.semibold },
+  value: {
+    color: theme.colors.text,
+    fontSize: 24,
+    fontFamily: theme.font.family.extraBold,
+    minWidth: 38,
+    textAlign: "center",
+    fontVariant: ["tabular-nums"],
+  },
 });

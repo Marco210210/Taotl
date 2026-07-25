@@ -1,4 +1,5 @@
-import { router } from "expo-router";
+import { useCallback } from "react";
+import { router, useFocusEffect } from "expo-router";
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -9,6 +10,12 @@ import { theme } from "@/theme";
 
 export default function RosterScreen() {
   const { players, loading, fromCache, reload } = useRoster();
+
+  useFocusEffect(
+    useCallback(() => {
+      void reload();
+    }, [reload]),
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={["bottom", "left", "right"]}>

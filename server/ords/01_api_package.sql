@@ -31,6 +31,16 @@ CREATE OR REPLACE PACKAGE taotl_api AS
     p_media_type IN VARCHAR2
   );
 
+  PROCEDURE delete_player(
+    p_key IN VARCHAR2,
+    p_id  IN VARCHAR2
+  );
+
+  PROCEDURE delete_game(
+    p_key IN VARCHAR2,
+    p_id  IN VARCHAR2
+  );
+
   -- Riceve il JSON di una partita conclusa (vedi src/api/types.ts -> GameSyncPayload
   -- nell'app) e la registra in un'unica transazione: partita, giocatori al tavolo,
   -- turni e chiamate. Idempotente: se la stessa partita (stesso id) viene rimandata,
@@ -93,7 +103,8 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
 
     UPDATE players
        SET name = TRIM(v_name)
-     WHERE id = p_id;
+     WHERE id = p_id
+       AND is_active = 'Y';
 
     IF SQL%ROWCOUNT = 0 THEN
       RAISE_APPLICATION_ERROR(-20404, 'Giocatore non trovato.');
@@ -114,7 +125,8 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
     UPDATE players
        SET photo = p_body,
            photo_media_type = NVL(p_media_type, 'application/octet-stream')
-     WHERE id = p_id;
+     WHERE id = p_id
+       AND is_active = 'Y';
 
     IF SQL%ROWCOUNT = 0 THEN
       RAISE_APPLICATION_ERROR(-20404, 'Giocatore non trovato.');
@@ -122,6 +134,44 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
 
     COMMIT;
   END update_player_photo;
+
+  PROCEDURE delete_player(
+    p_key IN VARCHAR2,
+    p_id  IN VARCHAR2
+  ) IS
+  BEGIN
+    check_app_key(p_key);
+
+    UPDATE players
+       SET is_active = 'N',
+           photo = NULL,
+           photo_media_type = NULL
+     WHERE id = p_id
+       AND is_active = 'Y';
+
+    IF SQL%ROWCOUNT = 0 THEN
+      RAISE_APPLICATION_ERROR(-20404, 'Giocatore non trovato.');
+    END IF;
+
+    COMMIT;
+  END delete_player;
+
+  PROCEDURE delete_game(
+    p_key IN VARCHAR2,
+    p_id  IN VARCHAR2
+  ) IS
+  BEGIN
+    check_app_key(p_key);
+
+    DELETE FROM games
+     WHERE id = p_id;
+
+    IF SQL%ROWCOUNT = 0 THEN
+      RAISE_APPLICATION_ERROR(-20404, 'Partita non trovata.');
+    END IF;
+
+    COMMIT;
+  END delete_game;
 
   PROCEDURE upsert_player(p_id IN VARCHAR2, p_name IN VARCHAR2) IS
   BEGIN

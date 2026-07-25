@@ -8,6 +8,7 @@ export type GameAction =
   | { type: "SET_PENDING_CARDS"; cardsDealt: number }
   | { type: "CONFIRM_BIDS"; bids: Bid[] }
   | { type: "CONFIRM_ROUND_RESULTS"; results: RoundPlayerResult[] }
+  | { type: "SET_CURRENT_DEALER"; dealerId: string }
   | { type: "RESET_GAME" }
   | { type: "HYDRATE"; game: ActiveGame | null };
 
@@ -48,6 +49,19 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
     case "CONFIRM_BIDS": {
       if (!state) return state;
       return { ...state, pendingBids: action.bids, status: "scoring" };
+    }
+
+    case "SET_CURRENT_DEALER": {
+      if (
+        !state ||
+        state.rounds.length > 0 ||
+        (state.status !== "bidding" && state.status !== "awaiting-cards")
+      ) {
+        return state;
+      }
+      const selectedIndex = state.players.findIndex((player) => player.id === action.dealerId);
+      if (selectedIndex < 0) return state;
+      return { ...state, startDealerId: state.players[selectedIndex].id, pendingBids: [] };
     }
 
     case "CONFIRM_ROUND_RESULTS": {

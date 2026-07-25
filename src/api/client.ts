@@ -73,12 +73,14 @@ export const apiClient = {
     request<T>(path, { method: "POST", body: body !== undefined ? JSON.stringify(body) : undefined }),
   put: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: "PUT", body: body !== undefined ? JSON.stringify(body) : undefined }),
+  delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
   putBinary: <T>(path: string, body: Blob, contentType: string) =>
     request<T>(path, { method: "PUT", body: body as unknown as BodyInit, headers: { "Content-Type": contentType } }),
 };
 
-export function photoUrlForPlayer(playerId: string): string | null {
+export function photoUrlForPlayer(playerId: string, version?: number): string | null {
   const baseUrl = getApiBaseUrl();
   if (!baseUrl) return null;
-  return `${baseUrl}/players/${playerId}/photo`;
+  const suffix = version === undefined ? "" : `?v=${version}`;
+  return `${baseUrl}/players/${playerId}/photo${suffix}`;
 }

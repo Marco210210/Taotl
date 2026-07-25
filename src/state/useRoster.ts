@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { createPlayer, fetchRoster, updatePlayerName, uploadPlayerPhoto } from "@/api/players";
+import { createPlayer, deletePlayer, fetchRoster, updatePlayerName, uploadPlayerPhoto } from "@/api/players";
 import type { Player } from "@/game/types";
 
 export function useRoster() {
@@ -31,10 +31,15 @@ export function useRoster() {
     setPlayers((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)));
   }, []);
 
-  const setPlayerPhoto = useCallback(async (id: string, localUri: string) => {
-    const url = await uploadPlayerPhoto(id, localUri);
+  const setPlayerPhoto = useCallback(async (id: string, localUri: string, contentType?: string) => {
+    const url = await uploadPlayerPhoto(id, localUri, contentType);
     setPlayers((prev) => prev.map((p) => (p.id === id ? { ...p, photoUri: url } : p)));
   }, []);
 
-  return { players, loading, fromCache, reload, addPlayer, renamePlayer, setPlayerPhoto };
+  const removePlayer = useCallback(async (id: string) => {
+    await deletePlayer(id);
+    setPlayers((prev) => prev.filter((p) => p.id !== id));
+  }, []);
+
+  return { players, loading, fromCache, reload, addPlayer, renamePlayer, setPlayerPhoto, removePlayer };
 }

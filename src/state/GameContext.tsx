@@ -19,6 +19,7 @@ interface GameContextValue {
   setPendingCards: (cardsDealt: number) => void;
   confirmBids: (bids: Bid[]) => void;
   confirmRoundResults: (results: RoundPlayerResult[]) => void;
+  setCurrentDealer: (dealerId: string) => void;
   resetGame: () => void;
 }
 
@@ -67,6 +68,10 @@ export function GameProvider({ children }: PropsWithChildren) {
     dispatch({ type: "CONFIRM_ROUND_RESULTS", results });
   }, []);
 
+  const setCurrentDealer = useCallback((dealerId: string) => {
+    dispatch({ type: "SET_CURRENT_DEALER", dealerId });
+  }, []);
+
   const resetGame = useCallback(() => {
     dispatch({ type: "RESET_GAME" });
   }, []);
@@ -83,9 +88,10 @@ export function GameProvider({ children }: PropsWithChildren) {
       setPendingCards,
       confirmBids,
       confirmRoundResults,
+      setCurrentDealer,
       resetGame,
     };
-  }, [game, isHydrated, startGame, setPendingCards, confirmBids, confirmRoundResults, resetGame]);
+  }, [game, isHydrated, startGame, setPendingCards, confirmBids, confirmRoundResults, setCurrentDealer, resetGame]);
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 }

@@ -1,15 +1,17 @@
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { NumberStepper } from "@/components/NumberStepper";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { ScreenIntro } from "@/components/ScreenIntro";
+import { StatBox } from "@/components/StatBox";
 import { maxFirstTurnCards, validatePersonalizzataCards } from "@/game/modes";
 import type { ActiveGame, Bid, Player, RoundInfo } from "@/game/types";
-import { validateBid } from "@/game/validation";
+import { getForbiddenBidForDealer } from "@/game/validation";
 import { useGame } from "@/state/GameContext";
 import { theme } from "@/theme";
 
@@ -17,16 +19,9 @@ export default function BidsScreen() {
   const { game, currentRoundInfo, previousCardsDealt, setPendingCards, confirmBids } = useGame();
 
   useEffect(() => {
-    if (!game) {
-      router.replace("/");
-      return;
-    }
-    if (game.status === "scoring") {
-      router.replace("/game/scoring");
-    }
-    if (game.status === "finished") {
-      router.replace("/game/end");
-    }
+    if (!game) router.replace("/");
+    else if (game.status === "scoring") router.replace("/game/scoring");
+    else if (game.status === "finished") router.replace("/game/end");
   }, [game]);
 
   if (!game) return null;
@@ -58,9 +53,14 @@ function CardsStep({
   const [error, setError] = useState<string | null>(null);
 
   const handleConfirm = () => {
-    const err = validatePersonalizzataCards({ candidate: value, previousCardsDealt, numPlayers, roundIndex });
-    if (err) {
-      setError(err);
+    const nextError = validatePersonalizzataCards({
+      candidate: value,
+      previousCardsDealt,
+      numPlayers,
+      roundIndex,
+    });
+    if (nextError) {
+      setError(nextError);
       return;
     }
     setError(null);
@@ -68,21 +68,62 @@ function CardsStep({
   };
 
   return (
-    <ScreenContainer>
-      <View>
-        <Text style={styles.heading}>Turno {roundIndex}</Text>
-        <Text style={styles.helper}>
-          {previousCardsDealt !== null
-            ? `Turno precedente: ${previousCardsDealt} carte. Quante carte sono state distribuite questo turno?`
-            : `Quante carte sono state distribuite? (massimo ${maxFirstTurnCards(numPlayers)} con ${numPlayers} giocatori)`}
-        </Text>
-      </View>
-      <Card style={styles.stepperCard}>
+    <ScreenContainer
+      footer={<Button label="Conferma le carte" trailing="→" variant="secondary" onPress={handleConfirm} />}
+    >
+      <ScreenIntro
+        title={`Turno ${roundIndex}`}
+        description={
+          previousCardsDealt !== null
+            ? `Nel turno precedente erano ${previousCardsDealt}. Scegli un numero più basso.`
+            : `Scegli quante carte distribuire. Con ${numPlayers} giocatori il massimo è ${maxFirstTurnCards(numPlayers)}.`
+        }
+      />
+
+      {game.rounds.length > 0 && <MiniStandings />}
+
+      <Card style={styles.cardsCard}>
+        <Text style={styles.eyebrow}>CARTE A TESTA</Text>
         <NumberStepper value={value} min={1} max={Math.max(1, defaultMax)} onChange={setValue} />
+        <Text style={styles.cardsHint}>La partita deve durare almeno 6 turni e chiudersi con 3, 2, 1.</Text>
       </Card>
-      {error && <Text style={styles.error}>{error}</Text>}
-      <Button label="Conferma carte" onPress={handleConfirm} />
+
+      {!!error && <Text style={styles.error}>{error}</Text>}
+
+      <View style={styles.utilityRow}>
+        <Pressable onPress={() => router.push("/game/standings")} style={styles.utilityButton}>
+          <Text style={styles.utilityText}>Classifica</Text>
+        </Pressable>
+        {roundIndex === 1 && (
+          <Pressable onPress={() => router.push("/game/dealer")} style={styles.utilityButton}>
+            <Text style={styles.utilityText}>Correggi primo mazziere</Text>
+          </Pressable>
+        )}
+      </View>
     </ScreenContainer>
+  );
+}
+
+function MiniStandings() {
+  const { game, ranked } = useGame();
+  if (!game) return null;
+  const playerById = new Map(game.players.map((player) => [player.id, player]));
+  return (
+    <View style={styles.miniStandings}>
+      <View style={styles.miniHeader}>
+        <Text style={styles.eyebrow}>CLASSIFICA ATTUALE</Text>
+        <Pressable onPress={() => router.push("/game/standings")}>
+          <Text style={styles.miniLink}>Dettaglio ›</Text>
+        </Pressable>
+      </View>
+      {ranked.slice(0, 4).map((entry, index) => (
+        <View key={entry.playerId} style={styles.miniRow}>
+          <Text style={styles.miniPosition}>{index + 1}</Text>
+          <Text style={styles.miniName}>{playerById.get(entry.playerId)?.name}</Text>
+          <Text style={styles.miniTotal}>{entry.total}</Text>
+        </View>
+      ))}
+    </View>
   );
 }
 
@@ -95,91 +136,188 @@ function BiddingStep({
   roundInfo: RoundInfo;
   onConfirm: (bids: Bid[]) => void;
 }) {
-  const [bidsSoFar, setBidsSoFar] = useState<Bid[]>([]);
-  const [value, setValue] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-
-  const playerById = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
-
-  const currentPlayerId = roundInfo.biddingOrder[bidsSoFar.length] as string | undefined;
-  const currentPlayer = currentPlayerId ? playerById.get(currentPlayerId) : null;
-  const isDealer = bidsSoFar.length === roundInfo.biddingOrder.length - 1;
-  const otherBidsSum = bidsSoFar.reduce((sum, b) => sum + b.bid, 0);
+  const [calls, setCalls] = useState<Record<string, number>>(() =>
+    Object.fromEntries(roundInfo.biddingOrder.map((playerId) => [playerId, 0])),
+  );
+  const playerById = useMemo(() => new Map(players.map((player) => [player.id, player])), [players]);
+  const dealerId = roundInfo.dealerId;
+  const otherBidsSum = roundInfo.biddingOrder
+    .filter((playerId) => playerId !== dealerId)
+    .reduce((sum, playerId) => sum + (calls[playerId] ?? 0), 0);
+  const forbiddenBid = getForbiddenBidForDealer(otherBidsSum, roundInfo.cardsDealt);
+  const total = roundInfo.biddingOrder.reduce((sum, playerId) => sum + (calls[playerId] ?? 0), 0);
+  const valid = total !== roundInfo.cardsDealt && calls[dealerId] !== forbiddenBid;
 
   useEffect(() => {
-    setValue(0);
-    setError(null);
-  }, [currentPlayerId]);
+    setCalls(Object.fromEntries(roundInfo.biddingOrder.map((playerId) => [playerId, 0])));
+  }, [roundInfo.index, roundInfo.biddingOrder]);
 
-  const handleConfirmBid = () => {
-    if (!currentPlayerId) return;
-    const err = validateBid({ value, cardsInHand: roundInfo.cardsDealt, isDealer, otherBidsSum });
-    if (err) {
-      setError(err);
-      return;
-    }
-    const next = [...bidsSoFar, { playerId: currentPlayerId, bid: value }];
-    setBidsSoFar(next);
-    if (next.length === roundInfo.biddingOrder.length) {
-      onConfirm(next);
-    }
+  useEffect(() => {
+    if (forbiddenBid === null || calls[dealerId] !== forbiddenBid) return;
+    setCalls((previous) => ({
+      ...previous,
+      [dealerId]: forbiddenBid === 0 ? Math.min(1, roundInfo.cardsDealt) : 0,
+    }));
+  }, [calls, dealerId, forbiddenBid, roundInfo.cardsDealt]);
+
+  const confirm = () => {
+    if (!valid) return;
+    onConfirm(
+      roundInfo.biddingOrder.map((playerId) => ({
+        playerId,
+        bid: calls[playerId] ?? 0,
+      })),
+    );
   };
 
-  const handleUndo = () => setBidsSoFar((prev) => prev.slice(0, -1));
-
   return (
-    <ScreenContainer>
-      <View>
-        <Text style={styles.heading}>Turno {roundInfo.index}</Text>
-        <Text style={styles.helper}>
-          {roundInfo.cardsDealt} carte · Presa {roundInfo.presaValue} pt · Rispetto {roundInfo.rispettoValue} pt
-        </Text>
+    <ScreenContainer
+      footer={
+        <View style={styles.bidFooter}>
+          <View style={styles.sumLine}>
+            <Text style={styles.sumLabel}>Somma delle chiamate</Text>
+            <Text style={[styles.sumValue, !valid && styles.invalidSum]}>
+              {total} / {roundInfo.cardsDealt} carte
+            </Text>
+          </View>
+          <Button
+            label={valid ? "Registra gli esiti" : `La somma non può fare ${roundInfo.cardsDealt}`}
+            trailing={valid ? "→" : undefined}
+            variant="secondary"
+            onPress={confirm}
+            disabled={!valid}
+          />
+        </View>
+      }
+    >
+      <ScreenIntro
+        title={`Chiamate · turno ${roundInfo.index}`}
+        description="Inserisci tutte le chiamate. Il mazziere è già in fondo e il valore vietato viene saltato."
+      />
+
+      <View style={styles.statsRow}>
+        <StatBox label="CARTE A TESTA" value={roundInfo.cardsDealt} />
+        <StatBox label="PRESA" value={`± ${roundInfo.presaValue}`} />
+        <StatBox label="RISPETTO" value={`+ ${roundInfo.rispettoValue}`} />
       </View>
 
-      <Button label="Vedi classifica" variant="ghost" onPress={() => router.push("/game/standings")} />
+      <View style={styles.utilityRow}>
+        <Pressable onPress={() => router.push("/game/standings")} style={styles.utilityButton}>
+          <Text style={styles.utilityText}>Classifica</Text>
+        </Pressable>
+        {roundInfo.index === 1 && (
+          <Pressable onPress={() => router.push("/game/dealer")} style={styles.utilityButton}>
+            <Text style={styles.utilityText}>Correggi primo mazziere</Text>
+          </Pressable>
+        )}
+      </View>
 
-      {bidsSoFar.length > 0 && (
-        <Card>
-          <Text style={styles.cardLabel}>Chiamate</Text>
-          {bidsSoFar.map((b) => (
-            <View key={b.playerId} style={styles.bidRow}>
-              <Text style={styles.bidName}>{playerById.get(b.playerId)?.name}</Text>
-              <Text style={styles.bidValue}>{b.bid}</Text>
+      <View style={styles.callsList}>
+        {roundInfo.biddingOrder.map((playerId) => {
+          const player = playerById.get(playerId);
+          if (!player) return null;
+          const isDealer = playerId === dealerId;
+          const value = calls[playerId] ?? 0;
+          const expected = value * roundInfo.presaValue + roundInfo.rispettoValue;
+          return (
+            <View key={playerId} style={styles.callRow}>
+              <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={36} />
+              <View style={styles.callInfo}>
+                <Text style={styles.callName}>{player.name}</Text>
+                <Text style={[styles.callMeta, isDealer && styles.dealerMeta]}>
+                  {isDealer
+                    ? `mazziere · non può chiamare ${forbiddenBid ?? "—"}`
+                    : `${value} ${value === 1 ? "presa" : "prese"} = ${expected} punti se rispetta`}
+                </Text>
+              </View>
+              <NumberStepper
+                value={value}
+                min={0}
+                max={roundInfo.cardsDealt}
+                disabledValues={isDealer && forbiddenBid !== null ? [forbiddenBid] : []}
+                onChange={(next) => setCalls((previous) => ({ ...previous, [playerId]: next }))}
+              />
             </View>
-          ))}
-          <Button label="Correggi ultima chiamata" variant="ghost" onPress={handleUndo} />
-        </Card>
-      )}
-
-      {currentPlayer && (
-        <Card style={styles.currentCard}>
-          <View style={styles.currentHeader}>
-            <PlayerAvatar name={currentPlayer.name} photoUri={currentPlayer.photoUri} size={56} />
-            <View>
-              <Text style={styles.currentName}>{currentPlayer.name}</Text>
-              {isDealer && <Text style={styles.dealerTag}>Mazziere · ultimo a chiamare</Text>}
-            </View>
-          </View>
-          <NumberStepper value={value} min={0} max={roundInfo.cardsDealt} onChange={setValue} />
-          {error && <Text style={styles.error}>{error}</Text>}
-          <Button label="Conferma chiamata" onPress={handleConfirmBid} />
-        </Card>
-      )}
+          );
+        })}
+      </View>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  heading: { fontSize: theme.font.title, fontWeight: "800", color: theme.colors.text },
-  helper: { fontSize: theme.font.small, color: theme.colors.textMuted, marginTop: theme.spacing(0.5) },
-  stepperCard: { alignItems: "center" },
-  error: { color: theme.colors.danger, fontSize: theme.font.small, fontWeight: "600" },
-  cardLabel: { fontSize: theme.font.small, color: theme.colors.textMuted, fontWeight: "700", textTransform: "uppercase" },
-  bidRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 4 },
-  bidName: { color: theme.colors.text, fontSize: theme.font.body },
-  bidValue: { color: theme.colors.primary, fontSize: theme.font.body, fontWeight: "800" },
-  currentCard: { alignItems: "center" },
-  currentHeader: { flexDirection: "row", alignItems: "center", gap: theme.spacing(1.5), alignSelf: "flex-start" },
-  currentName: { fontSize: theme.font.heading, fontWeight: "700", color: theme.colors.text },
-  dealerTag: { fontSize: theme.font.small, color: theme.colors.primary, fontWeight: "700" },
+  statsRow: { flexDirection: "row", gap: 7 },
+  cardsCard: { alignItems: "center", gap: 16, paddingVertical: 24 },
+  eyebrow: {
+    color: theme.colors.textMuted,
+    fontFamily: theme.font.family.bold,
+    fontSize: 9.5,
+    letterSpacing: 1.2,
+  },
+  cardsHint: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 11, textAlign: "center" },
+  error: {
+    padding: 13,
+    borderRadius: 11,
+    color: theme.colors.danger,
+    backgroundColor: theme.colors.negativeSoft,
+    fontFamily: theme.font.family.semibold,
+    fontSize: 11.5,
+    lineHeight: 17,
+  },
+  utilityRow: { flexDirection: "row", gap: 8 },
+  utilityButton: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.inkSoft,
+  },
+  utilityText: { color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 11.5 },
+  callsList: { gap: 9 },
+  callRow: {
+    minHeight: 72,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    borderRadius: 14,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  callInfo: { flex: 1, minWidth: 90 },
+  callName: { color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 14.5 },
+  callMeta: { marginTop: 2, color: theme.colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 10.5 },
+  dealerMeta: { color: theme.colors.terracotta },
+  bidFooter: { gap: 9 },
+  sumLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  sumLabel: { color: theme.colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 12 },
+  sumValue: {
+    color: theme.colors.success,
+    fontFamily: theme.font.family.extraBold,
+    fontSize: 14,
+    fontVariant: ["tabular-nums"],
+  },
+  invalidSum: { color: theme.colors.danger },
+  miniStandings: {
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    gap: 6,
+  },
+  miniHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  miniLink: { color: theme.colors.success, fontFamily: theme.font.family.bold, fontSize: 10.5 },
+  miniRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingTop: 5 },
+  miniPosition: { width: 18, color: theme.colors.textFaint, fontFamily: theme.font.family.extraBold, fontSize: 11 },
+  miniName: { flex: 1, color: theme.colors.text, fontFamily: theme.font.family.semibold, fontSize: 12.5 },
+  miniTotal: {
+    color: theme.colors.text,
+    fontFamily: theme.font.family.extraBold,
+    fontSize: 13,
+    fontVariant: ["tabular-nums"],
+  },
 });

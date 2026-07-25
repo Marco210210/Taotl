@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
@@ -7,6 +7,8 @@ import { Card } from "@/components/Card";
 import { NumberStepper } from "@/components/NumberStepper";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { ScreenIntro } from "@/components/ScreenIntro";
+import { StatBox } from "@/components/StatBox";
 import { computePlayerScore } from "@/game/scoring";
 import type { RoundPlayerResult } from "@/game/types";
 import { validateScarto } from "@/game/validation";
@@ -21,13 +23,14 @@ interface Draft {
 export default function ScoringScreen() {
   const { game, currentRoundInfo, confirmRoundResults } = useGame();
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const isSubmitting = useRef(false);
 
   useEffect(() => {
     if (!game) {
       router.replace("/");
       return;
     }
-    if (game.status !== "scoring") {
+    if (game.status !== "scoring" && !isSubmitting.current) {
       router.replace("/game/bids");
     }
   }, [game]);
@@ -47,7 +50,7 @@ export default function ScoringScreen() {
   if (!game || game.status !== "scoring" || !currentRoundInfo) return null;
 
   const playerById = new Map(game.players.map((p) => [p.id, p]));
-  const allDecided = game.pendingBids.every((b) => {
+  const allPlayersDecided = game.pendingBids.every((b) => {
     const draft = drafts[b.playerId];
     if (!draft || draft.respected === null) return false;
     if (draft.respected === false) {
@@ -55,6 +58,8 @@ export default function ScoringScreen() {
     }
     return true;
   });
+  const hasMissedBid = game.pendingBids.some((bid) => drafts[bid.playerId]?.respected === false);
+  const canConfirm = allPlayersDecided && hasMissedBid;
 
   const setRespected = (playerId: string, respected: boolean) => {
     setDrafts((prev) => ({ ...prev, [playerId]: { respected, scarto: prev[playerId]?.scarto ?? 1 } }));
@@ -65,7 +70,7 @@ export default function ScoringScreen() {
   };
 
   const handleConfirm = () => {
-    if (!allDecided) return;
+    if (!canConfirm) return;
     const results: RoundPlayerResult[] = game.pendingBids.map((b) => {
       const draft = drafts[b.playerId];
       const respected = draft.respected === true;
@@ -80,21 +85,36 @@ export default function ScoringScreen() {
       return { playerId: b.playerId, bid: b.bid, respected, scarto, score };
     });
     const wasLastRound = currentRoundInfo.cardsDealt === 1;
+    isSubmitting.current = true;
     confirmRoundResults(results);
-    router.replace(wasLastRound ? "/game/end" : "/game/bids");
+    router.replace(wasLastRound ? "/game/end" : "/game/standings");
   };
 
   return (
-    <ScreenContainer>
-      <View>
-        <Text style={styles.heading}>Punteggio turno {currentRoundInfo.index}</Text>
-        <Text style={styles.helper}>
-          {currentRoundInfo.cardsDealt} carte · Presa {currentRoundInfo.presaValue} pt · Rispetto{" "}
-          {currentRoundInfo.rispettoValue} pt
-        </Text>
+    <ScreenContainer
+      footer={
+        <Button
+          label={canConfirm ? "Chiudi il turno" : "Segna tutti gli esiti"}
+          trailing={canConfirm ? "→" : undefined}
+          variant="success"
+          onPress={handleConfirm}
+          disabled={!canConfirm}
+        />
+      }
+    >
+      <ScreenIntro
+        title={`Esiti · turno ${currentRoundInfo.index}`}
+        description="Segna chi ha rispettato la chiamata. Almeno una persona deve aver sbagliato."
+      />
+      <View style={styles.statsRow}>
+        <StatBox label="CARTE A TESTA" value={currentRoundInfo.cardsDealt} />
+        <StatBox label="PRESA" value={`± ${currentRoundInfo.presaValue}`} />
+        <StatBox label="RISPETTO" value={`+ ${currentRoundInfo.rispettoValue}`} />
       </View>
 
-      <Button label="Vedi classifica" variant="ghost" onPress={() => router.push("/game/standings")} />
+      <Pressable onPress={() => router.push("/game/standings")} style={styles.standingsButton}>
+        <Text style={styles.standingsText}>Vedi la classifica attuale ›</Text>
+      </Pressable>
 
       {game.pendingBids.map((bid) => {
         const player = playerById.get(bid.playerId);
@@ -114,19 +134,21 @@ export default function ScoringScreen() {
               });
 
         return (
-          <Card key={bid.playerId}>
+          <Card key={bid.playerId} style={styles.playerCard}>
             <View style={styles.playerHeader}>
-              <PlayerAvatar name={player.name} photoUri={player.photoUri} size={44} />
+              <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={36} />
               <View style={styles.playerInfo}>
                 <Text style={styles.playerName}>{player.name}</Text>
-                <Text style={styles.helper}>Chiamata: {bid.bid}</Text>
+                <Text style={styles.helper}>ha chiamato {bid.bid} {bid.bid === 1 ? "presa" : "prese"}</Text>
               </View>
-              {preview !== null && (
-                <Text style={[styles.score, preview < 0 && styles.scoreNegative]}>
+              <Text style={[styles.score, preview === null && styles.scorePending, (preview ?? 0) < 0 && styles.scoreNegative]}>
+                {preview === null ? "—" : (
+                  <>
                   {preview >= 0 ? "+" : ""}
                   {preview}
-                </Text>
-              )}
+                  </>
+                )}
+              </Text>
             </View>
 
             <View style={styles.respectRow}>
@@ -134,19 +156,23 @@ export default function ScoringScreen() {
                 onPress={() => setRespected(bid.playerId, true)}
                 style={[styles.respectBtn, draft.respected === true && styles.respectBtnYes]}
               >
-                <Text style={styles.respectLabel}>Ha rispettato</Text>
+                <Text style={[styles.respectLabel, draft.respected === true && styles.activeRespectLabel]}>
+                  Rispettata
+                </Text>
               </Pressable>
               <Pressable
                 onPress={() => setRespected(bid.playerId, false)}
                 style={[styles.respectBtn, draft.respected === false && styles.respectBtnNo]}
               >
-                <Text style={styles.respectLabel}>Non ha rispettato</Text>
+                <Text style={[styles.respectLabel, draft.respected === false && styles.activeRespectLabel]}>
+                  Sbagliata
+                </Text>
               </Pressable>
             </View>
 
             {draft.respected === false && (
               <View style={styles.scartoRow}>
-                <Text style={styles.helper}>Di quante prese ha sbagliato?</Text>
+                <Text style={styles.scartoLabel}>Prese di scarto</Text>
                 <NumberStepper
                   value={draft.scarto}
                   min={1}
@@ -160,32 +186,72 @@ export default function ScoringScreen() {
         );
       })}
 
-      <Button label="Conferma turno" onPress={handleConfirm} disabled={!allDecided} />
+      {allPlayersDecided && !hasMissedBid && (
+        <Text style={styles.constraintError}>
+          Non possono rispettare tutti: in ogni turno almeno un giocatore deve non rispettare la chiamata.
+        </Text>
+      )}
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  heading: { fontSize: theme.font.title, fontWeight: "800", color: theme.colors.text },
-  helper: { fontSize: theme.font.small, color: theme.colors.textMuted, marginTop: theme.spacing(0.5) },
-  error: { color: theme.colors.danger, fontSize: theme.font.small, fontWeight: "600" },
-  playerHeader: { flexDirection: "row", alignItems: "center", gap: theme.spacing(1.5) },
+  statsRow: { flexDirection: "row", gap: 7 },
+  helper: { fontSize: 11, color: theme.colors.textMuted, fontFamily: theme.font.family.semibold, marginTop: 2 },
+  error: { color: theme.colors.danger, fontSize: theme.font.small, fontFamily: theme.font.family.semibold },
+  constraintError: {
+    color: theme.colors.danger,
+    fontSize: 11.5,
+    lineHeight: 17,
+    fontFamily: theme.font.family.bold,
+    textAlign: "center",
+    borderRadius: 11,
+    padding: 12,
+    backgroundColor: theme.colors.negativeSoft,
+  },
+  standingsButton: {
+    minHeight: 44,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.inkSoft,
+  },
+  standingsText: { color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 11.5 },
+  playerCard: { padding: 13, gap: 12 },
+  playerHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
   playerInfo: { flex: 1 },
-  playerName: { fontSize: theme.font.body, fontWeight: "700", color: theme.colors.text },
-  score: { fontSize: theme.font.heading, fontWeight: "800", color: theme.colors.success },
+  playerName: { fontSize: 14.5, fontFamily: theme.font.family.bold, color: theme.colors.text },
+  score: {
+    minWidth: 46,
+    textAlign: "right",
+    fontSize: 19,
+    fontFamily: theme.font.family.extraBold,
+    fontVariant: ["tabular-nums"],
+    color: theme.colors.success,
+  },
+  scorePending: { color: theme.colors.textFaint },
   scoreNegative: { color: theme.colors.danger },
-  respectRow: { flexDirection: "row", gap: theme.spacing(1) },
+  respectRow: { flexDirection: "row", gap: 8 },
   respectBtn: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: theme.radius.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    minHeight: 46,
+    paddingVertical: 12,
+    borderRadius: 11,
     alignItems: "center",
-    backgroundColor: theme.colors.surfaceAlt,
+    justifyContent: "center",
+    backgroundColor: theme.colors.inkSoft,
   },
-  respectBtnYes: { borderColor: theme.colors.success, backgroundColor: "#1D3A2B" },
-  respectBtnNo: { borderColor: theme.colors.danger, backgroundColor: "#3A231D" },
-  respectLabel: { color: theme.colors.text, fontWeight: "700", fontSize: theme.font.small },
-  scartoRow: { alignItems: "flex-start", gap: theme.spacing(1) },
+  respectBtnYes: { backgroundColor: theme.colors.success },
+  respectBtnNo: { backgroundColor: theme.colors.danger },
+  respectLabel: { color: theme.colors.textMuted, fontFamily: theme.font.family.bold, fontSize: 12.5 },
+  activeRespectLabel: { color: theme.colors.background },
+  scartoRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    paddingTop: 3,
+  },
+  scartoLabel: { color: theme.colors.danger, fontFamily: theme.font.family.bold, fontSize: 11.5 },
 });

@@ -73,8 +73,14 @@ export function validatePersonalizzataCards(params: {
     }
   }
 
-  if (candidate === 1 && roundIndex < MIN_TURNS_PERSONALIZZATA) {
-    return `La partita deve durare almeno ${MIN_TURNS_PERSONALIZZATA} turni: non puoi terminare al turno ${roundIndex}.`;
+  const latestPossibleFinalRound = roundIndex + candidate - 1;
+  if (latestPossibleFinalRound < MIN_TURNS_PERSONALIZZATA) {
+    const minimumCards = MIN_TURNS_PERSONALIZZATA - roundIndex + 1;
+    return (
+      `Scegli almeno ${minimumCards} carte: partendo da ${candidate}, anche scendendo poi ` +
+      `di una carta alla volta, la partita terminerebbe al turno ${latestPossibleFinalRound} ` +
+      `invece che dopo almeno ${MIN_TURNS_PERSONALIZZATA} turni.`
+    );
   }
 
   return null;

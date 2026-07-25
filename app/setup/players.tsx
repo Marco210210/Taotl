@@ -3,12 +3,12 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Button } from "@/components/Button";
-import { Card } from "@/components/Card";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { ScreenIntro } from "@/components/ScreenIntro";
 import { MAX_PLAYERS, MIN_PLAYERS } from "@/game/constants";
-import { useRoster } from "@/state/useRoster";
 import { useSetup } from "@/state/SetupContext";
+import { useRoster } from "@/state/useRoster";
 import { theme } from "@/theme";
 
 export default function SetupPlayersScreen() {
@@ -17,7 +17,7 @@ export default function SetupPlayersScreen() {
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
 
-  const selectedIds = new Set(selectedPlayers.map((p) => p.id));
+  const selectedIds = new Set(selectedPlayers.map((player) => player.id));
   const canAddMore = selectedPlayers.length < MAX_PLAYERS;
   const canContinue = selectedPlayers.length >= MIN_PLAYERS && selectedPlayers.length <= MAX_PLAYERS;
 
@@ -34,105 +34,159 @@ export default function SetupPlayersScreen() {
     }
   };
 
-  return (
-    <ScreenContainer>
-      <View>
-        <Text style={styles.heading}>Chi gioca?</Text>
-        <Text style={styles.helper}>
-          Seleziona i giocatori dalla rubrica (min {MIN_PLAYERS}, max {MAX_PLAYERS}). L&apos;ordine di selezione è
-          l&apos;ordine al tavolo.
-        </Text>
-      </View>
+  const footerLabel = canContinue
+    ? `Ordine e mazziere · ${selectedPlayers.length}`
+    : `Servono almeno ${MIN_PLAYERS} giocatori`;
 
-      <Card>
-        <Text style={styles.cardLabel}>Aggiungi nuovo giocatore</Text>
-        <View style={styles.addRow}>
-          <TextInput
-            value={newName}
-            onChangeText={setNewName}
-            placeholder="Nome"
-            placeholderTextColor={theme.colors.textMuted}
-            style={styles.input}
-            onSubmitEditing={handleAddPlayer}
-            returnKeyType="done"
-          />
-          <Button label="Aggiungi" onPress={handleAddPlayer} loading={adding} disabled={!newName.trim()} />
-        </View>
-      </Card>
+  return (
+    <ScreenContainer
+      footer={
+        <Button
+          label={footerLabel}
+          trailing={canContinue ? "→" : undefined}
+          variant="secondary"
+          onPress={() => router.push("/setup/dealer")}
+          disabled={!canContinue}
+        />
+      }
+    >
+      <ScreenIntro
+        title="Chi gioca?"
+        description={`Scegli da ${MIN_PLAYERS} a ${MAX_PLAYERS} giocatori. Potrai sistemare l’ordine nel passaggio successivo.`}
+      />
+
+      <View style={styles.addRow}>
+        <TextInput
+          value={newName}
+          onChangeText={setNewName}
+          placeholder="Aggiungi un giocatore"
+          placeholderTextColor={theme.colors.textMuted}
+          style={styles.input}
+          onSubmitEditing={handleAddPlayer}
+          returnKeyType="done"
+        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Aggiungi giocatore"
+          disabled={!newName.trim() || adding}
+          onPress={handleAddPlayer}
+          style={({ pressed }) => [styles.addButton, (!newName.trim() || adding) && styles.disabled, pressed && styles.pressed]}
+        >
+          <Text pointerEvents="none" style={styles.addButtonText}>{adding ? "…" : "+"}</Text>
+        </Pressable>
+      </View>
 
       <View style={styles.list}>
         {loading && <Text style={styles.helper}>Carico la rubrica…</Text>}
         {!loading && players.length === 0 && (
-          <Text style={styles.helper}>Nessun giocatore in rubrica: aggiungine uno qui sopra.</Text>
+          <Text style={styles.empty}>Non ci sono ancora giocatori. Scrivi il primo nome qui sopra.</Text>
         )}
         {players.map((player) => {
           const selected = selectedIds.has(player.id);
-          const order = selectedPlayers.findIndex((p) => p.id === player.id);
+          const order = selectedPlayers.findIndex((entry) => entry.id === player.id);
           const disabled = !selected && !canAddMore;
           return (
             <Pressable
               key={player.id}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: selected, disabled }}
               onPress={() => !disabled && togglePlayer(player)}
-              style={[styles.playerRow, selected && styles.playerRowSelected, disabled && styles.playerRowDisabled]}
+              style={({ pressed }) => [
+                styles.playerRow,
+                selected && styles.playerRowSelected,
+                disabled && styles.disabled,
+                pressed && styles.pressed,
+              ]}
             >
-              <PlayerAvatar name={player.name} photoUri={player.photoUri} size={40} />
-              <Text style={styles.playerName}>{player.name}</Text>
-              {selected && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{order + 1}</Text>
-                </View>
-              )}
+              <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={38} />
+              <View style={styles.playerInfo}>
+                <Text style={styles.playerName}>{player.name}</Text>
+                <Text style={styles.playerMeta}>{selected ? `posizione ${order + 1}` : "Tocca per selezionare"}</Text>
+              </View>
+              <View style={[styles.check, selected && styles.checkSelected]}>
+                <Text pointerEvents="none" style={[styles.checkText, selected && styles.checkTextSelected]}>
+                  {selected ? "✓" : ""}
+                </Text>
+              </View>
             </Pressable>
           );
         })}
       </View>
 
-      <Button
-        label={`Continua (${selectedPlayers.length}/${MAX_PLAYERS})`}
-        onPress={() => router.push("/setup/mode")}
-        disabled={!canContinue}
-      />
+      <Pressable onPress={() => router.push("/roster")} style={styles.manageLink}>
+        <Text style={styles.manageText}>Modifica nomi, foto e profili</Text>
+        <Text style={styles.manageArrow}>›</Text>
+      </Pressable>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  heading: { fontSize: theme.font.title, fontWeight: "800", color: theme.colors.text },
-  helper: { fontSize: theme.font.small, color: theme.colors.textMuted, marginTop: theme.spacing(0.5) },
-  cardLabel: { fontSize: theme.font.small, color: theme.colors.textMuted, fontWeight: "700", textTransform: "uppercase" },
-  addRow: { flexDirection: "row", gap: theme.spacing(1.5), alignItems: "center" },
+  addRow: { flexDirection: "row", gap: 8, alignItems: "center" },
   input: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceAlt,
-    borderRadius: theme.radius.sm,
+    height: 52,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    paddingHorizontal: theme.spacing(1.5),
-    paddingVertical: 10,
+    borderColor: theme.colors.borderStrong,
+    paddingHorizontal: 14,
+    backgroundColor: theme.colors.surface,
     color: theme.colors.text,
-    fontSize: theme.font.body,
+    fontFamily: theme.font.family.semibold,
+    fontSize: 14,
   },
-  list: { gap: theme.spacing(1) },
+  addButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.text,
+  },
+  addButtonText: { color: theme.colors.background, fontFamily: theme.font.family.regular, fontSize: 28 },
+  list: { gap: 9 },
   playerRow: {
+    minHeight: 64,
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing(1.5),
-    padding: theme.spacing(1.25),
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderRadius: 13,
+    borderWidth: 1.5,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
   },
-  playerRowSelected: { borderColor: theme.colors.primary, backgroundColor: theme.colors.surfaceAlt },
-  playerRowDisabled: { opacity: 0.4 },
-  playerName: { flex: 1, color: theme.colors.text, fontSize: theme.font.body, fontWeight: "600" },
-  badge: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: theme.colors.primary,
+  playerRowSelected: { borderColor: theme.colors.success },
+  playerInfo: { flex: 1 },
+  playerName: { color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 14.5 },
+  playerMeta: { marginTop: 2, color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 11 },
+  check: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "rgba(23,24,29,.12)",
   },
-  badgeText: { color: theme.colors.primaryText, fontWeight: "800", fontSize: theme.font.small },
+  checkSelected: { backgroundColor: theme.colors.success },
+  checkText: { color: theme.colors.textMuted, fontFamily: theme.font.family.extraBold, fontSize: 13 },
+  checkTextSelected: { color: theme.colors.background },
+  helper: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 12 },
+  empty: {
+    padding: 16,
+    borderRadius: 13,
+    color: theme.colors.textMuted,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    fontFamily: theme.font.family.medium,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  manageLink: { minHeight: 44, flexDirection: "row", alignItems: "center", paddingHorizontal: 4 },
+  manageText: { flex: 1, color: theme.colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 12 },
+  manageArrow: { color: theme.colors.text, fontSize: 22 },
+  disabled: { opacity: 0.4 },
+  pressed: { opacity: 0.72 },
 });
