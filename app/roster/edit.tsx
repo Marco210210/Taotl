@@ -6,12 +6,14 @@ import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View 
 import { Button } from "@/components/Button";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useRoster } from "@/state/useRoster";
 import { theme } from "@/theme";
 
 export default function EditPlayerScreen() {
   const { t } = useAppSettings();
+  const { account, token } = useAccount();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { players, loading, addPlayer, renamePlayer, setPlayerPhoto, removePlayer } = useRoster();
   const existing = id ? players.find((p) => p.id === id) : undefined;
@@ -85,7 +87,7 @@ export default function EditPlayerScreen() {
   };
 
   const handleDelete = () => {
-    if (!existing) return;
+    if (!existing || !token) return;
     Alert.alert(
       t("player.deleteTitle"),
       `${existing.name} ${t("player.deleteBody")}`,
@@ -97,7 +99,7 @@ export default function EditPlayerScreen() {
           onPress: async () => {
             setDeleting(true);
             try {
-              await removePlayer(existing.id);
+              await removePlayer(existing.id, token);
               router.dismissTo("/roster");
             } catch (error) {
               Alert.alert(
@@ -151,7 +153,7 @@ export default function EditPlayerScreen() {
       </View>
 
       <Button label={t("common.save")} onPress={handleSave} loading={saving} disabled={!name.trim()} />
-      {existing && (
+      {existing && account?.isAdmin && (
         <Button
           label={t("player.deleteProfile")}
           onPress={handleDelete}

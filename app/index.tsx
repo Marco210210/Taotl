@@ -15,6 +15,7 @@ export default function HomeScreen() {
   const menuItems = [
     { label: t("home.history"), route: "/history" as const, icon: require("../assets/design/suit-heart.png") },
     { label: t("home.profiles"), route: "/profile" as const, icon: require("../assets/design/suit-diamond.png") },
+    { label: t("home.leaderboard"), route: "/leaderboard" as const, icon: require("../assets/design/suit-mask.png") },
     { label: t("home.rules"), route: "/rules" as const, icon: require("../assets/design/suit-club.png") },
     { label: t("home.settings"), route: "/settings" as const, icon: require("../assets/design/suit-spear.png") },
   ];

@@ -26,6 +26,8 @@ export default function MyProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [choosing, setChoosing] = useState(false);
 
+  const linkedPlayerId = account?.linkedPlayerId ?? null;
+
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -35,8 +37,9 @@ export default function MyProfileScreen() {
           if (!active) return;
           setPlayers(roster.players);
           setGames(history.games);
-          setMyPlayerId(storedId);
-          setChoosing(!storedId);
+          const effectiveId = linkedPlayerId ?? storedId;
+          setMyPlayerId(effectiveId);
+          setChoosing(!effectiveId);
         })
         .finally(() => {
           if (active) setLoading(false);
@@ -44,7 +47,7 @@ export default function MyProfileScreen() {
       return () => {
         active = false;
       };
-    }, []),
+    }, [linkedPlayerId]),
   );
 
   const myPlayer = players.find((player) => player.id === myPlayerId) ?? null;
@@ -132,9 +135,17 @@ export default function MyProfileScreen() {
       <Card style={styles.profileCard}>
         <PlayerAvatar name={myPlayer.name} photoUri={myPlayer.photoUri} colorKey={myPlayer.id} size={78} />
         <Text style={styles.profileName}>{myPlayer.name}</Text>
-        <Text style={styles.localTag}>{t("profile.local")}</Text>
-        <Button label={t("profile.change")} variant="ghost" onPress={() => setChoosing(true)} />
+        <Text style={styles.localTag}>{t(linkedPlayerId ? "profile.verifiedLink" : "profile.local")}</Text>
+        {!linkedPlayerId && (
+          <Button label={t("profile.change")} variant="ghost" onPress={() => setChoosing(true)} />
+        )}
       </Card>
+
+      <Button
+        label={t("leaderboard.title")}
+        variant="ghost"
+        onPress={() => router.push("/leaderboard")}
+      />
 
       <View style={styles.statsGrid}>
         <Card style={styles.statCard}>

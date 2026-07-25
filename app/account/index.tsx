@@ -32,7 +32,9 @@ export default function AccountScreen() {
   const [mode, setMode] = useState<AuthMode>("register");
   const [handle, setHandle] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [pin, setPin] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [password, setPassword] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [message, setMessage] = useState<string | null>(null);
 
@@ -41,27 +43,40 @@ export default function AccountScreen() {
     [handle],
   );
 
+  const isPasswordValid = (value: string) =>
+    value.length >= 8 && /[A-Z]/.test(value) && /[0-9]/.test(value);
+
   const submitAuth = async () => {
     setMessage(null);
     if (!/^[a-z0-9_]{3,24}$/.test(normalizedHandle)) {
       setMessage(t("account.invalidHandle"));
       return;
     }
-    if (!/^\d{6}$/.test(pin)) {
-      setMessage(t("account.invalidPin"));
+    if (!isPasswordValid(password)) {
+      setMessage(t("account.invalidPassword"));
       return;
     }
     if (mode === "register" && !displayName.trim()) {
       setMessage(t("account.invalidName"));
       return;
     }
+    if (mode === "register" && (!firstName.trim() || !lastName.trim())) {
+      setMessage(t("account.invalidFullName"));
+      return;
+    }
     try {
       if (mode === "register") {
-        await register({ handle: normalizedHandle, displayName: displayName.trim(), pin });
+        await register({
+          handle: normalizedHandle,
+          displayName: displayName.trim(),
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          password,
+        });
       } else {
-        await login(normalizedHandle, pin);
+        await login(normalizedHandle, password);
       }
-      setPin("");
+      setPassword("");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : authError);
     }
@@ -130,6 +145,24 @@ export default function AccountScreen() {
 
               {mode === "register" && (
                 <>
+                  <Text style={styles.label}>{t("account.firstName")}</Text>
+                  <TextInput
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    placeholder={t("account.firstNamePlaceholder")}
+                    placeholderTextColor={theme.colors.textMuted}
+                    style={styles.input}
+                  />
+
+                  <Text style={styles.label}>{t("account.lastName")}</Text>
+                  <TextInput
+                    value={lastName}
+                    onChangeText={setLastName}
+                    placeholder={t("account.lastNamePlaceholder")}
+                    placeholderTextColor={theme.colors.textMuted}
+                    style={styles.input}
+                  />
+
                   <Text style={styles.label}>{t("account.displayName")}</Text>
                   <TextInput
                     value={displayName}
@@ -141,17 +174,18 @@ export default function AccountScreen() {
                 </>
               )}
 
-              <Text style={styles.label}>{t("account.pin")}</Text>
+              <Text style={styles.label}>{t("account.password")}</Text>
               <TextInput
-                keyboardType="number-pad"
-                maxLength={6}
+                autoCapitalize="none"
+                autoCorrect={false}
                 secureTextEntry
-                value={pin}
-                onChangeText={(value) => setPin(value.replace(/\D/g, "").slice(0, 6))}
-                placeholder={t("account.pinPlaceholder")}
+                value={password}
+                onChangeText={setPassword}
+                placeholder={t("account.passwordPlaceholder")}
                 placeholderTextColor={theme.colors.textMuted}
-                style={[styles.input, styles.pinInput]}
+                style={styles.input}
               />
+              {mode === "register" && <Text style={styles.security}>{t("account.passwordHint")}</Text>}
 
               {!!(message || authError) && <Text style={styles.error}>{message || authError}</Text>}
               <Button
@@ -257,7 +291,6 @@ const styles = StyleSheet.create({
     fontFamily: theme.font.family.semibold,
     fontSize: 15,
   },
-  pinInput: { letterSpacing: 8, fontVariant: ["tabular-nums"] },
   codeInput: { letterSpacing: 5, textAlign: "center", fontFamily: theme.font.family.extraBold, fontSize: 20 },
   error: { color: theme.colors.danger, fontFamily: theme.font.family.semibold, fontSize: 12, lineHeight: 17 },
   security: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 10.5, lineHeight: 16 },

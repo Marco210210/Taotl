@@ -58,9 +58,11 @@ export async function updatePlayerName(id: string, name: string): Promise<void> 
   await writeCache(cache.map((p) => (p.id === id ? { ...p, name: name.trim() } : p)));
 }
 
-export async function deletePlayer(id: string): Promise<void> {
+// Riservata all'admin: il backend verifica il token di sessione (vedi require_admin
+// lato server), non basta più la sola chiave app condivisa.
+export async function deletePlayer(id: string, adminToken: string): Promise<void> {
   if (getApiBaseUrl()) {
-    await apiClient.delete<void>(`/players/${id}`);
+    await apiClient.deleteAuthenticated<void>(`/players/${id}`, adminToken);
   }
   const cache = await readCache();
   await writeCache(cache.filter((p) => p.id !== id));

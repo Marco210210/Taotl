@@ -16,16 +16,23 @@ import {
   type GameRoomDTO,
 } from "@/api/auth";
 
-const SESSION_KEY = "taotl:auth-session:v1";
-const ROOM_KEY = "taotl:verified-room:v1";
+const SESSION_KEY = "taotl.auth-session.v1";
+const ROOM_KEY = "taotl.verified-room.v1";
 
 interface AccountContextValue {
   account: AccountDTO | null;
+  token: string | null;
   room: GameRoomDTO | null;
   loading: boolean;
   authError: string | null;
-  register: (input: { handle: string; displayName: string; pin: string }) => Promise<void>;
-  login: (handle: string, pin: string) => Promise<void>;
+  register: (input: {
+    handle: string;
+    displayName: string;
+    firstName: string;
+    lastName: string;
+    password: string;
+  }) => Promise<void>;
+  login: (handle: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   createRoom: () => Promise<GameRoomDTO>;
   joinRoom: (code: string) => Promise<GameRoomDTO>;
@@ -88,7 +95,13 @@ export function AccountProvider({ children }: PropsWithChildren) {
     setAuthError(null);
   }, []);
 
-  const register = useCallback(async (input: { handle: string; displayName: string; pin: string }) => {
+  const register = useCallback(async (input: {
+    handle: string;
+    displayName: string;
+    firstName: string;
+    lastName: string;
+    password: string;
+  }) => {
     setLoading(true);
     try {
       await acceptSession(await registerAccount(input));
@@ -101,10 +114,10 @@ export function AccountProvider({ children }: PropsWithChildren) {
     }
   }, [acceptSession]);
 
-  const login = useCallback(async (handle: string, pin: string) => {
+  const login = useCallback(async (handle: string, password: string) => {
     setLoading(true);
     try {
-      await acceptSession(await loginAccount(handle, pin));
+      await acceptSession(await loginAccount(handle, password));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Accesso non riuscito.";
       setAuthError(message);
@@ -147,6 +160,7 @@ export function AccountProvider({ children }: PropsWithChildren) {
   const value = useMemo<AccountContextValue>(
     () => ({
       account,
+      token,
       room,
       loading,
       authError,
@@ -157,7 +171,7 @@ export function AccountProvider({ children }: PropsWithChildren) {
       joinRoom,
       refreshRoom,
     }),
-    [account, authError, createRoom, joinRoom, loading, login, logout, refreshRoom, register, room],
+    [account, authError, createRoom, joinRoom, loading, login, logout, refreshRoom, register, room, token],
   );
 
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;

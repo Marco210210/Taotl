@@ -82,6 +82,8 @@ export const apiClient = {
       headers: { Authorization: `Bearer ${token}` },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     }),
+  deleteAuthenticated: <T>(path: string, token: string) =>
+    request<T>(path, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }),
   putBinary: <T>(path: string, body: Blob, contentType: string) =>
     request<T>(path, { method: "PUT", body: body as unknown as BodyInit, headers: { "Content-Type": contentType } }),
 };

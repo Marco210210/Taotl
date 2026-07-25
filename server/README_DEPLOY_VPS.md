@@ -31,7 +31,8 @@ all'app, ad esempio `TAOTL_APP`:
 CREATE USER taotl_app IDENTIFIED BY "una-password-robusta";
 GRANT CONNECT, RESOURCE, CREATE VIEW TO taotl_app;
 ALTER USER taotl_app QUOTA UNLIMITED ON users;
-GRANT PLSQL_GATEWAY TO taotl_app; -- se richiesto dalla tua versione ORDS
+GRANT PLSQL_GATEWAY TO taotl_app; -- se richiesto dalla tua versione ORDS (su Autonomous Database questo ruolo non esiste: ignora l'errore)
+GRANT EXECUTE ON DBMS_CRYPTO TO taotl_app; -- serve all'hashing rinforzato del PIN in 03_identity_package.sql
 ```
 
 ## 2. Tabelle, viste, package, endpoint
