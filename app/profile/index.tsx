@@ -84,27 +84,6 @@ export default function MyProfileScreen() {
     );
   }
 
-  if (choosing || !myPlayer) {
-    return (
-      <ScreenContainer>
-        <ScreenIntro
-          title={t("profile.who")}
-          description={t("profile.chooseDescription")}
-        />
-        {players.map((player) => (
-          <Pressable key={player.id} onPress={() => selectPlayer(player)} style={styles.playerRow}>
-            <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={46} />
-            <Text style={styles.playerName}>{player.name}</Text>
-            <Text style={styles.selectHint}>{t("profile.choose")}</Text>
-          </Pressable>
-        ))}
-        {players.length === 0 && (
-          <Text style={styles.helper}>{t("profile.addFirst")}</Text>
-        )}
-      </ScreenContainer>
-    );
-  }
-
   return (
     <ScreenContainer>
       <Card style={styles.accountCard}>
@@ -132,63 +111,84 @@ export default function MyProfileScreen() {
         )}
       </Card>
 
-      <Card style={styles.profileCard}>
-        <PlayerAvatar name={myPlayer.name} photoUri={myPlayer.photoUri} colorKey={myPlayer.id} size={78} />
-        <Text style={styles.profileName}>{myPlayer.name}</Text>
-        <Text style={styles.localTag}>{t(linkedPlayerId ? "profile.verifiedLink" : "profile.local")}</Text>
-        {!linkedPlayerId && (
-          <Button label={t("profile.change")} variant="ghost" onPress={() => setChoosing(true)} />
-        )}
-      </Card>
+      {choosing || !myPlayer ? (
+        <>
+          <ScreenIntro
+            title={t("profile.who")}
+            description={t("profile.chooseDescription")}
+          />
+          {players.map((player) => (
+            <Pressable key={player.id} onPress={() => selectPlayer(player)} style={styles.playerRow}>
+              <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={46} />
+              <Text style={styles.playerName}>{player.name}</Text>
+              <Text style={styles.selectHint}>{t("profile.choose")}</Text>
+            </Pressable>
+          ))}
+          {players.length === 0 && (
+            <Text style={styles.helper}>{t("profile.addFirst")}</Text>
+          )}
+        </>
+      ) : (
+        <>
+          <Card style={styles.profileCard}>
+            <PlayerAvatar name={myPlayer.name} photoUri={myPlayer.photoUri} colorKey={myPlayer.id} size={78} />
+            <Text style={styles.profileName}>{myPlayer.name}</Text>
+            <Text style={styles.localTag}>{t(linkedPlayerId ? "profile.verifiedLink" : "profile.local")}</Text>
+            {!linkedPlayerId && (
+              <Button label={t("profile.change")} variant="ghost" onPress={() => setChoosing(true)} />
+            )}
+          </Card>
 
-      <Button
-        label={t("leaderboard.title")}
-        variant="ghost"
-        onPress={() => router.push("/leaderboard")}
-      />
+          <Button
+            label={t("leaderboard.title")}
+            variant="ghost"
+            onPress={() => router.push("/leaderboard")}
+          />
 
-      <View style={styles.statsGrid}>
-        <Card style={styles.statCard}>
-          <Text style={styles.statValue}>{myGames.length}</Text>
-          <Text style={styles.statLabel}>{t("profile.games")}</Text>
-        </Card>
-        <Card style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.wins}</Text>
-          <Text style={styles.statLabel}>{t("profile.wins")}</Text>
-        </Card>
-        <Card style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.average.toFixed(1)}</Text>
-          <Text style={styles.statLabel}>{t("profile.average")}</Text>
-        </Card>
-      </View>
-
-      <Text style={styles.sectionTitle}>{t("profile.myGames")}</Text>
-      {myGames.map((game) => {
-        const mine = game.standings.find((entry) => entry.playerId === myPlayer.id);
-        const position = game.standings.findIndex((entry) => entry.playerId === myPlayer.id) + 1;
-        return (
-          <Pressable
-            key={game.id}
-            onPress={() => router.push({ pathname: "/history/[id]", params: { id: game.id, from: "profile" } })}
-            style={({ pressed }) => pressed && styles.pressed}
-          >
-            <Card>
-              <View style={styles.gameRow}>
-                <View style={styles.gameInfo}>
-                  <Text style={styles.gameTitle}>
-                    {new Date(game.startedAt).toLocaleDateString(locale)} · {game.numPlayers} {t("history.players")}
-                  </Text>
-                  <Text style={styles.helper}>{t("profile.position")} {position}</Text>
-                </View>
-                <Text style={[styles.gameScore, (mine?.total ?? 0) < 0 && styles.negative]}>
-                  {mine?.total ?? 0}
-                </Text>
-              </View>
+          <View style={styles.statsGrid}>
+            <Card style={styles.statCard}>
+              <Text style={styles.statValue}>{myGames.length}</Text>
+              <Text style={styles.statLabel}>{t("profile.games")}</Text>
             </Card>
-          </Pressable>
-        );
-      })}
-      {myGames.length === 0 && <Text style={styles.helper}>{t("profile.noGames")}</Text>}
+            <Card style={styles.statCard}>
+              <Text style={styles.statValue}>{stats.wins}</Text>
+              <Text style={styles.statLabel}>{t("profile.wins")}</Text>
+            </Card>
+            <Card style={styles.statCard}>
+              <Text style={styles.statValue}>{stats.average.toFixed(1)}</Text>
+              <Text style={styles.statLabel}>{t("profile.average")}</Text>
+            </Card>
+          </View>
+
+          <Text style={styles.sectionTitle}>{t("profile.myGames")}</Text>
+          {myGames.map((game) => {
+            const mine = game.standings.find((entry) => entry.playerId === myPlayer.id);
+            const position = game.standings.findIndex((entry) => entry.playerId === myPlayer.id) + 1;
+            return (
+              <Pressable
+                key={game.id}
+                onPress={() => router.push({ pathname: "/history/[id]", params: { id: game.id, from: "profile" } })}
+                style={({ pressed }) => pressed && styles.pressed}
+              >
+                <Card>
+                  <View style={styles.gameRow}>
+                    <View style={styles.gameInfo}>
+                      <Text style={styles.gameTitle}>
+                        {new Date(game.startedAt).toLocaleDateString(locale)} · {game.numPlayers} {t("history.players")}
+                      </Text>
+                      <Text style={styles.helper}>{t("profile.position")} {position}</Text>
+                    </View>
+                    <Text style={[styles.gameScore, (mine?.total ?? 0) < 0 && styles.negative]}>
+                      {mine?.total ?? 0}
+                    </Text>
+                  </View>
+                </Card>
+              </Pressable>
+            );
+          })}
+          {myGames.length === 0 && <Text style={styles.helper}>{t("profile.noGames")}</Text>}
+        </>
+      )}
     </ScreenContainer>
   );
 }
