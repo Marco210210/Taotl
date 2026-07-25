@@ -60,7 +60,7 @@ export function AppSettingsProvider({ children }: PropsWithChildren) {
   }, []);
 
   useEffect(() => {
-    Appearance.setColorScheme(settings.theme === "system" ? "unspecified" : settings.theme);
+    Appearance.setColorScheme(settings.theme === "system" ? null : settings.theme);
   }, [settings.theme]);
 
   useEffect(() => {
