@@ -27,7 +27,18 @@ import { theme } from "@/theme";
 
 void SplashScreen.preventAutoHideAsync();
 
+// L'error boundary è il componente più esterno apposta: un errore durante il
+// caricamento dei font (prima ancora che l'app abbia qualcosa da mostrare)
+// non verrebbe intercettato se l'error boundary fosse più in profondità.
 export default function RootLayout() {
+  return (
+    <ErrorBoundary>
+      <FontGate />
+    </ErrorBoundary>
+  );
+}
+
+function FontGate() {
   const [manropeLoaded, manropeError] = useManropeFonts({
     Manrope_400Regular,
     Manrope_500Medium,
@@ -45,11 +56,9 @@ export default function RootLayout() {
   if (!ready) return null;
 
   return (
-    <ErrorBoundary>
-      <AppSettingsProvider>
-        <AppNavigation />
-      </AppSettingsProvider>
-    </ErrorBoundary>
+    <AppSettingsProvider>
+      <AppNavigation />
+    </AppSettingsProvider>
   );
 }
 
