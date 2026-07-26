@@ -31,14 +31,17 @@ CREATE OR REPLACE PACKAGE taotl_api AS
     p_media_type IN VARCHAR2
   );
 
+  -- Cancellazioni riservate all'admin (vedi taotl_identity_api.require_admin):
+  -- non usano più la chiave app condivisa ma il token di sessione di chi chiama,
+  -- così solo l'account admin può eliminare giocatori o partite.
   PROCEDURE delete_player(
-    p_key IN VARCHAR2,
-    p_id  IN VARCHAR2
+    p_authorization IN VARCHAR2,
+    p_id            IN VARCHAR2
   );
 
   PROCEDURE delete_game(
-    p_key IN VARCHAR2,
-    p_id  IN VARCHAR2
+    p_authorization IN VARCHAR2,
+    p_id            IN VARCHAR2
   );
 
   -- Riceve il JSON di una partita conclusa (vedi src/api/types.ts -> GameSyncPayload
@@ -136,11 +139,12 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
   END update_player_photo;
 
   PROCEDURE delete_player(
-    p_key IN VARCHAR2,
-    p_id  IN VARCHAR2
+    p_authorization IN VARCHAR2,
+    p_id            IN VARCHAR2
   ) IS
+    v_admin_id VARCHAR2(60);
   BEGIN
-    check_app_key(p_key);
+    v_admin_id := taotl_identity_api.require_admin(p_authorization);
 
     UPDATE players
        SET is_active = 'N',
@@ -157,11 +161,12 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
   END delete_player;
 
   PROCEDURE delete_game(
-    p_key IN VARCHAR2,
-    p_id  IN VARCHAR2
+    p_authorization IN VARCHAR2,
+    p_id            IN VARCHAR2
   ) IS
+    v_admin_id VARCHAR2(60);
   BEGIN
-    check_app_key(p_key);
+    v_admin_id := taotl_identity_api.require_admin(p_authorization);
 
     DELETE FROM games
      WHERE id = p_id;

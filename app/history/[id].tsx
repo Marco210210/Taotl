@@ -9,11 +9,13 @@ import { Card } from "@/components/Card";
 import { LinearBackButton } from "@/components/LinearBackButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
+import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme } from "@/theme";
 
 export default function HistoryDetailScreen() {
   const { locale, t } = useAppSettings();
+  const { account, token } = useAccount();
   const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
   const backDestination = from === "profile" ? "/profile" : "/history";
   const [game, setGame] = useState<GameHistoryDetailDTO | null>(null);
@@ -48,7 +50,7 @@ export default function HistoryDetailScreen() {
   );
 
   const requestDelete = () => {
-    if (!game) return;
+    if (!game || !token) return;
     Alert.alert(
       t("history.deleteTitle"),
       t("history.deleteBody"),
@@ -60,7 +62,7 @@ export default function HistoryDetailScreen() {
           onPress: async () => {
             setDeleting(true);
             try {
-              await deleteFinishedGame(game.id);
+              await deleteFinishedGame(game.id, token);
               router.dismissTo(backDestination);
             } catch (reason) {
               Alert.alert(
@@ -150,8 +152,9 @@ export default function HistoryDetailScreen() {
         </Card>
       ))}
 
-      <Button label={t("history.deleteGame")} variant="danger" loading={deleting} onPress={requestDelete} />
-      <Text style={styles.deleteNote}>{t("history.adminFuture")}</Text>
+      {account?.isAdmin && (
+        <Button label={t("history.deleteGame")} variant="danger" loading={deleting} onPress={requestDelete} />
+      )}
       </ScreenContainer>
     </>
   );

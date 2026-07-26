@@ -1,0 +1,24 @@
+{
+  "short_name": "Taotl",
+  "name": "Taotl - Conteggio partite",
+  "description": "Conteggio partite, turni e classifiche.",
+  "lang": "it",
+  "icons": [
+    {
+      "src": "/logo192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/logo512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#17784B",
+  "background_color": "#F8F8F5"
+}

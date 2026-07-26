@@ -38,6 +38,7 @@
         }
       ],
       "expo-font",
+      "./plugins/with-android-build-memory",
       "expo-localization",
       "expo-secure-store"
     ],

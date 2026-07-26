@@ -36,8 +36,8 @@ export function useRoster() {
     setPlayers((prev) => prev.map((p) => (p.id === id ? { ...p, photoUri: url } : p)));
   }, []);
 
-  const removePlayer = useCallback(async (id: string) => {
-    await deletePlayer(id);
+  const removePlayer = useCallback(async (id: string, adminToken: string) => {
+    await deletePlayer(id, adminToken);
     setPlayers((prev) => prev.filter((p) => p.id !== id));
   }, []);
 

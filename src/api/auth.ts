@@ -4,6 +4,10 @@ export interface AccountDTO {
   id: string;
   handle: string;
   displayName: string;
+  firstName: string;
+  lastName: string;
+  isAdmin: boolean;
+  linkedPlayerId: string | null;
   createdAt: string;
 }
 
@@ -32,13 +36,15 @@ export interface GameRoomDTO {
 export function registerAccount(input: {
   handle: string;
   displayName: string;
-  pin: string;
+  firstName: string;
+  lastName: string;
+  password: string;
 }): Promise<AuthSessionDTO> {
   return apiClient.post<AuthSessionDTO>("/taotl/auth/register/", input);
 }
 
-export function loginAccount(handle: string, pin: string): Promise<AuthSessionDTO> {
-  return apiClient.post<AuthSessionDTO>("/taotl/auth/login/", { handle, pin });
+export function loginAccount(handle: string, password: string): Promise<AuthSessionDTO> {
+  return apiClient.post<AuthSessionDTO>("/taotl/auth/login/", { handle, password });
 }
 
 export function fetchMyAccount(token: string): Promise<AccountDTO> {
