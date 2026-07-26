@@ -65,8 +65,8 @@ function AppNavigation() {
             <StatusBar style={resolvedTheme === "dark" ? "light" : "dark"} />
             <Stack
               screenOptions={{
-                headerStyle: { backgroundColor: theme.colors.surface },
-                headerTintColor: theme.colors.text,
+                headerStyle: { backgroundColor: theme.colors.surface as string },
+                headerTintColor: theme.colors.text as string,
                 headerTitleStyle: { fontFamily: theme.font.family.bold, fontSize: 15 },
                 headerShadowVisible: false,
                 headerBackTitle: t("common.back"),
