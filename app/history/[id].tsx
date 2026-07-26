@@ -17,7 +17,7 @@ export default function HistoryDetailScreen() {
   const { locale, t } = useAppSettings();
   const { account, token } = useAccount();
   const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
-  const backDestination = from === "profile" ? "/profile" : "/history";
+  const backDestination = from === "profile" ? "/profile" : from === "leaderboard" ? "/leaderboard" : "/history";
   const [game, setGame] = useState<GameHistoryDetailDTO | null>(null);
   const [fromCache, setFromCache] = useState(false);
   const [loading, setLoading] = useState(true);

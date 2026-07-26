@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
@@ -34,7 +34,9 @@ export default function AccountScreen() {
   const [displayName, setDisplayName] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [message, setMessage] = useState<string | null>(null);
 
@@ -64,6 +66,14 @@ export default function AccountScreen() {
       setMessage(t("account.invalidFullName"));
       return;
     }
+    if (mode === "register" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) {
+      setMessage(t("account.invalidEmail"));
+      return;
+    }
+    if (mode === "register" && password !== confirmPassword) {
+      setMessage(t("account.passwordMismatch"));
+      return;
+    }
     try {
       if (mode === "register") {
         await register({
@@ -71,6 +81,7 @@ export default function AccountScreen() {
           displayName: displayName.trim(),
           firstName: firstName.trim(),
           lastName: lastName.trim(),
+          email: email.trim(),
           password,
         });
       } else {
@@ -171,6 +182,18 @@ export default function AccountScreen() {
                     placeholderTextColor={theme.colors.textMuted}
                     style={styles.input}
                   />
+
+                  <Text style={styles.label}>{t("account.email")}</Text>
+                  <TextInput
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder={t("account.emailPlaceholder")}
+                    placeholderTextColor={theme.colors.textMuted}
+                    style={styles.input}
+                  />
                 </>
               )}
 
@@ -185,7 +208,28 @@ export default function AccountScreen() {
                 placeholderTextColor={theme.colors.textMuted}
                 style={styles.input}
               />
-              {mode === "register" && <Text style={styles.security}>{t("account.passwordHint")}</Text>}
+              {mode === "register" && (
+                <>
+                  <Text style={styles.label}>{t("account.confirmPassword")}</Text>
+                  <TextInput
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    secureTextEntry
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    placeholder={t("account.confirmPasswordPlaceholder")}
+                    placeholderTextColor={theme.colors.textMuted}
+                    style={styles.input}
+                  />
+                  <Text style={styles.security}>{t("account.passwordHint")}</Text>
+                </>
+              )}
+
+              {mode === "login" && (
+                <Pressable onPress={() => router.push("/account/forgot-password")} style={styles.forgotLink}>
+                  <Text style={styles.forgotText}>{t("account.forgotPassword")}</Text>
+                </Pressable>
+              )}
 
               {!!(message || authError) && <Text style={styles.error}>{message || authError}</Text>}
               <Button
@@ -292,6 +336,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   codeInput: { letterSpacing: 5, textAlign: "center", fontFamily: theme.font.family.extraBold, fontSize: 20 },
+  forgotLink: { minHeight: 32, justifyContent: "center", alignItems: "flex-end" },
+  forgotText: { color: theme.colors.success, fontFamily: theme.font.family.bold, fontSize: 12 },
   error: { color: theme.colors.danger, fontFamily: theme.font.family.semibold, fontSize: 12, lineHeight: 17 },
   security: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 10.5, lineHeight: 16 },
   identityCard: { alignItems: "center", paddingVertical: 22 },

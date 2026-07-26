@@ -186,6 +186,15 @@ function AppNavigation() {
                 }}
               />
               <Stack.Screen
+                name="leaderboard/player/[id]"
+                options={{
+                  title: t("nav.profile"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerLeft: () => <LinearBackButton destination="/leaderboard" />,
+                }}
+              />
+              <Stack.Screen
                 name="history/index"
                 options={{
                   title: t("nav.history"),
@@ -227,6 +236,24 @@ function AppNavigation() {
                   title: t("nav.account"),
                   headerBackVisible: false,
                   gestureEnabled: false,
+                }}
+              />
+              <Stack.Screen
+                name="account/forgot-password"
+                options={{
+                  title: t("forgotPassword.title"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerLeft: () => <LinearBackButton destination="/account" />,
+                }}
+              />
+              <Stack.Screen
+                name="account/reset-password"
+                options={{
+                  title: t("resetPassword.title"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerLeft: () => <LinearBackButton destination="/account/forgot-password" />,
                 }}
               />
             </Stack>

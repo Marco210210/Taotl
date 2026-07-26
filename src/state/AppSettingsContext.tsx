@@ -1,10 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Updates from "expo-updates";
 import { getLocales } from "expo-localization";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { PropsWithChildren } from "react";
-import { Appearance, useColorScheme } from "react-native";
+import { Appearance, Platform, useColorScheme, type ColorSchemeName } from "react-native";
 
 import { translations, type AppLanguage, type TranslationKey } from "@/i18n/translations";
+import { theme } from "@/theme";
 
 import { STORAGE_KEYS } from "./storageKeys";
 
@@ -59,9 +61,26 @@ export function AppSettingsProvider({ children }: PropsWithChildren) {
       .finally(() => setHydrated(true));
   }, []);
 
+  // I colori del tema (src/theme.ts) vengono decisi una sola volta all'avvio
+  // dell'app, non ad ogni render: per applicarli serve ricaricare il bundle
+  // JS. Lo facciamo qui in automatico ogni volta che il tema che DOVREBBE
+  // essere attivo (needsDark) non corrisponde a quello con cui l'app è
+  // effettivamente partita (theme.isDark) — sia perché l'utente ha appena
+  // cambiato l'impostazione, sia perché all'avvio a freddo il telefono era in
+  // un tema di sistema diverso da una preferenza esplicita già salvata.
+  const appliedRef = useRef<boolean | null>(null);
   useEffect(() => {
-    Appearance.setColorScheme(settings.theme === "system" ? null : settings.theme);
-  }, [settings.theme]);
+    Appearance.setColorScheme(
+      (settings.theme === "system" ? null : settings.theme) as ColorSchemeName,
+    );
+    if (!hydrated) return;
+    const needsDark = settings.theme === "system" ? systemScheme === "dark" : settings.theme === "dark";
+    if (appliedRef.current === needsDark) return;
+    appliedRef.current = needsDark;
+    if (needsDark === theme.isDark) return;
+    if (Platform.OS === "web") return;
+    Updates.reloadAsync().catch(() => {});
+  }, [hydrated, settings.theme, systemScheme]);
 
   useEffect(() => {
     if (!hydrated) return;
