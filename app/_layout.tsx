@@ -20,6 +20,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GameProvider } from "@/state/GameContext";
 import { SetupProvider } from "@/state/SetupContext";
 import { LinearBackButton } from "@/components/LinearBackButton";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AccountProvider } from "@/state/AccountContext";
 import { AppSettingsProvider, useAppSettings } from "@/state/AppSettingsContext";
 import { theme } from "@/theme";
@@ -44,9 +45,11 @@ export default function RootLayout() {
   if (!ready) return null;
 
   return (
-    <AppSettingsProvider>
-      <AppNavigation />
-    </AppSettingsProvider>
+    <ErrorBoundary>
+      <AppSettingsProvider>
+        <AppNavigation />
+      </AppSettingsProvider>
+    </ErrorBoundary>
   );
 }
 
@@ -144,6 +147,33 @@ function AppNavigation() {
                   headerBackVisible: false,
                   gestureEnabled: false,
                   headerLeft: () => <LinearBackButton destination="/" />,
+                }}
+              />
+              <Stack.Screen
+                name="leaderboard/index"
+                options={{
+                  title: t("nav.leaderboard"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerLeft: () => <LinearBackButton destination="/" />,
+                }}
+              />
+              <Stack.Screen
+                name="leaderboard/add-game"
+                options={{
+                  title: t("nav.leaderboard"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerLeft: () => <LinearBackButton destination="/leaderboard" />,
+                }}
+              />
+              <Stack.Screen
+                name="leaderboard/link-account"
+                options={{
+                  title: t("nav.leaderboard"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerLeft: () => <LinearBackButton destination="/leaderboard" />,
                 }}
               />
               <Stack.Screen
