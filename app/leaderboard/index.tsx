@@ -59,17 +59,23 @@ export default function LeaderboardScreen() {
 
       <View style={styles.list}>
         {entries.map((entry, index) => (
-          <Card key={entry.playerId} style={styles.row}>
-            <Text style={styles.position}>{index + 1}</Text>
-            <View style={styles.info}>
-              <Text style={styles.name}>{entry.name}</Text>
-              <Text style={styles.meta}>
-                {entry.gamesPlayed} {t("leaderboard.games")}
-              </Text>
-            </View>
-            <Text style={styles.wins}>{entry.wins}</Text>
-            <Text style={styles.winsLabel}>{t("leaderboard.wins")}</Text>
-          </Card>
+          <Pressable
+            key={entry.playerId}
+            onPress={() => router.push({ pathname: "/leaderboard/player/[id]", params: { id: entry.playerId } })}
+            style={({ pressed }) => pressed && styles.pressed}
+          >
+            <Card style={styles.row}>
+              <Text style={styles.position}>{index + 1}</Text>
+              <View style={styles.info}>
+                <Text style={styles.name}>{entry.name}</Text>
+                <Text style={styles.meta}>
+                  {entry.gamesPlayed} {t("leaderboard.games")}
+                </Text>
+              </View>
+              <Text style={styles.wins}>{entry.wins}</Text>
+              <Text style={styles.winsLabel}>{t("leaderboard.wins")}</Text>
+            </Card>
+          </Pressable>
         ))}
       </View>
 

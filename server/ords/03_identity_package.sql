@@ -33,6 +33,12 @@ CREATE OR REPLACE PACKAGE taotl_identity_api AS
   FUNCTION add_manual_game(p_authorization IN VARCHAR2, p_body IN BLOB) RETURN CLOB;
   FUNCTION overall_leaderboard RETURN CLOB;
   FUNCTION list_accounts(p_authorization IN VARCHAR2) RETURN CLOB;
+
+  -- Recupero password via email. Non rivela mai se un handle/email esiste
+  -- (stessa risposta generica in ogni caso) per non permettere di scoprire
+  -- chi è registrato.
+  FUNCTION request_password_reset(p_body IN BLOB) RETURN CLOB;
+  FUNCTION confirm_password_reset(p_body IN BLOB) RETURN CLOB;
 END taotl_identity_api;
 /
 
@@ -76,6 +82,7 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
              'displayName'    VALUE a.display_name,
              'firstName'      VALUE a.first_name,
              'lastName'       VALUE a.last_name,
+             'email'          VALUE a.email,
              'isAdmin'        VALUE CASE WHEN a.is_admin = 'Y' THEN 'true' ELSE 'false' END FORMAT JSON,
              'linkedPlayerId' VALUE ap.player_id,
              'createdAt'      VALUE TO_CHAR(a.created_at, 'YYYY-MM-DD"T"HH24:MI:SS.FF3TZH:TZM')
@@ -199,6 +206,7 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
     v_display_name taotl_accounts.display_name%TYPE;
     v_first_name   taotl_accounts.first_name%TYPE;
     v_last_name    taotl_accounts.last_name%TYPE;
+    v_email        taotl_accounts.email%TYPE;
     v_password     VARCHAR2(200);
     v_salt         VARCHAR2(64);
     v_json         CLOB;
@@ -207,8 +215,9 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
            TRIM(JSON_VALUE(p_body, '$.displayName' RETURNING VARCHAR2(80))),
            TRIM(JSON_VALUE(p_body, '$.firstName' RETURNING VARCHAR2(80))),
            TRIM(JSON_VALUE(p_body, '$.lastName' RETURNING VARCHAR2(80))),
+           LOWER(TRIM(JSON_VALUE(p_body, '$.email' RETURNING VARCHAR2(160)))),
            JSON_VALUE(p_body, '$.password' RETURNING VARCHAR2(200))
-      INTO v_handle, v_display_name, v_first_name, v_last_name, v_password
+      INTO v_handle, v_display_name, v_first_name, v_last_name, v_email, v_password
       FROM dual;
 
     IF NOT REGEXP_LIKE(v_handle, '^[a-z0-9_]{3,24}$') THEN
@@ -219,6 +228,9 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
     END IF;
     IF v_first_name IS NULL OR v_last_name IS NULL THEN
       RAISE_APPLICATION_ERROR(-20400, 'Nome e cognome sono obbligatori.');
+    END IF;
+    IF v_email IS NULL OR NOT REGEXP_LIKE(v_email, '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$') THEN
+      RAISE_APPLICATION_ERROR(-20400, 'Indirizzo email non valido.');
     END IF;
     IF v_password IS NULL OR LENGTH(v_password) < 8 OR LENGTH(v_password) > 72
        OR NOT REGEXP_LIKE(v_password, '[A-Z]')
@@ -231,9 +243,9 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
     v_salt := LOWER(RAWTOHEX(SYS_GUID()) || RAWTOHEX(SYS_GUID()));
 
     INSERT INTO taotl_accounts(
-      id, handle_normalized, display_name, first_name, last_name, password_salt, password_hash
+      id, handle_normalized, display_name, first_name, last_name, email, password_salt, password_hash
     ) VALUES (
-      v_id, v_handle, v_display_name, v_first_name, v_last_name, v_salt,
+      v_id, v_handle, v_display_name, v_first_name, v_last_name, v_email, v_salt,
       hash_password(v_salt, v_password)
     );
 
@@ -243,7 +255,7 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
   EXCEPTION
     WHEN DUP_VAL_ON_INDEX THEN
       ROLLBACK;
-      RAISE_APPLICATION_ERROR(-20409, 'Questo Taotl ID è già utilizzato.');
+      RAISE_APPLICATION_ERROR(-20409, 'Questo Taotl ID o questa email sono già in uso.');
   END register_account;
 
   FUNCTION login_account(p_body IN BLOB) RETURN CLOB IS
@@ -550,6 +562,105 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
      WHERE a.is_active = 'Y';
     RETURN v_json;
   END list_accounts;
+
+  -- Punto di innesto per il vero invio email (oggi non collegato a nessun
+  -- servizio: serve un provider esterno, es. via UTL_HTTP verso un'API tipo
+  -- Resend/Mailgun/SendGrid con una chiave, oppure UTL_SMTP con un server SMTP
+  -- vero). Finché non è collegato, il codice di reset non arriva a nessuno:
+  -- va recuperato da chi ha accesso al database, in taotl_password_resets.
+  PROCEDURE send_reset_email(p_email IN VARCHAR2, p_token IN VARCHAR2, p_display_name IN VARCHAR2) IS
+  BEGIN
+    NULL;
+  END send_reset_email;
+
+  FUNCTION request_password_reset(p_body IN BLOB) RETURN CLOB IS
+    v_handle       taotl_accounts.handle_normalized%TYPE;
+    v_email        taotl_accounts.email%TYPE;
+    v_account_id   taotl_accounts.id%TYPE;
+    v_display_name taotl_accounts.display_name%TYPE;
+    v_token        VARCHAR2(64);
+    v_json         CLOB;
+  BEGIN
+    SELECT normalized_handle(JSON_VALUE(p_body, '$.handle' RETURNING VARCHAR2(100))),
+           LOWER(TRIM(JSON_VALUE(p_body, '$.email' RETURNING VARCHAR2(160))))
+      INTO v_handle, v_email
+      FROM dual;
+
+    BEGIN
+      SELECT id, display_name
+        INTO v_account_id, v_display_name
+        FROM taotl_accounts
+       WHERE handle_normalized = v_handle
+         AND email = v_email
+         AND is_active = 'Y';
+
+      v_token := LOWER(RAWTOHEX(SYS_GUID()) || RAWTOHEX(SYS_GUID()));
+
+      DELETE FROM taotl_password_resets WHERE account_id = v_account_id;
+      INSERT INTO taotl_password_resets(token_hash, account_id, expires_at)
+      VALUES (sha256(v_token), v_account_id, SYSTIMESTAMP + INTERVAL '30' MINUTE);
+
+      send_reset_email(v_email, v_token, v_display_name);
+      COMMIT;
+    EXCEPTION
+      WHEN NO_DATA_FOUND THEN
+        NULL;
+    END;
+
+    -- Risposta sempre identica: non deve rivelare se un handle/email esiste.
+    SELECT JSON_OBJECT(
+             'message' VALUE 'Se i dati sono corretti riceverai un''email con le istruzioni per il reset.'
+             RETURNING CLOB
+           )
+      INTO v_json
+      FROM dual;
+    RETURN v_json;
+  END request_password_reset;
+
+  FUNCTION confirm_password_reset(p_body IN BLOB) RETURN CLOB IS
+    v_token      VARCHAR2(200);
+    v_password   VARCHAR2(200);
+    v_account_id taotl_accounts.id%TYPE;
+    v_salt       VARCHAR2(64);
+    v_json       CLOB;
+  BEGIN
+    SELECT JSON_VALUE(p_body, '$.token' RETURNING VARCHAR2(200)),
+           JSON_VALUE(p_body, '$.password' RETURNING VARCHAR2(200))
+      INTO v_token, v_password
+      FROM dual;
+
+    IF v_password IS NULL OR LENGTH(v_password) < 8 OR LENGTH(v_password) > 72
+       OR NOT REGEXP_LIKE(v_password, '[A-Z]')
+       OR NOT REGEXP_LIKE(v_password, '[0-9]') THEN
+      RAISE_APPLICATION_ERROR(-20400,
+        'La password deve avere almeno 8 caratteri, una maiuscola e un numero.');
+    END IF;
+
+    SELECT account_id
+      INTO v_account_id
+      FROM taotl_password_resets
+     WHERE token_hash = sha256(v_token)
+       AND expires_at > SYSTIMESTAMP;
+
+    v_salt := LOWER(RAWTOHEX(SYS_GUID()) || RAWTOHEX(SYS_GUID()));
+
+    UPDATE taotl_accounts
+       SET password_salt   = v_salt,
+           password_hash   = hash_password(v_salt, v_password),
+           failed_attempts = 0,
+           locked_until    = NULL
+     WHERE id = v_account_id;
+
+    DELETE FROM taotl_password_resets WHERE account_id = v_account_id;
+    DELETE FROM taotl_sessions WHERE account_id = v_account_id;
+
+    v_json := new_session(v_account_id);
+    COMMIT;
+    RETURN v_json;
+  EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+      RAISE_APPLICATION_ERROR(-20401, 'Codice di reset non valido o scaduto.');
+  END confirm_password_reset;
 
 END taotl_identity_api;
 /

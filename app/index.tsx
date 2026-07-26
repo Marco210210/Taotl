@@ -15,7 +15,6 @@ export default function HomeScreen() {
   const menuItems = [
     { label: t("home.history"), route: "/history" as const, icon: require("../assets/design/suit-heart.png") },
     { label: t("home.profiles"), route: "/profile" as const, icon: require("../assets/design/suit-diamond.png") },
-    { label: t("home.leaderboard"), route: "/leaderboard" as const, icon: require("../assets/design/suit-mask.png") },
     { label: t("home.rules"), route: "/rules" as const, icon: require("../assets/design/suit-club.png") },
     { label: t("home.settings"), route: "/settings" as const, icon: require("../assets/design/suit-spear.png") },
   ];
@@ -118,6 +117,19 @@ export default function HomeScreen() {
             ))}
           </View>
 
+          <Pressable
+            onPress={() => router.navigate("/leaderboard")}
+            style={({ pressed }) => [styles.leaderboardCard, pressed && styles.pressed]}
+          >
+            <Image
+              source={require("../assets/design/suit-mask.png")}
+              resizeMode="contain"
+              style={styles.leaderboardIcon}
+            />
+            <Text style={styles.leaderboardLabel}>{t("home.leaderboard").replace("\n", " ")}</Text>
+            <Text style={styles.leaderboardArrow}>›</Text>
+          </Pressable>
+
           <Pressable onPress={() => router.navigate("/roster")} style={styles.rosterLink}>
             <Text style={styles.rosterText}>{t("home.manageRoster")}</Text>
             <Text style={styles.rosterArrow}>›</Text>
@@ -198,6 +210,20 @@ const styles = StyleSheet.create({
   },
   tileIcon: { width: 25, height: 25 },
   tileLabel: { color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 13.5, lineHeight: 17 },
+  leaderboardCard: {
+    minHeight: 64,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.borderStrong,
+  },
+  leaderboardIcon: { width: 26, height: 26 },
+  leaderboardLabel: { flex: 1, color: theme.colors.text, fontFamily: theme.font.family.extraBold, fontSize: 15 },
+  leaderboardArrow: { color: theme.colors.text, fontFamily: theme.font.family.regular, fontSize: 26 },
   rosterLink: {
     minHeight: 50,
     paddingHorizontal: 15,

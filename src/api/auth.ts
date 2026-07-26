@@ -6,6 +6,7 @@ export interface AccountDTO {
   displayName: string;
   firstName: string;
   lastName: string;
+  email: string;
   isAdmin: boolean;
   linkedPlayerId: string | null;
   createdAt: string;
@@ -38,6 +39,7 @@ export function registerAccount(input: {
   displayName: string;
   firstName: string;
   lastName: string;
+  email: string;
   password: string;
 }): Promise<AuthSessionDTO> {
   return apiClient.post<AuthSessionDTO>("/taotl/auth/register/", input);
@@ -45,6 +47,14 @@ export function registerAccount(input: {
 
 export function loginAccount(handle: string, password: string): Promise<AuthSessionDTO> {
   return apiClient.post<AuthSessionDTO>("/taotl/auth/login/", { handle, password });
+}
+
+export function requestPasswordReset(handle: string, email: string): Promise<{ message: string }> {
+  return apiClient.post<{ message: string }>("/taotl/auth/forgot-password/", { handle, email });
+}
+
+export function confirmPasswordReset(token: string, password: string): Promise<AuthSessionDTO> {
+  return apiClient.post<AuthSessionDTO>("/taotl/auth/reset-password/", { token, password });
 }
 
 export function fetchMyAccount(token: string): Promise<AccountDTO> {

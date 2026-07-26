@@ -5,6 +5,7 @@ import type { PropsWithChildren } from "react";
 import { Platform } from "react-native";
 
 import {
+  confirmPasswordReset,
   createGameRoom,
   fetchGameRoom,
   fetchMyAccount,
@@ -12,6 +13,7 @@ import {
   loginAccount,
   logoutAccount,
   registerAccount,
+  requestPasswordReset,
   type AccountDTO,
   type GameRoomDTO,
 } from "@/api/auth";
@@ -30,10 +32,13 @@ interface AccountContextValue {
     displayName: string;
     firstName: string;
     lastName: string;
+    email: string;
     password: string;
   }) => Promise<void>;
   login: (handle: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  requestReset: (handle: string, email: string) => Promise<{ message: string }>;
+  confirmReset: (token: string, password: string) => Promise<void>;
   createRoom: () => Promise<GameRoomDTO>;
   joinRoom: (code: string) => Promise<GameRoomDTO>;
   refreshRoom: () => Promise<void>;
@@ -100,6 +105,7 @@ export function AccountProvider({ children }: PropsWithChildren) {
     displayName: string;
     firstName: string;
     lastName: string;
+    email: string;
     password: string;
   }) => {
     setLoading(true);
@@ -120,6 +126,23 @@ export function AccountProvider({ children }: PropsWithChildren) {
       await acceptSession(await loginAccount(handle, password));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Accesso non riuscito.";
+      setAuthError(message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [acceptSession]);
+
+  const requestReset = useCallback(async (handle: string, email: string) => {
+    return requestPasswordReset(handle, email);
+  }, []);
+
+  const confirmReset = useCallback(async (token: string, password: string) => {
+    setLoading(true);
+    try {
+      await acceptSession(await confirmPasswordReset(token, password));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Reset non riuscito.";
       setAuthError(message);
       throw error;
     } finally {
@@ -167,11 +190,16 @@ export function AccountProvider({ children }: PropsWithChildren) {
       register,
       login,
       logout,
+      requestReset,
+      confirmReset,
       createRoom,
       joinRoom,
       refreshRoom,
     }),
-    [account, authError, createRoom, joinRoom, loading, login, logout, refreshRoom, register, room, token],
+    [
+      account, authError, confirmReset, createRoom, joinRoom, loading, login, logout,
+      refreshRoom, register, requestReset, room, token,
+    ],
   );
 
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;

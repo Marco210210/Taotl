@@ -504,6 +504,51 @@ BEGIN
     p_access_method      => 'IN'
   );
 
+  ---------------------------------------------------------------------------
+  -- POST /taotl/auth/forgot-password -> richiede un reset password via email.
+  -- Risposta sempre identica, non richiede login.
+  ---------------------------------------------------------------------------
+  ORDS.DEFINE_TEMPLATE(p_module_name => 'taotl.api', p_pattern => 'auth/forgot-password/');
+  ORDS.DEFINE_HANDLER(
+    p_module_name   => 'taotl.api',
+    p_pattern       => 'auth/forgot-password/',
+    p_method        => 'POST',
+    p_source_type   => ORDS.source_type_plsql,
+    p_mimes_allowed => 'application/json',
+    p_source        => q'~
+      DECLARE
+        v_json CLOB;
+      BEGIN
+        v_json := taotl_identity_api.request_password_reset(:body);
+        OWA_UTIL.mime_header('application/json', FALSE);
+        HTP.p('Cache-Control: no-store');
+        OWA_UTIL.http_header_close;
+        HTP.prn(v_json);
+      END;~'
+  );
+
+  ---------------------------------------------------------------------------
+  -- POST /taotl/auth/reset-password -> conferma il reset con il codice ricevuto.
+  ---------------------------------------------------------------------------
+  ORDS.DEFINE_TEMPLATE(p_module_name => 'taotl.api', p_pattern => 'auth/reset-password/');
+  ORDS.DEFINE_HANDLER(
+    p_module_name   => 'taotl.api',
+    p_pattern       => 'auth/reset-password/',
+    p_method        => 'POST',
+    p_source_type   => ORDS.source_type_plsql,
+    p_mimes_allowed => 'application/json',
+    p_source        => q'~
+      DECLARE
+        v_json CLOB;
+      BEGIN
+        v_json := taotl_identity_api.confirm_password_reset(:body);
+        OWA_UTIL.mime_header('application/json', FALSE);
+        HTP.p('Cache-Control: no-store');
+        OWA_UTIL.http_header_close;
+        HTP.prn(v_json);
+      END;~'
+  );
+
   COMMIT;
 END;
 /
