@@ -1,4 +1,23 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(sudo podman exec taotl-oracle bash -c ' *)",
+      "Bash(sudo podman exec taotl-oracle rm -f /tmp/01_api_package_deploy.sql)",
+      "Bash(curl -s -o /tmp/reg3.out -w 'HTTP %{http_code}\\\\n' -X POST https://130.110.16.97.sslip.io/ords/taotl_app/taotl/auth/register/ -H 'Content-Type: application/json' -d '{\"handle\":\"testadmin1\",\"displayName\":\"Test Admin\",\"firstName\":\"Mario\",\"lastName\":\"Rossi\",\"password\":\"Password123\"}')",
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /tmp/regweak.out -w 'HTTP %{http_code}\\\\n' -X POST https://130.110.16.97.sslip.io/ords/taotl_app/taotl/auth/register/ -H 'Content-Type: application/json' -d '{\"handle\":\"testweak1\",\"displayName\":\"Test Weak\",\"firstName\":\"A\",\"lastName\":\"B\",\"password\":\"weakpass\"}')",
+      "Bash(python3 -c \"import json;print\\(json.load\\(open\\('/tmp/reg3.out'\\)\\)['token']\\)\")",
+      "Bash(curl -s -o /tmp/newplayer.out -w 'HTTP %{http_code}\\\\n' -X POST https://130.110.16.97.sslip.io/ords/taotl_app/players/ -H 'Content-Type: application/json' -H 'X-App-Key: 03930e2836678956b7fe0bf183f7b0cba6bcb9c1e4de85a777f5d260b03f40cf' -d '{\"id\":\"player_test_del_1\",\"name\":\"DaCancellareTest\"}')",
+      "Bash(curl -s -o /tmp/delfail.out -w 'HTTP %{http_code}\\\\n' -X DELETE https://130.110.16.97.sslip.io/ords/taotl_app/players/player_test_del_1 -H 'Authorization: Bearer __CMDSUB_OUTPUT__')",
+      "Bash(curl -s -o /tmp/delok.out -w 'HTTP %{http_code}\\\\n' -X DELETE https://130.110.16.97.sslip.io/ords/taotl_app/players/player_test_del_1 -H 'Authorization: Bearer __CMDSUB_OUTPUT__')",
+      "Bash(curl -s https://130.110.16.97.sslip.io/ords/taotl_app/taotl/auth/me/ -H 'Authorization: Bearer __CMDSUB_OUTPUT__')",
+      "Bash(curl -s -o /tmp/lb.out -w 'HTTP %{http_code}\\\\n' https://130.110.16.97.sslip.io/ords/taotl_app/taotl/leaderboard/)",
+      "Bash(curl -s -o /dev/null -w 'p1 HTTP %{http_code}\\\\n' -X POST https://130.110.16.97.sslip.io/ords/taotl_app/players/ -H 'Content-Type: application/json' -H 'X-App-Key: 03930e2836678956b7fe0bf183f7b0cba6bcb9c1e4de85a777f5d260b03f40cf' -d '{\"id\":\"player_test_a\",\"name\":\"Giocatore A\"}')",
+      "Bash(curl -s -o /dev/null -w 'p2 HTTP %{http_code}\\\\n' -X POST https://130.110.16.97.sslip.io/ords/taotl_app/players/ -H 'Content-Type: application/json' -H 'X-App-Key: 03930e2836678956b7fe0bf183f7b0cba6bcb9c1e4de85a777f5d260b03f40cf' -d '{\"id\":\"player_test_b\",\"name\":\"Giocatore B\"}')",
+      "Bash(curl -s -o /tmp/manual.out -w 'HTTP %{http_code}\\\\n' -X POST https://130.110.16.97.sslip.io/ords/taotl_app/taotl/admin/games/ -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -H 'Content-Type: application/json' -d '{\"players\":[\"player_test_a\",\"player_test_b\"],\"winnerId\":\"player_test_a\",\"playedAt\":\"2025-01-15\"}')",
+      "Bash(curl -s https://130.110.16.97.sslip.io/ords/taotl_app/taotl/games/)"
+    ]
+  },
   "enabledPlugins": {
     "expo@claude-plugins-official": true
   }
