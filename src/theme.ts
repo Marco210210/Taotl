@@ -1,12 +1,17 @@
-import { DynamicColorIOS, Platform, PlatformColor, type ColorValue } from "react-native";
+import { DynamicColorIOS, Platform, type ColorValue } from "react-native";
 
+// Su Android, PlatformColor(attributo) dipende da attributi del tema nativo
+// (es. "?attr/colorBackgroundFloating") che un'app Expo gestita non definisce
+// sempre: se l'attributo non esiste il colore non si risolve, con l'effetto
+// osservato di testo invisibile o crash all'avvio nella build nativa. Finché
+// non implementiamo la modalità scura su Android con lo stato React (es.
+// useColorScheme), usiamo qui il colore chiaro fisso, che è sempre valido.
 function semanticColor(
   light: string,
   dark: string,
-  androidAttribute: string,
+  _androidAttribute: string,
 ): ColorValue {
   if (Platform.OS === "ios") return DynamicColorIOS({ light, dark });
-  if (Platform.OS === "android") return PlatformColor(androidAttribute);
   return light;
 }
 
