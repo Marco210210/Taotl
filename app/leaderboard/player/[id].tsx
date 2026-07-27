@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text } from "react-native";
 
 import { fetchHistory } from "@/api/games";
@@ -9,10 +9,11 @@ import { PlayerStatsView } from "@/components/PlayerStatsView";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import type { Player } from "@/game/types";
 import { useAppSettings } from "@/state/AppSettingsContext";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 export default function LeaderboardPlayerScreen() {
-  const { locale, t } = useAppSettings();
+  const { locale, t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const [player, setPlayer] = useState<Player | null>(null);
   const [games, setGames] = useState<GameHistorySummaryDTO[]>([]);
@@ -38,7 +39,7 @@ export default function LeaderboardPlayerScreen() {
   if (loading) {
     return (
       <ScreenContainer style={styles.center}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary as string} />
       </ScreenContainer>
     );
   }
@@ -58,7 +59,9 @@ export default function LeaderboardPlayerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  center: { alignItems: "center", justifyContent: "center" },
-  helper: { fontSize: theme.font.small, color: theme.colors.textMuted, fontFamily: theme.font.family.medium },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    center: { alignItems: "center", justifyContent: "center" },
+    helper: { fontSize: theme.font.small, color: colors.textMuted, fontFamily: theme.font.family.medium },
+  });
+}

@@ -1,8 +1,9 @@
 import * as Haptics from "expo-haptics";
+import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useAppSettings } from "@/state/AppSettingsContext";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 export function NumberStepper({
   value,
@@ -19,7 +20,8 @@ export function NumberStepper({
   disabled?: boolean;
   disabledValues?: number[];
 }) {
-  const { resolvedLanguage, vibrationEnabled } = useAppSettings();
+  const { resolvedLanguage, vibrationEnabled, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const disabledSet = new Set(disabledValues);
   const previousValue = findAllowedValue(value, -1, min, max, disabledSet);
   const nextValue = findAllowedValue(value, 1, min, max, disabledSet);
@@ -70,24 +72,26 @@ function findAllowedValue(
   return null;
 }
 
-const styles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: theme.spacing(2) },
-  btn: {
-    width: 44,
-    height: 44,
-    borderRadius: 13,
-    backgroundColor: theme.colors.inkSoft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  btnDisabled: { opacity: 0.35 },
-  btnLabel: { color: theme.colors.text, fontSize: 24, fontFamily: theme.font.family.semibold },
-  value: {
-    color: theme.colors.text,
-    fontSize: 24,
-    fontFamily: theme.font.family.extraBold,
-    minWidth: 38,
-    textAlign: "center",
-    fontVariant: ["tabular-nums"],
-  },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    row: { flexDirection: "row", alignItems: "center", gap: theme.spacing(2) },
+    btn: {
+      width: 44,
+      height: 44,
+      borderRadius: 13,
+      backgroundColor: colors.inkSoft,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    btnDisabled: { opacity: 0.35 },
+    btnLabel: { color: colors.text, fontSize: 24, fontFamily: theme.font.family.semibold },
+    value: {
+      color: colors.text,
+      fontSize: 24,
+      fontFamily: theme.font.family.extraBold,
+      minWidth: 38,
+      textAlign: "center",
+      fontVariant: ["tabular-nums"],
+    },
+  });
+}

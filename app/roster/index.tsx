@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -8,12 +8,13 @@ import { LinearBackButton } from "@/components/LinearBackButton";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useRoster } from "@/state/useRoster";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 export default function RosterScreen() {
   const { from } = useLocalSearchParams<{ from?: string }>();
   const backDestination = from === "setup" ? "/setup/players" : "/";
-  const { t } = useAppSettings();
+  const { t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { players, loading, fromCache, reload } = useRoster();
 
   useFocusEffect(
@@ -28,7 +29,7 @@ export default function RosterScreen() {
       <SafeAreaView style={styles.safe} edges={["bottom", "left", "right"]}>
         <ScrollView
           contentContainerStyle={styles.content}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} tintColor={theme.colors.primary} />}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} tintColor={colors.primary as string} />}
         >
         <Text style={styles.heading}>{t("roster.title")}</Text>
         {fromCache && (
@@ -60,21 +61,23 @@ export default function RosterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: theme.colors.background },
-  content: { padding: theme.spacing(2), gap: theme.spacing(2) },
-  heading: { fontSize: theme.font.title, fontWeight: "800", color: theme.colors.text },
-  helper: { fontSize: theme.font.small, color: theme.colors.textMuted },
-  list: { gap: theme.spacing(1) },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing(1.5),
-    padding: theme.spacing(1.25),
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-  },
-  name: { color: theme.colors.text, fontSize: theme.font.body, fontWeight: "600" },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.background },
+    content: { padding: theme.spacing(2), gap: theme.spacing(2) },
+    heading: { fontSize: theme.font.title, fontWeight: "800", color: colors.text },
+    helper: { fontSize: theme.font.small, color: colors.textMuted },
+    list: { gap: theme.spacing(1) },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.spacing(1.5),
+      padding: theme.spacing(1.25),
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    name: { color: colors.text, fontSize: theme.font.body, fontWeight: "600" },
+  });
+}

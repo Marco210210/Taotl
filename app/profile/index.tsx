@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text } from "react-native";
 
 import { fetchHistory } from "@/api/games";
@@ -12,10 +12,11 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import type { Player } from "@/game/types";
 import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 export default function MyProfileScreen() {
-  const { locale, t } = useAppSettings();
+  const { locale, t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { account } = useAccount();
   const [players, setPlayers] = useState<Player[]>([]);
   const [games, setGames] = useState<GameHistorySummaryDTO[]>([]);
@@ -47,7 +48,7 @@ export default function MyProfileScreen() {
   if (loading) {
     return (
       <ScreenContainer style={styles.center}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary as string} />
         <Text style={styles.helper}>{t("profile.loading")}</Text>
       </ScreenContainer>
     );
@@ -99,36 +100,38 @@ export default function MyProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  center: { alignItems: "center", justifyContent: "center" },
-  helper: {
-    fontSize: theme.font.small,
-    color: theme.colors.textMuted,
-    fontFamily: theme.font.family.medium,
-    marginTop: theme.spacing(0.5),
-  },
-  accountCard: { alignItems: "center", paddingVertical: 18 },
-  accountEyebrow: {
-    color: theme.colors.success,
-    fontSize: 10,
-    fontFamily: theme.font.family.extraBold,
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  accountName: { color: theme.colors.text, fontSize: 18, fontFamily: theme.font.family.extraBold, textAlign: "center" },
-  accountHandle: { color: theme.colors.textMuted, fontSize: 12, fontFamily: theme.font.family.bold },
-  accountDescription: {
-    color: theme.colors.textMuted,
-    fontSize: 11,
-    lineHeight: 17,
-    fontFamily: theme.font.family.medium,
-    textAlign: "center",
-  },
-  waitingText: {
-    color: theme.colors.textMuted,
-    fontSize: 12.5,
-    lineHeight: 18,
-    fontFamily: theme.font.family.medium,
-    textAlign: "center",
-  },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    center: { alignItems: "center", justifyContent: "center" },
+    helper: {
+      fontSize: theme.font.small,
+      color: colors.textMuted,
+      fontFamily: theme.font.family.medium,
+      marginTop: theme.spacing(0.5),
+    },
+    accountCard: { alignItems: "center", paddingVertical: 18 },
+    accountEyebrow: {
+      color: colors.success,
+      fontSize: 10,
+      fontFamily: theme.font.family.extraBold,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+    },
+    accountName: { color: colors.text, fontSize: 18, fontFamily: theme.font.family.extraBold, textAlign: "center" },
+    accountHandle: { color: colors.textMuted, fontSize: 12, fontFamily: theme.font.family.bold },
+    accountDescription: {
+      color: colors.textMuted,
+      fontSize: 11,
+      lineHeight: 17,
+      fontFamily: theme.font.family.medium,
+      textAlign: "center",
+    },
+    waitingText: {
+      color: colors.textMuted,
+      fontSize: 12.5,
+      lineHeight: 18,
+      fontFamily: theme.font.family.medium,
+      textAlign: "center",
+    },
+  });
+}

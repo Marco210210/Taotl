@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
@@ -6,10 +7,11 @@ import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useGame } from "@/state/GameContext";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 export default function CorrectDealerScreen() {
-  const { t } = useAppSettings();
+  const { t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { game, currentRoundInfo, setCurrentDealer } = useGame();
 
   if (
@@ -63,22 +65,24 @@ export default function CorrectDealerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  heading: { fontSize: theme.font.title, fontWeight: "800", color: theme.colors.text },
-  helper: { fontSize: theme.font.small, color: theme.colors.textMuted, marginTop: theme.spacing(0.5) },
-  list: { gap: theme.spacing(1) },
-  row: {
-    minHeight: 62,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing(1.5),
-    padding: theme.spacing(1.25),
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-  },
-  rowSelected: { borderColor: theme.colors.primary, backgroundColor: theme.colors.surfaceAlt },
-  name: { flex: 1, color: theme.colors.text, fontSize: theme.font.body, fontWeight: "700" },
-  tag: { color: theme.colors.primary, fontSize: theme.font.small, fontWeight: "800" },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    heading: { fontSize: theme.font.title, fontWeight: "800", color: colors.text },
+    helper: { fontSize: theme.font.small, color: colors.textMuted, marginTop: theme.spacing(0.5) },
+    list: { gap: theme.spacing(1) },
+    row: {
+      minHeight: 62,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.spacing(1.5),
+      padding: theme.spacing(1.25),
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    rowSelected: { borderColor: colors.primary, backgroundColor: colors.surfaceAlt },
+    name: { flex: 1, color: colors.text, fontSize: theme.font.body, fontWeight: "700" },
+    tag: { color: colors.primary, fontSize: theme.font.small, fontWeight: "800" },
+  });
+}

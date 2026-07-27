@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { AdminAccountDTO } from "@/api/leaderboard";
@@ -11,10 +11,11 @@ import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useRoster } from "@/state/useRoster";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 export default function LinkAccountScreen() {
-  const { t } = useAppSettings();
+  const { t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { token } = useAccount();
   const { players, loading: rosterLoading } = useRoster();
   const [accounts, setAccounts] = useState<AdminAccountDTO[]>([]);
@@ -116,26 +117,28 @@ export default function LinkAccountScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  sectionTitle: { color: theme.colors.text, fontSize: 15, fontFamily: theme.font.family.extraBold },
-  helper: { fontSize: theme.font.small, color: theme.colors.textMuted, fontFamily: theme.font.family.medium },
-  error: { fontSize: theme.font.small, color: theme.colors.danger, fontFamily: theme.font.family.semibold },
-  list: { gap: 9 },
-  row: {
-    minHeight: 52,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 13,
-    borderWidth: 1.5,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-  },
-  rowSelected: { borderColor: theme.colors.success },
-  rowInfo: { flex: 1 },
-  rowName: { flex: 1, color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 14.5 },
-  rowMeta: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 11 },
-  pressed: { opacity: 0.72 },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    sectionTitle: { color: colors.text, fontSize: 15, fontFamily: theme.font.family.extraBold },
+    helper: { fontSize: theme.font.small, color: colors.textMuted, fontFamily: theme.font.family.medium },
+    error: { fontSize: theme.font.small, color: colors.danger, fontFamily: theme.font.family.semibold },
+    list: { gap: 9 },
+    row: {
+      minHeight: 52,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 9,
+      borderRadius: 13,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    rowSelected: { borderColor: colors.success },
+    rowInfo: { flex: 1 },
+    rowName: { flex: 1, color: colors.text, fontFamily: theme.font.family.bold, fontSize: 14.5 },
+    rowMeta: { color: colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 11 },
+    pressed: { opacity: 0.72 },
+  });
+}

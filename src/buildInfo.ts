@@ -2,4 +2,4 @@
 // poter verificare a colpo d'occhio (schermata Impostazioni) se il telefono
 // ha davvero ricaricato l'ultima versione del bundle, invece di riaprire una
 // sessione Expo Go rimasta in background con il codice precedente.
-export const BUILD_STAMP = "2026-07-27 15:55 UTC";
+export const BUILD_STAMP = "2026-07-27 18:25 UTC";

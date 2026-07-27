@@ -1,5 +1,5 @@
 import { router, Stack } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput } from "react-native";
 
 import { Button } from "@/components/Button";
@@ -9,10 +9,11 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 export default function ResetPasswordScreen() {
-  const { t } = useAppSettings();
+  const { t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { confirmReset } = useAccount();
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
@@ -52,7 +53,7 @@ export default function ResetPasswordScreen() {
             value={code}
             onChangeText={setCode}
             placeholder={t("resetPassword.codePlaceholder")}
-            placeholderTextColor={theme.colors.textMuted}
+            placeholderTextColor={colors.textMuted as string}
             style={styles.input}
           />
           <Text style={styles.label}>{t("resetPassword.newPassword")}</Text>
@@ -63,7 +64,7 @@ export default function ResetPasswordScreen() {
             value={password}
             onChangeText={setPassword}
             placeholder={t("account.passwordPlaceholder")}
-            placeholderTextColor={theme.colors.textMuted}
+            placeholderTextColor={colors.textMuted as string}
             style={styles.input}
           />
           <Text style={styles.hint}>{t("account.passwordHint")}</Text>
@@ -81,19 +82,21 @@ export default function ResetPasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  label: { color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 12, marginTop: 4 },
-  input: {
-    minHeight: 50,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.borderStrong,
-    backgroundColor: theme.colors.background,
-    color: theme.colors.text,
-    paddingHorizontal: 14,
-    fontFamily: theme.font.family.semibold,
-    fontSize: 15,
-  },
-  hint: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 10.5, lineHeight: 16 },
-  error: { color: theme.colors.danger, fontFamily: theme.font.family.semibold, fontSize: 12, lineHeight: 17 },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    label: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 12, marginTop: 4 },
+    input: {
+      minHeight: 50,
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+      backgroundColor: colors.background,
+      color: colors.text,
+      paddingHorizontal: 14,
+      fontFamily: theme.font.family.semibold,
+      fontSize: 15,
+    },
+    hint: { color: colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 10.5, lineHeight: 16 },
+    error: { color: colors.danger, fontFamily: theme.font.family.semibold, fontSize: 12, lineHeight: 17 },
+  });
+}

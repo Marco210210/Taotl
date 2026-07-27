@@ -1,32 +1,50 @@
-import { Appearance, type ColorValue } from "react-native";
+import { type ColorValue } from "react-native";
 
-import { readStoredThemePreference } from "@/themePreference";
-
-// I colori "chiaro/scuro" vengono decisi una sola volta, quando il modulo viene
-// caricato (non ad ogni render): per applicare un cambio di tema serve
-// chiudere e riaprire l'app (vedi AppSettingsContext.tsx — Updates.reloadAsync()
-// non funziona dentro Expo Go). La preferenza esplicita (se l'utente ha
-// scelto "chiaro"/"scuro" invece di "sistema") viene letta in modo sincrono
-// da SecureStore (vedi themePreference.ts), non da Appearance.setColorScheme(),
-// che dentro Expo Go non è affidabile tra un avvio e l'altro.
-const storedPreference = readStoredThemePreference();
-const isDark =
-  storedPreference === "system"
-    ? Appearance.getColorScheme() === "dark"
-    : storedPreference === "dark";
-
-function semanticColor(light: string, dark: string): ColorValue {
-  return isDark ? dark : light;
+export interface ThemeColors {
+  background: ColorValue;
+  backgroundMuted: ColorValue;
+  backgroundFaint: ColorValue;
+  backgroundSoft: ColorValue;
+  surface: ColorValue;
+  surfaceAlt: ColorValue;
+  border: ColorValue;
+  borderStrong: ColorValue;
+  primary: ColorValue;
+  primaryText: ColorValue;
+  text: ColorValue;
+  textMuted: ColorValue;
+  textFaint: ColorValue;
+  success: ColorValue;
+  successHero: ColorValue;
+  danger: ColorValue;
+  warning: ColorValue;
+  yellow: ColorValue;
+  gold: ColorValue;
+  terracotta: ColorValue;
+  teal: ColorValue;
+  firstPlace: ColorValue;
+  firstPlaceBorder: ColorValue;
+  positiveSoft: ColorValue;
+  negativeSoft: ColorValue;
+  inkSoft: ColorValue;
 }
 
-export const theme = {
-  colors: {
+// I colori dipendono dal tema (chiaro/scuro) scelto dall'utente in
+// Impostazioni, quindi NON possono essere una costante calcolata una sola
+// volta al caricamento del modulo: ogni schermata li ricalcola ad ogni
+// render tramite useAppSettings().colors (vedi AppSettingsContext.tsx), così
+// il cambio tema è immediato, senza bisogno di ricaricare o riavviare l'app.
+export function getThemeColors(isDark: boolean): ThemeColors {
+  function semanticColor(light: string, dark: string): ColorValue {
+    return isDark ? dark : light;
+  }
+
+  return {
     background: semanticColor("#F8F8F5", "#16171B"),
     // Varianti attenuate di `background`, da usare come testo sopra sfondi
     // che si invertono tra i due temi (quelli con backgroundColor:
-    // theme.colors.text, es. il pannello "modalità personalizzata" o la
-    // schermata di fine partita) — stesso ruolo di textMuted/textFaint ma
-    // "al contrario".
+    // colors.text, es. il pannello "modalità personalizzata" o la schermata
+    // di fine partita) — stesso ruolo di textMuted/textFaint ma "al contrario".
     backgroundMuted: semanticColor("rgba(248, 248, 245, 0.62)", "rgba(22, 23, 27, 0.55)"),
     backgroundFaint: semanticColor("rgba(248, 248, 245, 0.42)", "rgba(22, 23, 27, 0.4)"),
     backgroundSoft: semanticColor("rgba(248, 248, 245, 0.08)", "rgba(22, 23, 27, 0.08)"),
@@ -38,8 +56,7 @@ export const theme = {
     // Colore fisso (non cambia tra chiaro/scuro): per il testo/le icone sopra
     // sfondi "colorati" che restano scuri/saturi in entrambi i temi (bottoni
     // primary/danger/success, avatar, hero verde...). Da NON confondere con
-    // `background`, che invece è pensato per sfondi che si invertono (vedi
-    // sotto) e cambia valore tra i due temi.
+    // `background`, che invece è pensato per sfondi che si invertono.
     primaryText: "#F8F8F5",
     text: semanticColor("#17181D", "#F4F1E8"),
     textMuted: semanticColor("rgba(23, 24, 29, 0.52)", "rgba(244, 241, 232, 0.5)"),
@@ -57,7 +74,17 @@ export const theme = {
     positiveSoft: semanticColor("rgba(23, 120, 75, 0.10)", "rgba(46, 158, 104, 0.16)"),
     negativeSoft: semanticColor("rgba(207, 53, 69, 0.10)", "rgba(232, 81, 95, 0.16)"),
     inkSoft: semanticColor("rgba(23, 24, 29, 0.06)", "rgba(244, 241, 232, 0.08)"),
-  },
+  };
+}
+
+export function getAvatarColors(isDark: boolean): readonly string[] {
+  return isDark
+    ? ["#E8515F", "#2E9E68", "#D98249", "#54A3B5", "#F4F1E8", "#E5C51C"]
+    : ["#CF3545", "#17784B", "#B85C2B", "#2E6E7E", "#17181D", "#A88A12"];
+}
+
+// Token che NON dipendono dal tema: restano un import statico ovunque.
+export const theme = {
   spacing: (n: number) => n * 8,
   radius: {
     sm: 8,
@@ -79,8 +106,4 @@ export const theme = {
       display: "InstrumentSerif_400Regular",
     },
   },
-  avatarColors: isDark
-    ? ["#E8515F", "#2E9E68", "#D98249", "#54A3B5", "#F4F1E8", "#E5C51C"]
-    : ["#CF3545", "#17784B", "#B85C2B", "#2E6E7E", "#17181D", "#A88A12"],
-  isDark,
 } as const;

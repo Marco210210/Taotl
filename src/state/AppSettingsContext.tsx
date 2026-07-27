@@ -1,13 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Updates from "expo-updates";
 import { getLocales } from "expo-localization";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { PropsWithChildren } from "react";
-import { Alert, Platform, useColorScheme } from "react-native";
+import { useColorScheme } from "react-native";
 
 import { translations, type AppLanguage, type TranslationKey } from "@/i18n/translations";
-import { theme } from "@/theme";
-import { writeStoredThemePreference } from "@/themePreference";
+import { getAvatarColors, getThemeColors, type ThemeColors } from "@/theme";
 
 import { STORAGE_KEYS } from "./storageKeys";
 
@@ -26,6 +24,8 @@ interface AppSettingsContextValue extends StoredSettings {
   resolvedTheme: "light" | "dark";
   resolvedLanguage: AppLanguage;
   locale: "it-IT" | "en-US";
+  colors: ThemeColors;
+  avatarColors: readonly string[];
   setTheme: (value: ThemePreference) => void;
   setLanguage: (value: LanguagePreference) => void;
   setVibrationEnabled: (value: boolean) => void;
@@ -62,40 +62,6 @@ export function AppSettingsProvider({ children }: PropsWithChildren) {
       .finally(() => setHydrated(true));
   }, []);
 
-  const resolvedLanguage = settings.language === "system" ? deviceLanguage() : settings.language;
-
-  // I colori del tema (src/theme.ts) vengono decisi una sola volta all'avvio
-  // dell'app, non ad ogni render: per applicarli serve ricaricare il bundle
-  // JS. Lo facciamo qui in automatico ogni volta che il tema che DOVREBBE
-  // essere attivo (needsDark) non corrisponde a quello con cui l'app è
-  // effettivamente partita (theme.isDark) — sia perché l'utente ha appena
-  // cambiato l'impostazione, sia perché all'avvio a freddo il telefono era in
-  // un tema di sistema diverso da una preferenza esplicita già salvata. La
-  // preferenza va scritta su SecureStore PRIMA del reload (in modo sincrono)
-  // così src/theme.ts la trova subito al riavvio del bundle. Updates.isEnabled
-  // è false dentro Expo Go: lì reloadAsync() rifiuta SEMPRE la promise (Expo
-  // Go non supporta il reload "in place"), quindi in quel caso ci limitiamo
-  // ad avvisare che serve chiudere e riaprire l'app — la scelta è comunque
-  // già salvata e verrà applicata al prossimo avvio.
-  const appliedRef = useRef<boolean | null>(null);
-  useEffect(() => {
-    if (!hydrated) return;
-    writeStoredThemePreference(settings.theme);
-    const needsDark = settings.theme === "system" ? systemScheme === "dark" : settings.theme === "dark";
-    if (appliedRef.current === needsDark) return;
-    appliedRef.current = needsDark;
-    if (needsDark === theme.isDark) return;
-    if (Platform.OS === "web") return;
-    if (!Updates.isEnabled) {
-      Alert.alert(
-        translations[resolvedLanguage]["settings.themeRestartTitle"],
-        translations[resolvedLanguage]["settings.themeRestartBody"],
-      );
-      return;
-    }
-    Updates.reloadAsync().catch(() => {});
-  }, [hydrated, settings.theme, systemScheme, resolvedLanguage]);
-
   useEffect(() => {
     if (!hydrated) return;
     AsyncStorage.setItem(STORAGE_KEYS.appSettings, JSON.stringify(settings)).catch(() => {});
@@ -105,9 +71,17 @@ export function AppSettingsProvider({ children }: PropsWithChildren) {
     setSettings((current) => ({ ...current, [key]: value }));
   }, []);
 
+  const resolvedLanguage = settings.language === "system" ? deviceLanguage() : settings.language;
   const resolvedTheme = settings.theme === "system"
     ? (systemScheme === "dark" ? "dark" : "light")
     : settings.theme;
+
+  // I colori si ricalcolano ad ogni cambio di resolvedTheme (React re-renderizza
+  // tutto quello che legge questo context) invece di essere una costante fissa
+  // decisa all'avvio: così il cambio tema è istantaneo, senza dover ricaricare
+  // o riavviare l'app (Updates.reloadAsync() non funziona dentro Expo Go).
+  const colors = useMemo(() => getThemeColors(resolvedTheme === "dark"), [resolvedTheme]);
+  const avatarColors = useMemo(() => getAvatarColors(resolvedTheme === "dark"), [resolvedTheme]);
 
   const value = useMemo<AppSettingsContextValue>(
     () => ({
@@ -116,13 +90,15 @@ export function AppSettingsProvider({ children }: PropsWithChildren) {
       resolvedLanguage,
       resolvedTheme,
       locale: resolvedLanguage === "en" ? "en-US" : "it-IT",
+      colors,
+      avatarColors,
       setTheme: (next) => update("theme", next),
       setLanguage: (next) => update("language", next),
       setVibrationEnabled: (next) => update("vibrationEnabled", next),
       setNotificationsEnabled: (next) => update("notificationsEnabled", next),
       t: (key) => translations[resolvedLanguage][key],
     }),
-    [hydrated, resolvedLanguage, resolvedTheme, settings, update],
+    [avatarColors, colors, hydrated, resolvedLanguage, resolvedTheme, settings, update],
   );
 
   return <AppSettingsContext.Provider value={value}>{children}</AppSettingsContext.Provider>;

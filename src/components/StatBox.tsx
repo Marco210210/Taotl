@@ -1,6 +1,8 @@
+import { useMemo } from "react";
 import { StyleSheet, Text, View, type ViewStyle } from "react-native";
 
-import { theme } from "@/theme";
+import { useAppSettings } from "@/state/AppSettingsContext";
+import { theme, type ThemeColors } from "@/theme";
 
 export function StatBox({
   label,
@@ -11,6 +13,8 @@ export function StatBox({
   value: string | number;
   style?: ViewStyle;
 }) {
+  const { colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={[styles.box, style]}>
       <Text style={styles.label}>{label}</Text>
@@ -19,28 +23,30 @@ export function StatBox({
   );
 }
 
-const styles = StyleSheet.create({
-  box: {
-    flex: 1,
-    minWidth: 88,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    borderRadius: 12,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  label: {
-    color: theme.colors.textMuted,
-    fontFamily: theme.font.family.bold,
-    fontSize: 9,
-    letterSpacing: 1,
-  },
-  value: {
-    marginTop: 3,
-    color: theme.colors.text,
-    fontFamily: theme.font.family.extraBold,
-    fontSize: 20,
-    fontVariant: ["tabular-nums"],
-  },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    box: {
+      flex: 1,
+      minWidth: 88,
+      paddingHorizontal: 12,
+      paddingVertical: 11,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    label: {
+      color: colors.textMuted,
+      fontFamily: theme.font.family.bold,
+      fontSize: 9,
+      letterSpacing: 1,
+    },
+    value: {
+      marginTop: 3,
+      color: colors.text,
+      fontFamily: theme.font.family.extraBold,
+      fontSize: 20,
+      fontVariant: ["tabular-nums"],
+    },
+  });
+}

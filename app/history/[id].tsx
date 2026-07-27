@@ -11,10 +11,11 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 export default function HistoryDetailScreen() {
-  const { locale, t } = useAppSettings();
+  const { locale, t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { account, token } = useAccount();
   const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
   const backDestination = from === "profile" ? "/profile" : from === "leaderboard" ? "/leaderboard" : "/history";
@@ -82,7 +83,7 @@ export default function HistoryDetailScreen() {
       <>
         <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} /> }} />
         <ScreenContainer style={styles.center}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary as string} />
           <Text style={styles.helper}>{t("history.loadingRounds")}</Text>
         </ScreenContainer>
       </>
@@ -160,46 +161,48 @@ export default function HistoryDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  center: { alignItems: "center", justifyContent: "center" },
-  helper: { fontSize: theme.font.small, color: theme.colors.textMuted, fontFamily: theme.font.family.medium },
-  error: {
-    color: theme.colors.danger,
-    fontSize: theme.font.body,
-    fontFamily: theme.font.family.semibold,
-    textAlign: "center",
-  },
-  cacheNotice: {
-    color: theme.colors.warning,
-    fontSize: theme.font.small,
-    fontFamily: theme.font.family.semibold,
-    marginTop: theme.spacing(0.5),
-  },
-  sectionTitle: { color: theme.colors.text, fontSize: 17, fontFamily: theme.font.family.extraBold },
-  roundTitle: { color: theme.colors.primary, fontSize: theme.font.body, fontFamily: theme.font.family.extraBold },
-  row: { flexDirection: "row", alignItems: "center", gap: theme.spacing(1), paddingVertical: 5 },
-  position: { width: 22, color: theme.colors.textMuted, fontFamily: theme.font.family.extraBold },
-  name: { flex: 1, color: theme.colors.text, fontSize: theme.font.body, fontFamily: theme.font.family.bold },
-  score: {
-    color: theme.colors.success,
-    fontSize: theme.font.body,
-    fontFamily: theme.font.family.extraBold,
-    fontVariant: ["tabular-nums"],
-  },
-  negative: { color: theme.colors.danger },
-  resultRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing(1),
-    paddingVertical: theme.spacing(0.75),
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-  },
-  resultInfo: { flex: 1, gap: 2 },
-  deleteNote: {
-    color: theme.colors.textMuted,
-    fontSize: theme.font.small,
-    fontFamily: theme.font.family.medium,
-    textAlign: "center",
-  },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    center: { alignItems: "center", justifyContent: "center" },
+    helper: { fontSize: theme.font.small, color: colors.textMuted, fontFamily: theme.font.family.medium },
+    error: {
+      color: colors.danger,
+      fontSize: theme.font.body,
+      fontFamily: theme.font.family.semibold,
+      textAlign: "center",
+    },
+    cacheNotice: {
+      color: colors.warning,
+      fontSize: theme.font.small,
+      fontFamily: theme.font.family.semibold,
+      marginTop: theme.spacing(0.5),
+    },
+    sectionTitle: { color: colors.text, fontSize: 17, fontFamily: theme.font.family.extraBold },
+    roundTitle: { color: colors.primary, fontSize: theme.font.body, fontFamily: theme.font.family.extraBold },
+    row: { flexDirection: "row", alignItems: "center", gap: theme.spacing(1), paddingVertical: 5 },
+    position: { width: 22, color: colors.textMuted, fontFamily: theme.font.family.extraBold },
+    name: { flex: 1, color: colors.text, fontSize: theme.font.body, fontFamily: theme.font.family.bold },
+    score: {
+      color: colors.success,
+      fontSize: theme.font.body,
+      fontFamily: theme.font.family.extraBold,
+      fontVariant: ["tabular-nums"],
+    },
+    negative: { color: colors.danger },
+    resultRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.spacing(1),
+      paddingVertical: theme.spacing(0.75),
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    resultInfo: { flex: 1, gap: 2 },
+    deleteNote: {
+      color: colors.textMuted,
+      fontSize: theme.font.small,
+      fontFamily: theme.font.family.medium,
+      textAlign: "center",
+    },
+  });
+}

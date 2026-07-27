@@ -1,5 +1,5 @@
 import { router, Stack } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput } from "react-native";
 
 import { Button } from "@/components/Button";
@@ -9,10 +9,11 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 export default function ForgotPasswordScreen() {
-  const { t } = useAppSettings();
+  const { t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { requestReset } = useAccount();
   const [handle, setHandle] = useState("");
   const [email, setEmail] = useState("");
@@ -45,7 +46,7 @@ export default function ForgotPasswordScreen() {
             value={handle}
             onChangeText={setHandle}
             placeholder={t("account.handlePlaceholder")}
-            placeholderTextColor={theme.colors.textMuted}
+            placeholderTextColor={colors.textMuted as string}
             style={styles.input}
           />
           <Text style={styles.label}>{t("account.email")}</Text>
@@ -56,7 +57,7 @@ export default function ForgotPasswordScreen() {
             value={email}
             onChangeText={setEmail}
             placeholder={t("account.emailPlaceholder")}
-            placeholderTextColor={theme.colors.textMuted}
+            placeholderTextColor={colors.textMuted as string}
             style={styles.input}
           />
           {!!message && <Text style={styles.message}>{message}</Text>}
@@ -76,20 +77,22 @@ export default function ForgotPasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  label: { color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 12, marginTop: 4 },
-  input: {
-    minHeight: 50,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.borderStrong,
-    backgroundColor: theme.colors.background,
-    color: theme.colors.text,
-    paddingHorizontal: 14,
-    fontFamily: theme.font.family.semibold,
-    fontSize: 15,
-  },
-  message: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 12, lineHeight: 17 },
-  link: { minHeight: 40, justifyContent: "center", alignItems: "center" },
-  linkText: { color: theme.colors.success, fontFamily: theme.font.family.bold, fontSize: 12 },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    label: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 12, marginTop: 4 },
+    input: {
+      minHeight: 50,
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+      backgroundColor: colors.background,
+      color: colors.text,
+      paddingHorizontal: 14,
+      fontFamily: theme.font.family.semibold,
+      fontSize: 15,
+    },
+    message: { color: colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 12, lineHeight: 17 },
+    link: { minHeight: 40, justifyContent: "center", alignItems: "center" },
+    linkText: { color: colors.success, fontFamily: theme.font.family.bold, fontSize: 12 },
+  });
+}

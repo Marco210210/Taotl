@@ -8,12 +8,13 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useSetup } from "@/state/SetupContext";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 const ROW_SLOT_HEIGHT = 72;
 
 export default function SetupDealerScreen() {
-  const { t } = useAppSettings();
+  const { t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { selectedPlayers, dealerId, setDealerId, movePlayer } = useSetup();
   const [dragPreview, setDragPreview] = useState<{ from: number; to: number } | null>(null);
 
@@ -128,6 +129,8 @@ function DealerRow({
   onDragCancel: () => void;
   labels: { badge: string; moveUp: string; moveDown: string; drag: string };
 }) {
+  const { colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const [dragging, setDragging] = useState(false);
   const position = useRef(new Animated.Value(index * ROW_SLOT_HEIGHT)).current;
   const dragOffset = useRef(new Animated.Value(0)).current;
@@ -287,66 +290,68 @@ function DealerRow({
   );
 }
 
-const styles = StyleSheet.create({
-  reorderHint: { color: theme.colors.success, fontFamily: theme.font.family.semibold, fontSize: 11.5 },
-  list: { position: "relative" },
-  animatedRow: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 64,
-    zIndex: 1,
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 18,
-    elevation: 1,
-  },
-  animatedRowDragging: { zIndex: 20, elevation: 12 },
-  row: {
-    height: 64,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-    paddingHorizontal: 11,
-    paddingVertical: 9,
-    borderRadius: 13,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-  },
-  rowSelected: { borderColor: theme.colors.yellow },
-  position: { width: 16, color: theme.colors.textFaint, fontFamily: theme.font.family.extraBold, fontSize: 13 },
-  name: { flex: 1, color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 14 },
-  dealerPill: {
-    paddingHorizontal: 7,
-    paddingVertical: 5,
-    borderRadius: 99,
-    backgroundColor: theme.colors.inkSoft,
-  },
-  dealerPillSelected: { backgroundColor: theme.colors.yellow },
-  dealerText: { color: theme.colors.textMuted, fontFamily: theme.font.family.bold, fontSize: 8.5, letterSpacing: 0.5 },
-  dealerTextSelected: { color: theme.colors.text },
-  controls: { gap: 3 },
-  arrow: {
-    width: 30,
-    height: 22,
-    borderRadius: 6,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.inkSoft,
-  },
-  arrowDisabled: { opacity: 0.24 },
-  arrowText: { color: theme.colors.text, fontSize: 10 },
-  dragHandle: {
-    width: 36,
-    minHeight: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    borderLeftWidth: 1,
-    borderLeftColor: theme.colors.border,
-  },
-  dragText: { color: theme.colors.textMuted, fontSize: 22, letterSpacing: -2 },
-  dragging: { borderColor: theme.colors.success, backgroundColor: theme.colors.surface },
-  pressed: { opacity: 0.76 },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    reorderHint: { color: colors.success, fontFamily: theme.font.family.semibold, fontSize: 11.5 },
+    list: { position: "relative" },
+    animatedRow: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 64,
+      zIndex: 1,
+      shadowColor: "#000000",
+      shadowOffset: { width: 0, height: 10 },
+      shadowRadius: 18,
+      elevation: 1,
+    },
+    animatedRowDragging: { zIndex: 20, elevation: 12 },
+    row: {
+      height: 64,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 9,
+      paddingHorizontal: 11,
+      paddingVertical: 9,
+      borderRadius: 13,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    rowSelected: { borderColor: colors.yellow },
+    position: { width: 16, color: colors.textFaint, fontFamily: theme.font.family.extraBold, fontSize: 13 },
+    name: { flex: 1, color: colors.text, fontFamily: theme.font.family.bold, fontSize: 14 },
+    dealerPill: {
+      paddingHorizontal: 7,
+      paddingVertical: 5,
+      borderRadius: 99,
+      backgroundColor: colors.inkSoft,
+    },
+    dealerPillSelected: { backgroundColor: colors.yellow },
+    dealerText: { color: colors.textMuted, fontFamily: theme.font.family.bold, fontSize: 8.5, letterSpacing: 0.5 },
+    dealerTextSelected: { color: colors.text },
+    controls: { gap: 3 },
+    arrow: {
+      width: 30,
+      height: 22,
+      borderRadius: 6,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.inkSoft,
+    },
+    arrowDisabled: { opacity: 0.24 },
+    arrowText: { color: colors.text, fontSize: 10 },
+    dragHandle: {
+      width: 36,
+      minHeight: 48,
+      alignItems: "center",
+      justifyContent: "center",
+      borderLeftWidth: 1,
+      borderLeftColor: colors.border,
+    },
+    dragText: { color: colors.textMuted, fontSize: 22, letterSpacing: -2 },
+    dragging: { borderColor: colors.success, backgroundColor: colors.surface },
+    pressed: { opacity: 0.76 },
+  });
+}

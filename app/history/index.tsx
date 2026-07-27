@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -8,10 +8,11 @@ import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAppSettings } from "@/state/AppSettingsContext";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 export default function HistoryScreen() {
-  const { locale, t } = useAppSettings();
+  const { locale, t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const [games, setGames] = useState<GameHistorySummaryDTO[]>([]);
   const [fromCache, setFromCache] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -82,32 +83,34 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  helper: { fontSize: theme.font.small, color: theme.colors.textMuted, fontFamily: theme.font.family.medium },
-  gameCard: { padding: 15, gap: 11 },
-  titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing(1) },
-  date: { color: theme.colors.textMuted, fontFamily: theme.font.family.bold, fontSize: 9.5, letterSpacing: 1.2 },
-  meta: { color: theme.colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 10.5 },
-  winnerRow: { flexDirection: "row", alignItems: "center", gap: 11 },
-  mark: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.success,
-  },
-  markImage: { width: 26, height: 26 },
-  winnerInfo: { flex: 1 },
-  winnerLabel: { color: theme.colors.primary, fontFamily: theme.font.family.bold, fontSize: 8.5, letterSpacing: 1 },
-  winnerName: { color: theme.colors.text, fontFamily: theme.font.family.extraBold, fontSize: 15 },
-  others: { marginTop: 1, color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 10.5 },
-  winnerScore: {
-    color: theme.colors.text,
-    fontFamily: theme.font.family.extraBold,
-    fontSize: 20,
-    fontVariant: ["tabular-nums"],
-  },
-  openHint: { color: theme.colors.success, fontSize: 10.5, fontFamily: theme.font.family.bold, textAlign: "right" },
-  pressed: { opacity: 0.72 },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    helper: { fontSize: theme.font.small, color: colors.textMuted, fontFamily: theme.font.family.medium },
+    gameCard: { padding: 15, gap: 11 },
+    titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing(1) },
+    date: { color: colors.textMuted, fontFamily: theme.font.family.bold, fontSize: 9.5, letterSpacing: 1.2 },
+    meta: { color: colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 10.5 },
+    winnerRow: { flexDirection: "row", alignItems: "center", gap: 11 },
+    mark: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.success,
+    },
+    markImage: { width: 26, height: 26 },
+    winnerInfo: { flex: 1 },
+    winnerLabel: { color: colors.primary, fontFamily: theme.font.family.bold, fontSize: 8.5, letterSpacing: 1 },
+    winnerName: { color: colors.text, fontFamily: theme.font.family.extraBold, fontSize: 15 },
+    others: { marginTop: 1, color: colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 10.5 },
+    winnerScore: {
+      color: colors.text,
+      fontFamily: theme.font.family.extraBold,
+      fontSize: 20,
+      fontVariant: ["tabular-nums"],
+    },
+    openHint: { color: colors.success, fontSize: 10.5, fontFamily: theme.font.family.bold, textAlign: "right" },
+    pressed: { opacity: 0.72 },
+  });
+}

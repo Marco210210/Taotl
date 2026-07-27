@@ -1,6 +1,8 @@
+import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { theme } from "@/theme";
+import { useAppSettings } from "@/state/AppSettingsContext";
+import { theme, type ThemeColors } from "@/theme";
 
 export function ScreenIntro({
   title,
@@ -9,6 +11,8 @@ export function ScreenIntro({
   title: string;
   description?: string;
 }) {
+  const { colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{title}</Text>
@@ -17,8 +21,10 @@ export function ScreenIntro({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { gap: 4 },
-  title: { color: theme.colors.text, fontFamily: theme.font.family.extraBold, fontSize: 24, lineHeight: 30 },
-  description: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 12.5, lineHeight: 18 },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { gap: 4 },
+    title: { color: colors.text, fontFamily: theme.font.family.extraBold, fontSize: 24, lineHeight: 30 },
+    description: { color: colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 12.5, lineHeight: 18 },
+  });
+}

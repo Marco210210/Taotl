@@ -14,7 +14,7 @@ import type { ActiveGame, Bid, Player, RoundInfo } from "@/game/types";
 import { getForbiddenBidForDealer } from "@/game/validation";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useGame } from "@/state/GameContext";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 export default function BidsScreen() {
   const { game, currentRoundInfo, previousCardsDealt, setPendingCards, confirmBids } = useGame();
@@ -47,7 +47,8 @@ function CardsStep({
   previousCardsDealt: number | null;
   onConfirm: (cardsDealt: number) => void;
 }) {
-  const { resolvedLanguage, t } = useAppSettings();
+  const { resolvedLanguage, t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const numPlayers = game.players.length;
   const roundIndex = game.rounds.length + 1;
   const defaultMax = previousCardsDealt !== null ? previousCardsDealt - 1 : maxFirstTurnCards(numPlayers);
@@ -107,7 +108,8 @@ function CardsStep({
 }
 
 function MiniStandings() {
-  const { t } = useAppSettings();
+  const { t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { game, ranked } = useGame();
   if (!game) return null;
   const playerById = new Map(game.players.map((player) => [player.id, player]));
@@ -139,7 +141,8 @@ function BiddingStep({
   roundInfo: RoundInfo;
   onConfirm: (bids: Bid[]) => void;
 }) {
-  const { t } = useAppSettings();
+  const { t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const [calls, setCalls] = useState<Record<string, number>>(() =>
     Object.fromEntries(roundInfo.biddingOrder.map((playerId) => [playerId, 0])),
   );
@@ -249,79 +252,81 @@ function BiddingStep({
   );
 }
 
-const styles = StyleSheet.create({
-  statsRow: { flexDirection: "row", gap: 7 },
-  cardsCard: { alignItems: "center", gap: 16, paddingVertical: 24 },
-  eyebrow: {
-    color: theme.colors.textMuted,
-    fontFamily: theme.font.family.bold,
-    fontSize: 9.5,
-    letterSpacing: 1.2,
-  },
-  cardsHint: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 11, textAlign: "center" },
-  error: {
-    padding: 13,
-    borderRadius: 11,
-    color: theme.colors.danger,
-    backgroundColor: theme.colors.negativeSoft,
-    fontFamily: theme.font.family.semibold,
-    fontSize: 11.5,
-    lineHeight: 17,
-  },
-  utilityRow: { flexDirection: "row", gap: 8 },
-  utilityButton: {
-    flex: 1,
-    minHeight: 44,
-    borderRadius: 11,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.inkSoft,
-  },
-  utilityText: { color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 11.5 },
-  callsList: { gap: 9 },
-  callRow: {
-    minHeight: 72,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
-    borderRadius: 14,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  callInfo: { flex: 1, minWidth: 90 },
-  callName: { color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 14.5 },
-  callMeta: { marginTop: 2, color: theme.colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 10.5 },
-  dealerMeta: { color: theme.colors.terracotta },
-  bidFooter: { gap: 9 },
-  sumLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  sumLabel: { color: theme.colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 12 },
-  sumValue: {
-    color: theme.colors.success,
-    fontFamily: theme.font.family.extraBold,
-    fontSize: 14,
-    fontVariant: ["tabular-nums"],
-  },
-  invalidSum: { color: theme.colors.danger },
-  miniStandings: {
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-    gap: 6,
-  },
-  miniHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  miniLink: { color: theme.colors.success, fontFamily: theme.font.family.bold, fontSize: 10.5 },
-  miniRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingTop: 5 },
-  miniPosition: { width: 18, color: theme.colors.textFaint, fontFamily: theme.font.family.extraBold, fontSize: 11 },
-  miniName: { flex: 1, color: theme.colors.text, fontFamily: theme.font.family.semibold, fontSize: 12.5 },
-  miniTotal: {
-    color: theme.colors.text,
-    fontFamily: theme.font.family.extraBold,
-    fontSize: 13,
-    fontVariant: ["tabular-nums"],
-  },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    statsRow: { flexDirection: "row", gap: 7 },
+    cardsCard: { alignItems: "center", gap: 16, paddingVertical: 24 },
+    eyebrow: {
+      color: colors.textMuted,
+      fontFamily: theme.font.family.bold,
+      fontSize: 9.5,
+      letterSpacing: 1.2,
+    },
+    cardsHint: { color: colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 11, textAlign: "center" },
+    error: {
+      padding: 13,
+      borderRadius: 11,
+      color: colors.danger,
+      backgroundColor: colors.negativeSoft,
+      fontFamily: theme.font.family.semibold,
+      fontSize: 11.5,
+      lineHeight: 17,
+    },
+    utilityRow: { flexDirection: "row", gap: 8 },
+    utilityButton: {
+      flex: 1,
+      minHeight: 44,
+      borderRadius: 11,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.inkSoft,
+    },
+    utilityText: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 11.5 },
+    callsList: { gap: 9 },
+    callRow: {
+      minHeight: 72,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingHorizontal: 13,
+      paddingVertical: 11,
+      borderRadius: 14,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    callInfo: { flex: 1, minWidth: 90 },
+    callName: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 14.5 },
+    callMeta: { marginTop: 2, color: colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 10.5 },
+    dealerMeta: { color: colors.terracotta },
+    bidFooter: { gap: 9 },
+    sumLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+    sumLabel: { color: colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 12 },
+    sumValue: {
+      color: colors.success,
+      fontFamily: theme.font.family.extraBold,
+      fontSize: 14,
+      fontVariant: ["tabular-nums"],
+    },
+    invalidSum: { color: colors.danger },
+    miniStandings: {
+      padding: 14,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      gap: 6,
+    },
+    miniHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+    miniLink: { color: colors.success, fontFamily: theme.font.family.bold, fontSize: 10.5 },
+    miniRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingTop: 5 },
+    miniPosition: { width: 18, color: colors.textFaint, fontFamily: theme.font.family.extraBold, fontSize: 11 },
+    miniName: { flex: 1, color: colors.text, fontFamily: theme.font.family.semibold, fontSize: 12.5 },
+    miniTotal: {
+      color: colors.text,
+      fontFamily: theme.font.family.extraBold,
+      fontSize: 13,
+      fontVariant: ["tabular-nums"],
+    },
+  });
+}
