@@ -256,6 +256,15 @@ function AppNavigation() {
                   headerLeft: () => <LinearBackButton destination="/account/forgot-password" />,
                 }}
               />
+              <Stack.Screen
+                name="admin/index"
+                options={{
+                  title: t("nav.admin"),
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerLeft: () => <LinearBackButton destination="/" />,
+                }}
+              />
             </Stack>
             </SetupProvider>
           </GameProvider>

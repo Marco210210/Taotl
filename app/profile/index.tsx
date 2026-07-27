@@ -67,6 +67,13 @@ export default function MyProfileScreen() {
               variant="ghost"
               onPress={() => router.push({ pathname: "/account", params: { from: "profile" } })}
             />
+            {account.isAdmin && (
+              <Button
+                label={t("admin.homeShortcut")}
+                variant="yellow"
+                onPress={() => router.push("/admin")}
+              />
+            )}
           </>
         ) : (
           <>
