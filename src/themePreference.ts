@@ -1,29 +1,25 @@
-import { File, Paths } from "expo-file-system";
+import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 
 export type StoredThemePreference = "system" | "light" | "dark";
+
+const KEY = "taotl.theme-preference.v1";
 
 // Persistenza dedicata e SINCRONA per la sola preferenza del tema (system/
 // light/dark), separata dalle altre impostazioni (che restano su AsyncStorage,
 // asincrono). Serve perché src/theme.ts deve sapere quale tema applicare nel
 // momento stesso in cui il modulo viene caricato, prima che React o
-// AsyncStorage esistano. In precedenza ci si affidava ad
-// Appearance.setColorScheme() per "far ricordare" la scelta al sistema nativo
-// tra un reload e l'altro, ma dentro Expo Go quella forzatura non è
-// affidabile (Expo Go ospita più progetti e può non applicarla/persisterla),
-// il che faceva restare l'app bloccata sul tema di sistema. Un file letto/
-// scritto in modo sincrono (via le API JSI di expo-file-system) elimina la
-// dipendenza da quel comportamento.
-let file: File | null = null;
-function preferenceFile(): File {
-  if (!file) file = new File(Paths.document, "taotl-theme-preference.txt");
-  return file;
-}
-
+// AsyncStorage esistano — e perché, dentro Expo Go, Updates.reloadAsync()
+// rifiuta sempre la promise ("This method cannot be used in Expo Go"): un
+// cambio tema può quindi diventare visibile solo alla prossima apertura
+// dell'app da zero, mai con un reload "in place". SecureStore.getItem/
+// setItem (senza suffisso Async) sono le uniche API sincrone disponibili sia
+// nel progetto principale sia nel branch Expo Go, quindi funzionano allo
+// stesso modo ovunque l'app venga davvero eseguita.
 export function readStoredThemePreference(): StoredThemePreference {
+  if (Platform.OS === "web") return "system";
   try {
-    const f = preferenceFile();
-    if (!f.exists) return "system";
-    const raw = f.textSync().trim();
+    const raw = SecureStore.getItem(KEY);
     if (raw === "light" || raw === "dark" || raw === "system") return raw;
     return "system";
   } catch {
@@ -32,8 +28,9 @@ export function readStoredThemePreference(): StoredThemePreference {
 }
 
 export function writeStoredThemePreference(value: StoredThemePreference): void {
+  if (Platform.OS === "web") return;
   try {
-    preferenceFile().write(value);
+    SecureStore.setItem(KEY, value);
   } catch {
     // Nel peggiore dei casi il tema torna a seguire il sistema al prossimo avvio.
   }

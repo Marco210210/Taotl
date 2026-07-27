@@ -3,7 +3,7 @@ import * as Updates from "expo-updates";
 import { getLocales } from "expo-localization";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { PropsWithChildren } from "react";
-import { Platform, useColorScheme } from "react-native";
+import { Alert, Platform, useColorScheme } from "react-native";
 
 import { translations, type AppLanguage, type TranslationKey } from "@/i18n/translations";
 import { theme } from "@/theme";
@@ -62,6 +62,8 @@ export function AppSettingsProvider({ children }: PropsWithChildren) {
       .finally(() => setHydrated(true));
   }, []);
 
+  const resolvedLanguage = settings.language === "system" ? deviceLanguage() : settings.language;
+
   // I colori del tema (src/theme.ts) vengono decisi una sola volta all'avvio
   // dell'app, non ad ogni render: per applicarli serve ricaricare il bundle
   // JS. Lo facciamo qui in automatico ogni volta che il tema che DOVREBBE
@@ -69,9 +71,12 @@ export function AppSettingsProvider({ children }: PropsWithChildren) {
   // effettivamente partita (theme.isDark) — sia perché l'utente ha appena
   // cambiato l'impostazione, sia perché all'avvio a freddo il telefono era in
   // un tema di sistema diverso da una preferenza esplicita già salvata. La
-  // preferenza va scritta su file PRIMA del reload (in modo sincrono) così
-  // src/theme.ts la trova subito al riavvio del bundle, senza dipendere da
-  // Appearance.setColorScheme() (non affidabile dentro Expo Go).
+  // preferenza va scritta su SecureStore PRIMA del reload (in modo sincrono)
+  // così src/theme.ts la trova subito al riavvio del bundle. Updates.isEnabled
+  // è false dentro Expo Go: lì reloadAsync() rifiuta SEMPRE la promise (Expo
+  // Go non supporta il reload "in place"), quindi in quel caso ci limitiamo
+  // ad avvisare che serve chiudere e riaprire l'app — la scelta è comunque
+  // già salvata e verrà applicata al prossimo avvio.
   const appliedRef = useRef<boolean | null>(null);
   useEffect(() => {
     if (!hydrated) return;
@@ -81,8 +86,15 @@ export function AppSettingsProvider({ children }: PropsWithChildren) {
     appliedRef.current = needsDark;
     if (needsDark === theme.isDark) return;
     if (Platform.OS === "web") return;
+    if (!Updates.isEnabled) {
+      Alert.alert(
+        translations[resolvedLanguage]["settings.themeRestartTitle"],
+        translations[resolvedLanguage]["settings.themeRestartBody"],
+      );
+      return;
+    }
     Updates.reloadAsync().catch(() => {});
-  }, [hydrated, settings.theme, systemScheme]);
+  }, [hydrated, settings.theme, systemScheme, resolvedLanguage]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -93,7 +105,6 @@ export function AppSettingsProvider({ children }: PropsWithChildren) {
     setSettings((current) => ({ ...current, [key]: value }));
   }, []);
 
-  const resolvedLanguage = settings.language === "system" ? deviceLanguage() : settings.language;
   const resolvedTheme = settings.theme === "system"
     ? (systemScheme === "dark" ? "dark" : "light")
     : settings.theme;

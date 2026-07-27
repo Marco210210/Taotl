@@ -3,13 +3,12 @@ import { Appearance, type ColorValue } from "react-native";
 import { readStoredThemePreference } from "@/themePreference";
 
 // I colori "chiaro/scuro" vengono decisi una sola volta, quando il modulo viene
-// caricato (non ad ogni render): per applicare un cambio di tema serve un
-// ricaricamento della app (vedi AppSettingsContext, che lo fa in automatico
-// quando l'utente cambia l'impostazione). La preferenza esplicita (se l'utente
-// ha scelto "chiaro"/"scuro" invece di "sistema") viene letta in modo
-// sincrono da file (vedi themePreference.ts): Appearance.setColorScheme() da
-// solo non è affidabile dentro Expo Go, che può non applicare/persistere la
-// forzatura tra un reload e l'altro.
+// caricato (non ad ogni render): per applicare un cambio di tema serve
+// chiudere e riaprire l'app (vedi AppSettingsContext.tsx — Updates.reloadAsync()
+// non funziona dentro Expo Go). La preferenza esplicita (se l'utente ha
+// scelto "chiaro"/"scuro" invece di "sistema") viene letta in modo sincrono
+// da SecureStore (vedi themePreference.ts), non da Appearance.setColorScheme(),
+// che dentro Expo Go non è affidabile tra un avvio e l'altro.
 const storedPreference = readStoredThemePreference();
 const isDark =
   storedPreference === "system"
