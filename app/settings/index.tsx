@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 
+import { BUILD_STAMP } from "@/buildInfo";
 import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import {
@@ -77,6 +78,7 @@ export default function SettingsScreen() {
       </Card>
 
       <Text style={styles.note}>{t("settings.accountNote")}</Text>
+      <Text style={styles.buildStamp}>{t("settings.build")} {BUILD_STAMP}</Text>
     </ScreenContainer>
   );
 }
@@ -225,6 +227,13 @@ const styles = StyleSheet.create({
     fontFamily: theme.font.family.medium,
     fontSize: 10.5,
     lineHeight: 16,
+    textAlign: "center",
+  },
+  buildStamp: {
+    marginTop: 2,
+    color: theme.colors.textFaint,
+    fontFamily: theme.font.family.medium,
+    fontSize: 9.5,
     textAlign: "center",
   },
   pressed: { opacity: 0.7 },
