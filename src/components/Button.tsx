@@ -27,8 +27,13 @@ export function Button({
 }) {
   const { vibrationEnabled } = useAppSettings();
   const isDisabled = disabled || loading;
-  const hasLightLabel =
-    variant === "primary" || variant === "secondary" || variant === "danger" || variant === "success";
+  // primary/danger/success restano sfondi colorati e saturi in entrambi i
+  // temi → testo di un colore chiaro fisso. secondary invece usa
+  // theme.colors.text come sfondo, che SI INVERTE tra i due temi (ink scuro
+  // in chiaro, crema chiaro in scuro) → il testo deve seguire l'inversione
+  // (theme.colors.background), non restare fisso chiaro.
+  const hasLightLabel = variant === "primary" || variant === "danger" || variant === "success";
+  const isSecondary = variant === "secondary";
 
   return (
     <TouchableOpacity
@@ -48,17 +53,43 @@ export function Button({
       ]}
     >
       {loading ? (
-        <ActivityIndicator pointerEvents="none" color={hasLightLabel ? theme.colors.primaryText : theme.colors.text} />
+        <ActivityIndicator
+          pointerEvents="none"
+          color={hasLightLabel ? theme.colors.primaryText : isSecondary ? theme.colors.background : theme.colors.text}
+        />
       ) : (
         <>
           <View pointerEvents="none" style={styles.textBlock}>
-            <Text style={[styles.label, hasLightLabel ? styles.lightLabel : null]}>{label}</Text>
+            <Text
+              style={[
+                styles.label,
+                hasLightLabel ? styles.lightLabel : null,
+                isSecondary ? styles.secondaryLabel : null,
+              ]}
+            >
+              {label}
+            </Text>
             {!!subtitle && (
-              <Text style={[styles.subtitle, hasLightLabel ? styles.lightSubtitle : null]}>{subtitle}</Text>
+              <Text
+                style={[
+                  styles.subtitle,
+                  hasLightLabel ? styles.lightSubtitle : null,
+                  isSecondary ? styles.secondarySubtitle : null,
+                ]}
+              >
+                {subtitle}
+              </Text>
             )}
           </View>
           {!!trailing && (
-            <Text pointerEvents="none" style={[styles.trailing, hasLightLabel ? styles.lightLabel : null]}>
+            <Text
+              pointerEvents="none"
+              style={[
+                styles.trailing,
+                hasLightLabel ? styles.lightLabel : null,
+                isSecondary ? styles.secondaryLabel : null,
+              ]}
+            >
               {trailing}
             </Text>
           )}
@@ -92,6 +123,8 @@ const styles = StyleSheet.create({
   trailing: { marginLeft: "auto", fontSize: 25, fontFamily: theme.font.family.regular, color: theme.colors.text },
   lightLabel: { color: theme.colors.primaryText },
   lightSubtitle: { color: "rgba(248, 248, 245, 0.78)" },
+  secondaryLabel: { color: theme.colors.background },
+  secondarySubtitle: { color: theme.colors.backgroundMuted },
   disabled: { opacity: 0.42 },
 });
 

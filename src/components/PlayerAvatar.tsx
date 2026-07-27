@@ -38,5 +38,5 @@ function getAvatarColor(value: string): string {
 const styles = StyleSheet.create({
   base: { alignItems: "center", justifyContent: "center", overflow: "hidden" },
   fallback: { borderWidth: 1, borderColor: "rgba(255,255,255,.25)" },
-  initials: { color: theme.colors.background, fontFamily: theme.font.family.extraBold },
+  initials: { color: theme.colors.primaryText, fontFamily: theme.font.family.extraBold },
 });
