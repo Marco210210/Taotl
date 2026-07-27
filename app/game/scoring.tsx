@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -24,7 +24,7 @@ interface Draft {
 export default function ScoringScreen() {
   const { resolvedLanguage, t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { game, currentRoundInfo, confirmRoundResults } = useGame();
+  const { game, currentRoundInfo, confirmRoundResults, reopenBids } = useGame();
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const isSubmitting = useRef(false);
 
@@ -93,6 +93,24 @@ export default function ScoringScreen() {
     router.replace(wasLastRound ? "/game/end" : "/game/standings");
   };
 
+  const handleRedeal = () => {
+    Alert.alert(
+      t("game.redealTitle"),
+      t("game.redealDescription"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("game.redealConfirm"),
+          style: "destructive",
+          onPress: () => {
+            reopenBids();
+            router.replace("/game/bids");
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <ScreenContainer
       footer={
@@ -115,9 +133,14 @@ export default function ScoringScreen() {
         <StatBox label={t("game.respect")} value={`+ ${currentRoundInfo.rispettoValue}`} />
       </View>
 
-      <Pressable onPress={() => router.push("/game/standings")} style={styles.standingsButton}>
-        <Text style={styles.standingsText}>{t("game.viewStandings")}</Text>
-      </Pressable>
+      <View style={styles.utilityRow}>
+        <Pressable onPress={() => router.push("/game/standings")} style={styles.utilityButton}>
+          <Text style={styles.utilityText}>{t("game.viewStandings")}</Text>
+        </Pressable>
+        <Pressable onPress={handleRedeal} style={[styles.utilityButton, styles.redealButton]}>
+          <Text style={[styles.utilityText, styles.redealText]}>{t("game.redealBids")}</Text>
+        </Pressable>
+      </View>
 
       {game.pendingBids.map((bid) => {
         const player = playerById.get(bid.playerId);
@@ -215,14 +238,19 @@ function makeStyles(colors: ThemeColors) {
       padding: 12,
       backgroundColor: colors.negativeSoft,
     },
-    standingsButton: {
+    utilityRow: { flexDirection: "row", gap: 8 },
+    utilityButton: {
+      flex: 1,
       minHeight: 44,
+      paddingHorizontal: 8,
       borderRadius: 11,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.inkSoft,
     },
-    standingsText: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 11.5 },
+    utilityText: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 11, textAlign: "center" },
+    redealButton: { borderWidth: 1, borderColor: colors.warning },
+    redealText: { color: colors.warning },
     playerCard: { padding: 13, gap: 12 },
     playerHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
     playerInfo: { flex: 1 },

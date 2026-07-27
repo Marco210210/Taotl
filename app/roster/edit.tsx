@@ -1,9 +1,11 @@
 import * as ImagePicker from "expo-image-picker";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import type { Href } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Button } from "@/components/Button";
+import { LinearBackButton } from "@/components/LinearBackButton";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { useAccount } from "@/state/AccountContext";
@@ -15,7 +17,13 @@ export default function EditPlayerScreen() {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { account, token } = useAccount();
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, from } = useLocalSearchParams<{ id?: string; from?: string }>();
+  const rosterDestination: Href =
+    from === "admin"
+      ? { pathname: "/roster", params: { from: "admin" } }
+      : from === "setup"
+        ? { pathname: "/roster", params: { from: "setup" } }
+        : "/roster";
   const { players, loading, addPlayer, renamePlayer, setPlayerPhoto, removePlayer } = useRoster();
   const existing = id ? players.find((p) => p.id === id) : undefined;
 
@@ -76,7 +84,7 @@ export default function EditPlayerScreen() {
       if (photoUri && photoUri !== existing?.photoUri) {
         await setPlayerPhoto(playerId, photoUri, photoType);
       }
-      router.dismissTo("/roster");
+      router.dismissTo(rosterDestination);
     } catch (error) {
       Alert.alert(
         t("player.saveFailed"),
@@ -101,7 +109,7 @@ export default function EditPlayerScreen() {
             setDeleting(true);
             try {
               await removePlayer(existing.id, token);
-              router.dismissTo("/roster");
+              router.dismissTo(rosterDestination);
             } catch (error) {
               Alert.alert(
                 t("player.deleteFailed"),
@@ -117,23 +125,31 @@ export default function EditPlayerScreen() {
 
   if (id && loading && !existing) {
     return (
+      <>
+      <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={rosterDestination} /> }} />
       <ScreenContainer style={styles.loading}>
         <ActivityIndicator color={colors.primary as string} size="large" />
         <Text style={styles.avatarHint}>{t("player.loading")}</Text>
       </ScreenContainer>
+      </>
     );
   }
 
   if (id && !loading && !existing) {
     return (
+      <>
+      <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={rosterDestination} /> }} />
       <ScreenContainer style={styles.content}>
         <Text style={styles.error}>{t("player.missing")}</Text>
-        <Button label={t("player.backRoster")} onPress={() => router.dismissTo("/roster")} variant="secondary" />
+        <Button label={t("player.backRoster")} onPress={() => router.dismissTo(rosterDestination)} variant="secondary" />
       </ScreenContainer>
+      </>
     );
   }
 
   return (
+    <>
+    <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={rosterDestination} /> }} />
     <ScreenContainer style={styles.content}>
       <Pressable onPress={pickImage} style={styles.avatarWrapper}>
         <PlayerAvatar name={name || "?"} photoUri={photoUri} size={96} />
@@ -164,6 +180,7 @@ export default function EditPlayerScreen() {
         />
       )}
     </ScreenContainer>
+    </>
   );
 }
 

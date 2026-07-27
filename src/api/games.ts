@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { ActiveGame } from "@/game/types";
 import { STORAGE_KEYS } from "@/state/storageKeys";
 
+import { completeGameRoom } from "./auth";
 import { apiClient } from "./client";
 import { getApiBaseUrl } from "./config";
 import { toGameHistoryDetail, toGameSyncPayload } from "./types";
@@ -32,14 +33,54 @@ async function cacheFinishedGame(game: ActiveGame): Promise<void> {
 // Invia la partita conclusa al backend in un'unica chiamata. Se il server non è
 // raggiungibile, la partita resta comunque salvata in locale (lo storico la mostrerà
 // come "solo su questo telefono" finché non si potrà ritentare la sincronizzazione).
-export async function syncFinishedGame(game: ActiveGame): Promise<{ synced: boolean }> {
+export interface FinishedGameSyncResult {
+  synced: boolean;
+  verification: "not-requested" | "verified" | "failed";
+  verifiedCount: number;
+  unmatchedCount: number;
+}
+
+export async function syncFinishedGame(
+  game: ActiveGame,
+  verifiedRoom?: { token: string; roomId: string },
+): Promise<FinishedGameSyncResult> {
   const payload = toGameSyncPayload(game);
   await cacheFinishedGame(game);
   try {
     await apiClient.post<void>("/taotl/games/", payload);
-    return { synced: true };
   } catch {
-    return { synced: false };
+    return {
+      synced: false,
+      verification: "not-requested",
+      verifiedCount: 0,
+      unmatchedCount: 0,
+    };
+  }
+
+  if (!verifiedRoom) {
+    return {
+      synced: true,
+      verification: "not-requested",
+      verifiedCount: 0,
+      unmatchedCount: 0,
+    };
+  }
+
+  try {
+    const result = await completeGameRoom(verifiedRoom.token, verifiedRoom.roomId, game.id);
+    return {
+      synced: true,
+      verification: "verified",
+      verifiedCount: result.verifiedCount,
+      unmatchedCount: result.unmatchedCount,
+    };
+  } catch {
+    return {
+      synced: true,
+      verification: "failed",
+      verifiedCount: 0,
+      unmatchedCount: 0,
+    };
   }
 }
 

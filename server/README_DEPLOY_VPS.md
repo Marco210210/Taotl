@@ -6,10 +6,9 @@ copiata lì dentro. Copre: installazione/configurazione di Oracle DB + ORDS (se 
 pronti), creazione dello schema applicativo, deploy degli script SQL/ORDS di questo
 progetto, ed esposizione pubblica gratuita via HTTPS.
 
-**Nota onestà**: gli script in `sql/` e `ords/` sono stati scritti seguendo i pattern
-standard documentati da Oracle/ORDS, ma non ho potuto eseguirli contro un'istanza reale
-(questa sessione non ha accesso alla tua VPS). Vanno lanciati ed eventualmente
-aggiustati un blocco alla volta, controllando l'esito di ognuno.
+Gli script sono mantenuti e verificati sull'istanza Oracle/ORDS di Taotl. Prima di
+applicarli altrove controlla comunque l'esito di ogni file e non proseguire se Oracle
+segnala errori.
 
 ## 0. Prerequisiti
 
@@ -37,25 +36,39 @@ GRANT EXECUTE ON DBMS_CRYPTO TO taotl_app; -- serve all'hashing rinforzato del P
 
 ## 2. Tabelle, viste, package, endpoint
 
-Connesso **come `taotl_app`** (non come admin), esegui in ordine:
+Per una nuova installazione, connesso **come `taotl_app`** (non come admin), esegui in
+ordine:
 
 ```sql
 @sql/01_tables.sql
+@sql/03_player_soft_delete.sql
+@sql/04_identity_and_verified_rooms.sql
+@sql/05_profile_and_admin.sql
+@sql/07_email_and_password_reset.sql
 @sql/02_views.sql
+@sql/08_verified_stats_and_legacy_wins.sql
+@ords/03_identity_package.sql
 @ords/01_api_package.sql
-```
-
-Prima di eseguire `ords/02_module.sql`, apri il file e **cambia la costante
-`c_expected_app_key`** in `ords/01_api_package.sql` con una chiave a tua scelta (una
-stringa lunga, casuale): sarà la password condivisa che l'app userà per scrivere sul
-backend. Poi:
-
-```sql
 @ords/02_module.sql
+@ords/04_identity_module.sql
 ```
+
+Prima di eseguire i package, apri il file e **cambia la costante
+`c_expected_app_key`** in `ords/01_api_package.sql` con una chiave a tua scelta (una
+stringa lunga, casuale): sarà la chiave condivisa che l'app userà per scrivere sul
+backend.
 
 Se un blocco fallisce (es. per una differenza di sintassi tra versioni ORDS), risolvilo
 lì per lì prima di andare avanti — sono pensati per essere eseguiti uno alla volta.
+
+Su un'installazione già esistente che arriva dalla versione precedente, la migrazione
+additiva per percentuale vittorie, vittorie storiche e chiusura delle stanze è:
+
+```sql
+@sql/08_verified_stats_and_legacy_wins.sql
+@ords/03_identity_package.sql
+@ords/04_identity_module.sql
+```
 
 ## 3. Verifica rapida da riga di comando
 

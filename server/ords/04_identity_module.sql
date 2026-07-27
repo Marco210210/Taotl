@@ -358,6 +358,39 @@ BEGIN
     p_access_method      => 'IN'
   );
 
+  ---------------------------------------------------------------------------
+  -- POST /taotl/rooms/complete -> collega una stanza verificata alla partita
+  -- appena conclusa. Solo l'organizzatore della stanza può farlo.
+  ---------------------------------------------------------------------------
+  ORDS.DEFINE_TEMPLATE(p_module_name => 'taotl.api', p_pattern => 'rooms/complete/');
+  ORDS.DEFINE_HANDLER(
+    p_module_name   => 'taotl.api',
+    p_pattern       => 'rooms/complete/',
+    p_method        => 'POST',
+    p_source_type   => ORDS.source_type_plsql,
+    p_mimes_allowed => 'application/json',
+    p_source        => q'~
+      DECLARE
+        v_json CLOB;
+      BEGIN
+        v_json := taotl_identity_api.complete_room_game(:p_authorization, :body);
+        OWA_UTIL.mime_header('application/json', FALSE);
+        HTP.p('Cache-Control: no-store');
+        OWA_UTIL.http_header_close;
+        HTP.prn(v_json);
+      END;~'
+  );
+  ORDS.DEFINE_PARAMETER(
+    p_module_name        => 'taotl.api',
+    p_pattern            => 'rooms/complete/',
+    p_method             => 'POST',
+    p_name               => 'Authorization',
+    p_bind_variable_name => 'p_authorization',
+    p_source_type        => 'HEADER',
+    p_param_type         => 'STRING',
+    p_access_method      => 'IN'
+  );
+
   ORDS.DEFINE_TEMPLATE(p_module_name => 'taotl.api', p_pattern => 'rooms/:id/');
   ORDS.DEFINE_HANDLER(
     p_module_name => 'taotl.api',
@@ -552,4 +585,3 @@ BEGIN
   COMMIT;
 END;
 /
-

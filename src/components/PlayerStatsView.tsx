@@ -13,15 +13,29 @@ import { theme, type ThemeColors } from "@/theme";
 interface PlayerStatsViewProps {
   player: Player;
   games: GameHistorySummaryDTO[];
+  officialStats?: {
+    gamesPlayed: number;
+    wins: number;
+    rateWins: number;
+  };
   locale: string;
   t: (key: TranslationKey) => string;
-  fromPath: string;
+  fromPath: "profile" | "leaderboard";
+  leaderboardOrigin?: string;
 }
 
 // Condiviso fra "Il mio profilo" (le proprie statistiche) e la scheda di un
 // altro giocatore aperta dalla classifica generale: stessa vista, sola
 // lettura, cambia solo quali partite vengono passate.
-export function PlayerStatsView({ player, games, locale, t, fromPath }: PlayerStatsViewProps) {
+export function PlayerStatsView({
+  player,
+  games,
+  officialStats,
+  locale,
+  t,
+  fromPath,
+  leaderboardOrigin,
+}: PlayerStatsViewProps) {
   const { colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const myGames = useMemo(
@@ -41,6 +55,11 @@ export function PlayerStatsView({ player, games, locale, t, fromPath }: PlayerSt
     }
     return { wins, total, average: myGames.length ? total / myGames.length : 0 };
   }, [myGames, player.id]);
+  const gamesPlayed = officialStats?.gamesPlayed ?? myGames.length;
+  const wins = officialStats?.wins ?? stats.wins;
+  const rateWins = officialStats?.rateWins ?? stats.wins;
+  const winRate = gamesPlayed > 0 ? (rateWins / gamesPlayed) * 100 : 0;
+  const historicalWins = Math.max(0, wins - rateWins);
 
   return (
     <>
@@ -51,18 +70,28 @@ export function PlayerStatsView({ player, games, locale, t, fromPath }: PlayerSt
 
       <View style={styles.statsGrid}>
         <Card style={styles.statCard}>
-          <Text style={styles.statValue}>{myGames.length}</Text>
+          <Text style={styles.statValue}>{gamesPlayed}</Text>
           <Text style={styles.statLabel}>{t("profile.games")}</Text>
         </Card>
         <Card style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.wins}</Text>
+          <Text style={styles.statValue}>{wins}</Text>
           <Text style={styles.statLabel}>{t("profile.wins")}</Text>
+        </Card>
+        <Card style={styles.statCard}>
+          <Text style={styles.statValue}>{winRate.toFixed(1)}%</Text>
+          <Text style={styles.statLabel}>{t("profile.winRate")}</Text>
         </Card>
         <Card style={styles.statCard}>
           <Text style={styles.statValue}>{stats.average.toFixed(1)}</Text>
           <Text style={styles.statLabel}>{t("profile.average")}</Text>
         </Card>
       </View>
+      {historicalWins > 0 && (
+        <Text style={styles.rateNote}>
+          {historicalWins} {historicalWins === 1 ? t("profile.historicalWin") : t("profile.historicalWins")}
+          {" "}{t("profile.excludedFromRate")}
+        </Text>
+      )}
 
       <Text style={styles.sectionTitle}>{t("profile.myGames")}</Text>
       {myGames.map((game) => {
@@ -71,7 +100,17 @@ export function PlayerStatsView({ player, games, locale, t, fromPath }: PlayerSt
         return (
           <Pressable
             key={game.id}
-            onPress={() => router.push({ pathname: "/history/[id]", params: { id: game.id, from: fromPath } })}
+            onPress={() => router.push({
+              pathname: "/history/[id]",
+              params: fromPath === "profile"
+                ? { id: game.id, from: "profile" }
+                : {
+                    id: game.id,
+                    from: "leaderboard-player",
+                    playerId: player.id,
+                    leaderboardFrom: leaderboardOrigin ?? "leaderboard",
+                  },
+            })}
             style={({ pressed }) => pressed && styles.pressed}
           >
             <Card>
@@ -105,10 +144,18 @@ function makeStyles(colors: ThemeColors) {
     },
     profileCard: { alignItems: "center", paddingVertical: 20 },
     profileName: { color: colors.text, fontSize: theme.font.title, fontFamily: theme.font.family.extraBold },
-    statsGrid: { flexDirection: "row", gap: theme.spacing(1) },
-    statCard: { flex: 1, alignItems: "center", paddingHorizontal: theme.spacing(0.5) },
-    statValue: { color: colors.success, fontSize: theme.font.heading, fontFamily: theme.font.family.extraBold },
+    statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing(1) },
+    statCard: { width: "48%", flexGrow: 1, alignItems: "center", paddingHorizontal: theme.spacing(0.5) },
+    statValue: { color: colors.success, fontSize: 18, fontFamily: theme.font.family.extraBold },
     statLabel: { color: colors.textMuted, fontSize: 10, fontFamily: theme.font.family.semibold, textAlign: "center" },
+    rateNote: {
+      marginTop: -4,
+      color: colors.textMuted,
+      fontSize: 10.5,
+      lineHeight: 16,
+      fontFamily: theme.font.family.medium,
+      textAlign: "center",
+    },
     sectionTitle: { color: colors.text, fontSize: theme.font.heading, fontFamily: theme.font.family.extraBold },
     pressed: { opacity: 0.72 },
     gameRow: { flexDirection: "row", alignItems: "center", gap: theme.spacing(1) },

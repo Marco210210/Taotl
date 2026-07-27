@@ -34,6 +34,11 @@ export interface GameRoomDTO {
   participants: GameRoomParticipantDTO[];
 }
 
+export interface CompleteGameRoomResultDTO {
+  verifiedCount: number;
+  unmatchedCount: number;
+}
+
 export function registerAccount(input: {
   handle: string;
   displayName: string;
@@ -77,4 +82,15 @@ export function joinGameRoom(token: string, code: string): Promise<GameRoomDTO> 
 
 export function fetchGameRoom(token: string, roomId: string): Promise<GameRoomDTO> {
   return apiClient.getAuthenticated<GameRoomDTO>(`/taotl/rooms/${roomId}/`, token);
+}
+
+export function completeGameRoom(
+  token: string,
+  roomId: string,
+  gameId: string,
+): Promise<CompleteGameRoomResultDTO> {
+  return apiClient.postAuthenticated<CompleteGameRoomResultDTO>("/taotl/rooms/complete/", token, {
+    roomId,
+    gameId,
+  });
 }

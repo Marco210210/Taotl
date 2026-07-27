@@ -5,6 +5,7 @@ export interface LeaderboardEntryDTO {
   name: string;
   gamesPlayed: number;
   wins: number;
+  rateWins: number;
 }
 
 export interface AdminAccountDTO {
@@ -21,7 +22,7 @@ export function fetchLeaderboard(): Promise<LeaderboardEntryDTO[]> {
 // Riservate all'admin: il backend verifica il token di sessione (require_admin).
 export function addManualGame(
   adminToken: string,
-  input: { players: string[]; winnerId: string; playedAt?: string },
+  input: { players: string[]; winnerId: string; winnerOnly?: boolean; playedAt?: string },
 ): Promise<{ id: string }> {
   return apiClient.postAuthenticated<{ id: string }>("/taotl/admin/games/", adminToken, input);
 }

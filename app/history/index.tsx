@@ -1,16 +1,19 @@
 import { useCallback, useMemo, useState } from "react";
-import { router, useFocusEffect } from "expo-router";
+import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { fetchHistory } from "@/api/games";
 import type { GameHistorySummaryDTO } from "@/api/types";
 import { Card } from "@/components/Card";
+import { LinearBackButton } from "@/components/LinearBackButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme, type ThemeColors } from "@/theme";
 
 export default function HistoryScreen() {
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  const backDestination = from === "admin" ? "/admin" : "/";
   const { locale, t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const [games, setGames] = useState<GameHistorySummaryDTO[]>([]);
@@ -34,6 +37,8 @@ export default function HistoryScreen() {
   );
 
   return (
+    <>
+    <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} /> }} />
     <ScreenContainer>
       <ScreenIntro title={t("history.title")} description={t("history.description")} />
       {fromCache && (
@@ -48,7 +53,13 @@ export default function HistoryScreen() {
         <Pressable
           key={g.id}
           accessibilityRole="button"
-          onPress={() => router.push({ pathname: "/history/[id]", params: { id: g.id } })}
+          onPress={() => router.push({
+            pathname: "/history/[id]",
+            params: {
+              id: g.id,
+              from: from === "admin" ? "admin-history" : "history",
+            },
+          })}
           style={({ pressed }) => pressed && styles.pressed}
         >
           <Card style={styles.gameCard}>
@@ -80,6 +91,7 @@ export default function HistoryScreen() {
         </Pressable>
       ))}
     </ScreenContainer>
+    </>
   );
 }
 

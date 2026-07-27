@@ -15,9 +15,10 @@ interface GameContextValue {
   previousCardsDealt: number | null;
   totals: Record<string, number>;
   ranked: { playerId: string; total: number }[];
-  startGame: (mode: GameMode, players: Player[], startDealerId: string) => void;
+  startGame: (mode: GameMode, players: Player[], startDealerId: string, verifiedRoomId?: string | null) => void;
   setPendingCards: (cardsDealt: number) => void;
   confirmBids: (bids: Bid[]) => void;
+  reopenBids: () => void;
   confirmRoundResults: (results: RoundPlayerResult[]) => void;
   setCurrentDealer: (dealerId: string) => void;
   resetGame: () => void;
@@ -52,8 +53,8 @@ export function GameProvider({ children }: PropsWithChildren) {
     }
   }, [game, isHydrated]);
 
-  const startGame = useCallback((mode: GameMode, players: Player[], startDealerId: string) => {
-    dispatch({ type: "START_GAME", mode, players, startDealerId });
+  const startGame = useCallback((mode: GameMode, players: Player[], startDealerId: string, verifiedRoomId?: string | null) => {
+    dispatch({ type: "START_GAME", mode, players, startDealerId, verifiedRoomId });
   }, []);
 
   const setPendingCards = useCallback((cardsDealt: number) => {
@@ -62,6 +63,10 @@ export function GameProvider({ children }: PropsWithChildren) {
 
   const confirmBids = useCallback((bids: Bid[]) => {
     dispatch({ type: "CONFIRM_BIDS", bids });
+  }, []);
+
+  const reopenBids = useCallback(() => {
+    dispatch({ type: "REOPEN_BIDS" });
   }, []);
 
   const confirmRoundResults = useCallback((results: RoundPlayerResult[]) => {
@@ -87,11 +92,12 @@ export function GameProvider({ children }: PropsWithChildren) {
       startGame,
       setPendingCards,
       confirmBids,
+      reopenBids,
       confirmRoundResults,
       setCurrentDealer,
       resetGame,
     };
-  }, [game, isHydrated, startGame, setPendingCards, confirmBids, confirmRoundResults, setCurrentDealer, resetGame]);
+  }, [game, isHydrated, startGame, setPendingCards, confirmBids, reopenBids, confirmRoundResults, setCurrentDealer, resetGame]);
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 }

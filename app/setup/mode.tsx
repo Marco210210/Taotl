@@ -8,6 +8,7 @@ import { ScreenIntro } from "@/components/ScreenIntro";
 import { getFixedSequence } from "@/game/modes";
 import type { GameMode } from "@/game/types";
 import { useAppSettings } from "@/state/AppSettingsContext";
+import { useAccount } from "@/state/AccountContext";
 import { useGame } from "@/state/GameContext";
 import { useSetup } from "@/state/SetupContext";
 import { theme, type ThemeColors } from "@/theme";
@@ -17,6 +18,7 @@ export default function SetupModeScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { mode, setMode, selectedPlayers, dealerId, reset } = useSetup();
   const { startGame } = useGame();
+  const { room } = useAccount();
 
   if (selectedPlayers.length === 0 || !dealerId) {
     return (
@@ -29,7 +31,7 @@ export default function SetupModeScreen() {
 
   const start = () => {
     if (!mode) return;
-    startGame(mode, selectedPlayers, dealerId);
+    startGame(mode, selectedPlayers, dealerId, room?.id ?? null);
     reset();
     router.replace("/game/bids");
   };

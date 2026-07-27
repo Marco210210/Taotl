@@ -30,6 +30,7 @@ export default function AccountScreen() {
     createRoom,
     joinRoom,
     refreshRoom,
+    clearRoom,
   } = useAccount();
   const [mode, setMode] = useState<AuthMode>("register");
   const [handle, setHandle] = useState("");
@@ -302,6 +303,7 @@ export default function AccountScreen() {
                   ))}
                   <Text style={styles.security}>{t("account.onlyVerified")}</Text>
                   <Button label={t("account.refresh")} onPress={refreshRoom} loading={loading} variant="ghost" />
+                  <Button label={t("account.changeRoom")} onPress={clearRoom} loading={loading} variant="ghost" />
                 </>
               )}
               {!!message && <Text style={styles.error}>{message}</Text>}

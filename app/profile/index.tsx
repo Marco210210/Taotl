@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text } from "react-native";
 
 import { fetchHistory } from "@/api/games";
+import { fetchLeaderboard, type LeaderboardEntryDTO } from "@/api/leaderboard";
 import { fetchRoster } from "@/api/players";
 import type { GameHistorySummaryDTO } from "@/api/types";
 import { Button } from "@/components/Button";
@@ -20,17 +21,19 @@ export default function MyProfileScreen() {
   const { account } = useAccount();
   const [players, setPlayers] = useState<Player[]>([]);
   const [games, setGames] = useState<GameHistorySummaryDTO[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntryDTO[]>([]);
   const [loading, setLoading] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       setLoading(true);
-      Promise.all([fetchRoster(), fetchHistory()])
-        .then(([roster, history]) => {
+      Promise.all([fetchRoster(), fetchHistory(), fetchLeaderboard()])
+        .then(([roster, history, entries]) => {
           if (!active) return;
           setPlayers(roster.players);
           setGames(history.games);
+          setLeaderboard(entries);
         })
         .finally(() => {
           if (active) setLoading(false);
@@ -44,6 +47,9 @@ export default function MyProfileScreen() {
   const linkedPlayer = account?.linkedPlayerId
     ? (players.find((player) => player.id === account.linkedPlayerId) ?? null)
     : null;
+  const officialStats = linkedPlayer
+    ? leaderboard.find((entry) => entry.playerId === linkedPlayer.id)
+    : undefined;
 
   if (loading) {
     return (
@@ -71,7 +77,7 @@ export default function MyProfileScreen() {
               <Button
                 label={t("admin.homeShortcut")}
                 variant="yellow"
-                onPress={() => router.push("/admin")}
+                onPress={() => router.push({ pathname: "/admin", params: { from: "profile" } })}
               />
             )}
           </>
@@ -91,7 +97,7 @@ export default function MyProfileScreen() {
       <Button
         label={t("leaderboard.title")}
         variant="ghost"
-        onPress={() => router.push("/leaderboard")}
+        onPress={() => router.push({ pathname: "/leaderboard", params: { from: "profile" } })}
       />
 
       {account && !linkedPlayer && (
@@ -101,7 +107,14 @@ export default function MyProfileScreen() {
       )}
 
       {linkedPlayer && (
-        <PlayerStatsView player={linkedPlayer} games={games} locale={locale} t={t} fromPath="profile" />
+        <PlayerStatsView
+          player={linkedPlayer}
+          games={games}
+          officialStats={officialStats}
+          locale={locale}
+          t={t}
+          fromPath="profile"
+        />
       )}
     </ScreenContainer>
   );

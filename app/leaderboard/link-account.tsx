@@ -1,10 +1,11 @@
-import { router } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { AdminAccountDTO } from "@/api/leaderboard";
 import { fetchAdminAccounts, linkAccountToPlayer } from "@/api/leaderboard";
 import { Button } from "@/components/Button";
+import { LinearBackButton } from "@/components/LinearBackButton";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
@@ -14,6 +15,8 @@ import { useRoster } from "@/state/useRoster";
 import { theme, type ThemeColors } from "@/theme";
 
 export default function LinkAccountScreen() {
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  const backDestination = from === "admin" ? "/admin" : "/leaderboard";
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { token } = useAccount();
@@ -49,7 +52,7 @@ export default function LinkAccountScreen() {
     setError(null);
     try {
       await linkAccountToPlayer(token, { accountId: selectedAccountId, playerId: selectedPlayerId });
-      router.back();
+      router.dismissTo(backDestination);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : t("leaderboard.linkAccountFailed"));
     } finally {
@@ -58,6 +61,8 @@ export default function LinkAccountScreen() {
   };
 
   return (
+    <>
+    <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} /> }} />
     <ScreenContainer
       footer={
         <Button
@@ -114,6 +119,7 @@ export default function LinkAccountScreen() {
 
       {!!error && <Text style={styles.error}>{error}</Text>}
     </ScreenContainer>
+    </>
   );
 }
 

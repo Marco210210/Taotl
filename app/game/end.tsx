@@ -8,22 +8,45 @@ import { BrandMark } from "@/components/BrandMark";
 import { Button } from "@/components/Button";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useAppSettings } from "@/state/AppSettingsContext";
+import { useAccount } from "@/state/AccountContext";
 import { useGame } from "@/state/GameContext";
 import { theme, type ThemeColors } from "@/theme";
 
-type SyncStatus = "syncing" | "synced" | "offline";
+type SyncStatus = "syncing" | "synced" | "verified" | "verification-failed" | "offline";
 
 export default function GameEndScreen() {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { game, ranked, resetGame } = useGame();
+  const { account, token, room, clearRoom } = useAccount();
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("syncing");
+  const [verifiedCount, setVerifiedCount] = useState(0);
+  const [unmatchedCount, setUnmatchedCount] = useState(0);
 
   useEffect(() => {
     if (!game) return;
     let cancelled = false;
-    syncFinishedGame(game).then((result) => {
-      if (!cancelled) setSyncStatus(result.synced ? "synced" : "offline");
+    const isRoomHost = room?.participants.some(
+      (participant) => participant.userId === account?.id && participant.isHost,
+    );
+    const verifiedRoom =
+      token && room && isRoomHost && game.verifiedRoomId === room.id
+        ? { token, roomId: room.id }
+        : undefined;
+    syncFinishedGame(game, verifiedRoom).then((result) => {
+      if (cancelled) return;
+      setVerifiedCount(result.verifiedCount);
+      setUnmatchedCount(result.unmatchedCount);
+      if (!result.synced) {
+        setSyncStatus("offline");
+      } else if (result.verification === "verified") {
+        setSyncStatus("verified");
+        void clearRoom();
+      } else if (result.verification === "failed") {
+        setSyncStatus("verification-failed");
+      } else {
+        setSyncStatus("synced");
+      }
     });
     return () => {
       cancelled = true;
@@ -63,6 +86,13 @@ export default function GameEndScreen() {
         <Text style={styles.sync}>
           {syncStatus === "syncing" && t("end.saving")}
           {syncStatus === "synced" && t("end.savedOnline")}
+          {syncStatus === "verified" && (
+            <>
+              {t("end.savedVerified")} {verifiedCount}.
+              {unmatchedCount > 0 ? ` ${unmatchedCount} ${t("end.unmatchedAccounts")}` : ""}
+            </>
+          )}
+          {syncStatus === "verification-failed" && t("end.savedVerificationFailed")}
           {syncStatus === "offline" && t("end.savedOffline")}
         </Text>
 
