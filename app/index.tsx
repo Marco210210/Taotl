@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandMark } from "@/components/BrandMark";
 import { Button } from "@/components/Button";
 import { getFixedSequence } from "@/game/modes";
+import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useGame } from "@/state/GameContext";
 import { theme, type ThemeColors } from "@/theme";
@@ -13,6 +14,7 @@ import { theme, type ThemeColors } from "@/theme";
 export default function HomeScreen() {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { account } = useAccount();
   const { game, isHydrated, ranked, resetGame } = useGame();
   const menuItems = [
     { label: t("home.history"), route: "/history" as const, icon: require("../assets/design/suit-heart.png") },
@@ -132,6 +134,22 @@ export default function HomeScreen() {
             <Text style={styles.leaderboardArrow}>›</Text>
           </Pressable>
 
+          {account?.isAdmin && (
+            <Pressable
+              onPress={() => router.navigate("/admin")}
+              style={({ pressed }) => [styles.adminCard, pressed && styles.pressed]}
+            >
+              <View style={styles.adminBadge}>
+                <Text style={styles.adminBadgeText}>A</Text>
+              </View>
+              <View style={styles.adminInfo}>
+                <Text style={styles.adminLabel}>{t("admin.homeShortcut")}</Text>
+                <Text style={styles.adminMeta}>@{account.handle}</Text>
+              </View>
+              <Text style={styles.leaderboardArrow}>›</Text>
+            </Pressable>
+          )}
+
           <Pressable onPress={() => router.navigate("/roster")} style={styles.rosterLink}>
             <Text style={styles.rosterText}>{t("home.manageRoster")}</Text>
             <Text style={styles.rosterArrow}>›</Text>
@@ -227,6 +245,29 @@ function makeStyles(colors: ThemeColors) {
     leaderboardIcon: { width: 26, height: 26 },
     leaderboardLabel: { flex: 1, color: colors.text, fontFamily: theme.font.family.extraBold, fontSize: 15 },
     leaderboardArrow: { color: colors.text, fontFamily: theme.font.family.regular, fontSize: 26 },
+    adminCard: {
+      minHeight: 68,
+      paddingHorizontal: 14,
+      borderRadius: 14,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      backgroundColor: colors.firstPlace,
+      borderWidth: 1,
+      borderColor: colors.firstPlaceBorder,
+    },
+    adminBadge: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.yellow,
+    },
+    adminBadgeText: { color: "#17181D", fontFamily: theme.font.family.extraBold, fontSize: 16 },
+    adminInfo: { flex: 1 },
+    adminLabel: { color: colors.text, fontFamily: theme.font.family.extraBold, fontSize: 14 },
+    adminMeta: { color: colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 10.5 },
     rosterLink: {
       minHeight: 50,
       paddingHorizontal: 15,

@@ -15,7 +15,8 @@ type AuthMode = "register" | "login";
 
 export default function AccountScreen() {
   const { from } = useLocalSearchParams<{ from?: string }>();
-  const backDestination = from === "setup" ? "/setup/players" : "/profile";
+  const backDestination =
+    from === "setup" ? "/setup/players" : from === "admin" ? "/admin" : "/profile";
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const {
