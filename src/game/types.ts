@@ -46,6 +46,9 @@ export interface ActiveGame {
   pendingCardsDealt: number | null;
   // Chiamate raccolte per il turno in corso (popolate quando si passa a status "scoring").
   pendingBids: Bid[];
+  // Stanza scelta prima dell'inizio: resta legata a questa partita anche se
+  // l'utente apre o abbandona altri codici durante il gioco.
+  verifiedRoomId?: string | null;
   createdAt: string;
   finishedAt: string | null;
 }

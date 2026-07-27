@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from "expo-router";
+import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -6,6 +6,7 @@ import { fetchLeaderboard } from "@/api/leaderboard";
 import type { LeaderboardEntryDTO } from "@/api/leaderboard";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { LinearBackButton } from "@/components/LinearBackButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAccount } from "@/state/AccountContext";
@@ -13,6 +14,8 @@ import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme, type ThemeColors } from "@/theme";
 
 export default function LeaderboardScreen() {
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  const backDestination = from === "profile" ? "/profile" : from === "admin" ? "/admin" : "/";
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { account } = useAccount();
@@ -41,6 +44,8 @@ export default function LeaderboardScreen() {
   );
 
   return (
+    <>
+    <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} /> }} />
     <ScreenContainer>
       <ScreenIntro title={t("leaderboard.title")} description={t("leaderboard.description")} />
 
@@ -62,7 +67,13 @@ export default function LeaderboardScreen() {
         {entries.map((entry, index) => (
           <Pressable
             key={entry.playerId}
-            onPress={() => router.push({ pathname: "/leaderboard/player/[id]", params: { id: entry.playerId } })}
+            onPress={() => router.push({
+              pathname: "/leaderboard/player/[id]",
+              params: {
+                id: entry.playerId,
+                from: from === "profile" ? "profile-leaderboard" : "leaderboard",
+              },
+            })}
             style={({ pressed }) => pressed && styles.pressed}
           >
             <Card style={styles.row}>
@@ -90,6 +101,7 @@ export default function LeaderboardScreen() {
         </Pressable>
       )}
     </ScreenContainer>
+    </>
   );
 }
 

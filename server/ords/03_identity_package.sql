@@ -1,6 +1,7 @@
 -- API Taotl ID. Richiede prima server/sql/04_identity_and_verified_rooms.sql
 -- e server/sql/05_profile_and_admin.sql (nome/cognome/is_admin/taotl_account_players)
--- e server/sql/06_leaderboard_view.sql (player_overall_stats_v).
+-- e server/sql/08_verified_stats_and_legacy_wins.sql
+-- (games.counts_for_win_rate e player_overall_stats_v).
 -- Richiede anche, eseguito una volta come ADMIN: GRANT EXECUTE ON DBMS_CRYPTO TO taotl_app;
 --
 -- La password non viene mai salvata: viene memorizzato solo hash_password(salt,
@@ -25,6 +26,7 @@ CREATE OR REPLACE PACKAGE taotl_identity_api AS
   FUNCTION create_room(p_authorization IN VARCHAR2) RETURN CLOB;
   FUNCTION join_room(p_authorization IN VARCHAR2, p_body IN BLOB) RETURN CLOB;
   FUNCTION get_room(p_authorization IN VARCHAR2, p_room_id IN VARCHAR2) RETURN CLOB;
+  FUNCTION complete_room_game(p_authorization IN VARCHAR2, p_body IN BLOB) RETURN CLOB;
 
   -- Amministrazione: richiamate da fuori questo package (taotl_api, handler ORDS),
   -- quindi devono stare nella specifica.
@@ -342,6 +344,13 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
     v_account_id := require_account(p_authorization);
     v_room_id := 'room_' || LOWER(RAWTOHEX(SYS_GUID()));
 
+    -- Un organizzatore usa un solo codice attivo alla volta: crearne uno nuovo
+    -- chiude gli eventuali codici precedenti senza eliminare alcun dato.
+    UPDATE taotl_game_rooms
+       SET status = 'cancelled'
+     WHERE host_account_id = v_account_id
+       AND status = 'open';
+
     FOR i IN 1..10 LOOP
       BEGIN
         v_code := UPPER(SUBSTR(RAWTOHEX(SYS_GUID()), 1, 6));
@@ -413,9 +422,12 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
     v_account_id := require_account(p_authorization);
     SELECT COUNT(*)
       INTO v_exists
-      FROM taotl_room_participants
-     WHERE room_id = p_room_id
-       AND account_id = v_account_id;
+      FROM taotl_room_participants p
+      JOIN taotl_game_rooms r ON r.id = p.room_id
+     WHERE p.room_id = p_room_id
+       AND p.account_id = v_account_id
+       AND r.status = 'open'
+       AND r.expires_at > SYSTIMESTAMP;
     IF v_exists = 0 THEN
       RAISE_APPLICATION_ERROR(-20403, 'Non fai parte di questa stanza.');
     END IF;
@@ -424,6 +436,110 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
     COMMIT;
     RETURN v_json;
   END get_room;
+
+  -- Collega definitivamente una stanza alla partita appena conclusa. Può farlo
+  -- soltanto l'account che ha creato la stanza. Ogni partecipante viene associato
+  -- alla partita esclusivamente se:
+  --   1) era entrato con il proprio Taotl ID usando il codice;
+  --   2) il suo account è collegato a un giocatore della rubrica;
+  --   3) quel giocatore era effettivamente tra i partecipanti della partita.
+  -- In questo modo il telefono che tiene il punteggio non può attribuire da solo
+  -- la presenza a un account che non ha confermato dal proprio dispositivo.
+  FUNCTION complete_room_game(p_authorization IN VARCHAR2, p_body IN BLOB) RETURN CLOB IS
+    v_account_id     taotl_accounts.id%TYPE;
+    v_room_id        taotl_game_rooms.id%TYPE;
+    v_game_id        games.id%TYPE;
+    v_room_valid     NUMBER;
+    v_game_valid     NUMBER;
+    v_participants   NUMBER;
+    v_verified       NUMBER;
+    v_json           CLOB;
+  BEGIN
+    v_account_id := require_account(p_authorization);
+
+    SELECT JSON_VALUE(p_body, '$.roomId' RETURNING VARCHAR2(60)),
+           JSON_VALUE(p_body, '$.gameId' RETURNING VARCHAR2(60))
+      INTO v_room_id, v_game_id
+      FROM dual;
+
+    IF v_room_id IS NULL OR v_game_id IS NULL THEN
+      RAISE_APPLICATION_ERROR(-20400, 'roomId e gameId sono obbligatori.');
+    END IF;
+
+    SELECT COUNT(*)
+      INTO v_room_valid
+      FROM taotl_game_rooms
+     WHERE id = v_room_id
+       AND host_account_id = v_account_id
+       AND (
+         status = 'open'
+         OR (status = 'finished' AND game_id = v_game_id)
+       );
+
+    IF v_room_valid = 0 THEN
+      RAISE_APPLICATION_ERROR(-20403, 'Solo l''organizzatore può verificare questa partita.');
+    END IF;
+
+    SELECT COUNT(*)
+      INTO v_game_valid
+      FROM games
+     WHERE id = v_game_id
+       AND finished_at IS NOT NULL
+       AND is_manual = 'N';
+
+    IF v_game_valid = 0 THEN
+      RAISE_APPLICATION_ERROR(-20404, 'Partita conclusa non trovata.');
+    END IF;
+
+    MERGE INTO taotl_verified_game_accounts target
+    USING (
+      SELECT v_game_id AS game_id,
+             rp.account_id,
+             v_room_id AS room_id,
+             ap.player_id
+        FROM taotl_room_participants rp
+        JOIN taotl_account_players ap ON ap.account_id = rp.account_id
+        JOIN game_players gp
+          ON gp.game_id = v_game_id
+         AND gp.player_id = ap.player_id
+       WHERE rp.room_id = v_room_id
+    ) source
+    ON (target.game_id = source.game_id AND target.account_id = source.account_id)
+    WHEN MATCHED THEN
+      UPDATE SET target.room_id = source.room_id,
+                 target.player_id = source.player_id,
+                 target.confirmed_at = SYSTIMESTAMP
+    WHEN NOT MATCHED THEN
+      INSERT (game_id, account_id, room_id, player_id)
+      VALUES (source.game_id, source.account_id, source.room_id, source.player_id);
+
+    UPDATE taotl_game_rooms
+       SET status = 'finished',
+           game_id = v_game_id
+     WHERE id = v_room_id;
+
+    SELECT COUNT(*)
+      INTO v_participants
+      FROM taotl_room_participants
+     WHERE room_id = v_room_id;
+
+    SELECT COUNT(*)
+      INTO v_verified
+      FROM taotl_verified_game_accounts
+     WHERE room_id = v_room_id
+       AND game_id = v_game_id;
+
+    SELECT JSON_OBJECT(
+             'verifiedCount'  VALUE v_verified,
+             'unmatchedCount' VALUE GREATEST(0, v_participants - v_verified)
+             RETURNING CLOB
+           )
+      INTO v_json
+      FROM dual;
+
+    COMMIT;
+    RETURN v_json;
+  END complete_room_game;
 
   FUNCTION link_account_player(p_authorization IN VARCHAR2, p_body IN BLOB) RETURN CLOB IS
     v_admin_id  VARCHAR2(60);
@@ -465,15 +581,23 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
     v_played_at    TIMESTAMP WITH TIME ZONE;
     v_num_players  NUMBER;
     v_winner_found NUMBER;
+    v_winner_exists NUMBER;
+    v_winner_only_s VARCHAR2(10);
+    v_winner_only   BOOLEAN;
+    v_counts_for_rate CHAR(1);
+    v_stored_num_players NUMBER;
     v_game_id      games.id%TYPE;
     v_json         CLOB;
   BEGIN
     v_admin_id := require_admin(p_authorization);
 
     SELECT JSON_VALUE(p_body, '$.winnerId' RETURNING VARCHAR2(60)),
-           JSON_VALUE(p_body, '$.playedAt' RETURNING VARCHAR2(40))
-      INTO v_winner_id, v_played_at_s
+           JSON_VALUE(p_body, '$.playedAt' RETURNING VARCHAR2(40)),
+           JSON_VALUE(p_body, '$.winnerOnly' RETURNING VARCHAR2(10))
+      INTO v_winner_id, v_played_at_s, v_winner_only_s
       FROM dual;
+    v_winner_only := LOWER(NVL(v_winner_only_s, 'false')) = 'true';
+    v_counts_for_rate := CASE WHEN v_winner_only THEN 'N' ELSE 'Y' END;
 
     v_played_at := CASE
       WHEN v_played_at_s IS NULL THEN SYSTIMESTAMP
@@ -483,31 +607,49 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
     SELECT COUNT(*) INTO v_num_players
       FROM JSON_TABLE(p_body, '$.players[*]' COLUMNS (player_id VARCHAR2(60) PATH '$'));
 
-    IF v_num_players < 2 THEN
+    IF NOT v_winner_only AND v_num_players < 2 THEN
       RAISE_APPLICATION_ERROR(-20400, 'Servono almeno due giocatori.');
     END IF;
 
-    SELECT COUNT(*) INTO v_winner_found
-      FROM JSON_TABLE(p_body, '$.players[*]' COLUMNS (player_id VARCHAR2(60) PATH '$'))
-     WHERE player_id = v_winner_id;
+    SELECT COUNT(*)
+      INTO v_winner_exists
+      FROM players
+     WHERE id = v_winner_id
+       AND is_active = 'Y';
 
-    IF v_winner_id IS NULL OR v_winner_found = 0 THEN
-      RAISE_APPLICATION_ERROR(-20400, 'Il vincitore deve essere uno dei partecipanti.');
+    IF v_winner_id IS NULL OR v_winner_exists = 0 THEN
+      RAISE_APPLICATION_ERROR(-20400, 'Il vincitore non esiste nella rubrica.');
+    END IF;
+
+    IF NOT v_winner_only THEN
+      SELECT COUNT(*) INTO v_winner_found
+        FROM JSON_TABLE(p_body, '$.players[*]' COLUMNS (player_id VARCHAR2(60) PATH '$'))
+       WHERE player_id = v_winner_id;
+
+      IF v_winner_found = 0 THEN
+        RAISE_APPLICATION_ERROR(-20400, 'Il vincitore deve essere uno dei partecipanti.');
+      END IF;
     END IF;
 
     v_game_id := 'game_' || LOWER(RAWTOHEX(SYS_GUID()));
+    v_stored_num_players := CASE WHEN v_winner_only THEN 0 ELSE v_num_players END;
 
     INSERT INTO games (
       id, game_mode, num_players, start_dealer_id, created_at, finished_at,
-      is_manual, winner_player_id
+      is_manual, winner_player_id, counts_for_win_rate
     ) VALUES (
-      v_game_id, 'manuale', v_num_players, NULL, v_played_at, v_played_at,
-      'Y', v_winner_id
+      v_game_id, 'manuale', v_stored_num_players, NULL, v_played_at, v_played_at,
+      'Y', v_winner_id, v_counts_for_rate
     );
 
-    INSERT INTO game_players (game_id, player_id, seat_order)
-    SELECT v_game_id, player_id, ROWNUM
-      FROM JSON_TABLE(p_body, '$.players[*]' COLUMNS (player_id VARCHAR2(60) PATH '$'));
+    IF v_winner_only THEN
+      INSERT INTO game_players (game_id, player_id, seat_order)
+      VALUES (v_game_id, v_winner_id, 1);
+    ELSE
+      INSERT INTO game_players (game_id, player_id, seat_order)
+      SELECT v_game_id, player_id, ROWNUM
+        FROM JSON_TABLE(p_body, '$.players[*]' COLUMNS (player_id VARCHAR2(60) PATH '$'));
+    END IF;
 
     SELECT JSON_OBJECT('id' VALUE v_game_id RETURNING CLOB) INTO v_json FROM dual;
     COMMIT;
@@ -523,7 +665,8 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
                  'playerId'    VALUE player_id,
                  'name'        VALUE player_name,
                  'gamesPlayed' VALUE games_played,
-                 'wins'        VALUE wins
+                 'wins'        VALUE wins,
+                 'rateWins'    VALUE rate_wins
                  RETURNING CLOB
                )
                ORDER BY wins DESC, games_played DESC, player_name

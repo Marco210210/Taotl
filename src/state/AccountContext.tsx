@@ -42,6 +42,7 @@ interface AccountContextValue {
   createRoom: () => Promise<GameRoomDTO>;
   joinRoom: (code: string) => Promise<GameRoomDTO>;
   refreshRoom: () => Promise<void>;
+  clearRoom: () => Promise<void>;
 }
 
 const AccountContext = createContext<AccountContextValue | null>(null);
@@ -79,7 +80,11 @@ export function AccountProvider({ children }: PropsWithChildren) {
         setAccount(nextAccount);
         if (storedRoomId) {
           const nextRoom = await fetchGameRoom(storedToken, storedRoomId).catch(() => null);
-          if (active) setRoom(nextRoom);
+          if (nextRoom?.status === "open") {
+            if (active) setRoom(nextRoom);
+          } else {
+            await AsyncStorage.removeItem(ROOM_KEY);
+          }
         }
       })
       .catch(() => {
@@ -177,8 +182,19 @@ export function AccountProvider({ children }: PropsWithChildren) {
 
   const refreshRoom = useCallback(async () => {
     if (!token || !room) return;
-    setRoom(await fetchGameRoom(token, room.id));
+    const nextRoom = await fetchGameRoom(token, room.id);
+    if (nextRoom.status === "open") {
+      setRoom(nextRoom);
+      return;
+    }
+    setRoom(null);
+    await AsyncStorage.removeItem(ROOM_KEY);
   }, [room, token]);
+
+  const clearRoom = useCallback(async () => {
+    setRoom(null);
+    await AsyncStorage.removeItem(ROOM_KEY);
+  }, []);
 
   const value = useMemo<AccountContextValue>(
     () => ({
@@ -195,9 +211,10 @@ export function AccountProvider({ children }: PropsWithChildren) {
       createRoom,
       joinRoom,
       refreshRoom,
+      clearRoom,
     }),
     [
-      account, authError, confirmReset, createRoom, joinRoom, loading, login, logout,
+      account, authError, clearRoom, confirmReset, createRoom, joinRoom, loading, login, logout,
       refreshRoom, register, requestReset, room, token,
     ],
   );

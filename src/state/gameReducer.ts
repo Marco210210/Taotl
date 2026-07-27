@@ -4,9 +4,10 @@ import type { ActiveGame, Bid, GameMode, Player, RoundPlayerResult } from "@/gam
 import { generateId } from "@/utils/id";
 
 export type GameAction =
-  | { type: "START_GAME"; mode: GameMode; players: Player[]; startDealerId: string }
+  | { type: "START_GAME"; mode: GameMode; players: Player[]; startDealerId: string; verifiedRoomId?: string | null }
   | { type: "SET_PENDING_CARDS"; cardsDealt: number }
   | { type: "CONFIRM_BIDS"; bids: Bid[] }
+  | { type: "REOPEN_BIDS" }
   | { type: "CONFIRM_ROUND_RESULTS"; results: RoundPlayerResult[] }
   | { type: "SET_CURRENT_DEALER"; dealerId: string }
   | { type: "RESET_GAME" }
@@ -19,7 +20,7 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
     }
 
     case "START_GAME": {
-      const { mode, players, startDealerId } = action;
+      const { mode, players, startDealerId, verifiedRoomId } = action;
       const base: ActiveGame = {
         id: generateId("game"),
         mode,
@@ -29,6 +30,7 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
         rounds: [],
         pendingCardsDealt: null,
         pendingBids: [],
+        verifiedRoomId: verifiedRoomId ?? null,
         createdAt: new Date().toISOString(),
         finishedAt: null,
       };
@@ -49,6 +51,11 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
     case "CONFIRM_BIDS": {
       if (!state) return state;
       return { ...state, pendingBids: action.bids, status: "scoring" };
+    }
+
+    case "REOPEN_BIDS": {
+      if (!state || state.status !== "scoring") return state;
+      return { ...state, pendingBids: [], status: "bidding" };
     }
 
     case "SET_CURRENT_DEALER": {

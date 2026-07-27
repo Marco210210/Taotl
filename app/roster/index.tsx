@@ -12,7 +12,7 @@ import { theme, type ThemeColors } from "@/theme";
 
 export default function RosterScreen() {
   const { from } = useLocalSearchParams<{ from?: string }>();
-  const backDestination = from === "setup" ? "/setup/players" : "/";
+  const backDestination = from === "setup" ? "/setup/players" : from === "admin" ? "/admin" : "/";
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { players, loading, fromCache, reload } = useRoster();
@@ -38,14 +38,23 @@ export default function RosterScreen() {
           </Text>
         )}
 
-        <Button label={t("roster.add")} onPress={() => router.push("/roster/edit")} />
+        <Button
+          label={t("roster.add")}
+          onPress={() => router.push({
+            pathname: "/roster/edit",
+            params: from ? { from } : {},
+          })}
+        />
 
         <View style={styles.list}>
           {players.map((player) => (
             <Pressable
               key={player.id}
               style={styles.row}
-              onPress={() => router.push({ pathname: "/roster/edit", params: { id: player.id } })}
+              onPress={() => router.push({
+                pathname: "/roster/edit",
+                params: from ? { id: player.id, from } : { id: player.id },
+              })}
             >
               <PlayerAvatar name={player.name} photoUri={player.photoUri} size={44} />
               <Text style={styles.name}>{player.name}</Text>

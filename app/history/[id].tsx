@@ -1,4 +1,5 @@
 import { Stack, router, useLocalSearchParams } from "expo-router";
+import type { Href } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 
@@ -17,8 +18,28 @@ export default function HistoryDetailScreen() {
   const { locale, t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { account, token } = useAccount();
-  const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
-  const backDestination = from === "profile" ? "/profile" : from === "leaderboard" ? "/leaderboard" : "/history";
+  const { id, from, playerId, leaderboardFrom } = useLocalSearchParams<{
+    id: string;
+    from?: string;
+    playerId?: string;
+    leaderboardFrom?: string;
+  }>();
+  const backDestination: Href =
+    from === "profile"
+      ? "/profile"
+      : from === "leaderboard"
+        ? "/leaderboard"
+        : from === "leaderboard-player" && playerId
+          ? {
+              pathname: "/leaderboard/player/[id]",
+              params: {
+                id: playerId,
+                from: leaderboardFrom ?? "leaderboard",
+              },
+            }
+        : from === "admin-history"
+          ? { pathname: "/history", params: { from: "admin" } }
+          : "/history";
   const [game, setGame] = useState<GameHistoryDetailDTO | null>(null);
   const [fromCache, setFromCache] = useState(false);
   const [loading, setLoading] = useState(true);

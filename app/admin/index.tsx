@@ -1,9 +1,10 @@
-import { router } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { LinearBackButton } from "@/components/LinearBackButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAccount } from "@/state/AccountContext";
@@ -11,12 +12,18 @@ import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme, type ThemeColors } from "@/theme";
 
 export default function AdminScreen() {
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  const backDestination = from === "profile" ? "/profile" : "/";
   const { account } = useAccount();
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
+  const header = <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} /> }} />;
+
   if (!account) {
     return (
+      <>
+      {header}
       <ScreenContainer>
         <ScreenIntro title={t("admin.title")} description={t("admin.loginRequired")} />
         <Button
@@ -24,19 +31,25 @@ export default function AdminScreen() {
           onPress={() => router.push({ pathname: "/account", params: { from: "admin" } })}
         />
       </ScreenContainer>
+      </>
     );
   }
 
   if (!account.isAdmin) {
     return (
+      <>
+      {header}
       <ScreenContainer>
         <ScreenIntro title={t("admin.title")} description={t("admin.denied")} />
-        <Button label={t("common.back")} variant="secondary" onPress={() => router.dismissTo("/")} />
+        <Button label={t("common.back")} variant="secondary" onPress={() => router.dismissTo(backDestination)} />
       </ScreenContainer>
+      </>
     );
   }
 
   return (
+    <>
+    {header}
     <ScreenContainer>
       <ScreenIntro title={t("admin.title")} description={t("admin.description")} />
 
@@ -65,24 +78,25 @@ export default function AdminScreen() {
         <Button
           label={t("admin.linkAccounts")}
           variant="success"
-          onPress={() => router.push("/leaderboard/link-account")}
+          onPress={() => router.push({ pathname: "/leaderboard/link-account", params: { from: "admin" } })}
         />
         <Button
           label={t("admin.addGame")}
-          onPress={() => router.push("/leaderboard/add-game")}
+          onPress={() => router.push({ pathname: "/leaderboard/add-game", params: { from: "admin" } })}
         />
         <Button
           label={t("admin.managePlayers")}
           variant="secondary"
-          onPress={() => router.push("/roster")}
+          onPress={() => router.push({ pathname: "/roster", params: { from: "admin" } })}
         />
         <Button
           label={t("admin.manageHistory")}
           variant="ghost"
-          onPress={() => router.push("/history")}
+          onPress={() => router.push({ pathname: "/history", params: { from: "admin" } })}
         />
       </View>
     </ScreenContainer>
+    </>
   );
 }
 
