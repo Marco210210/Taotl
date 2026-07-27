@@ -3,10 +3,11 @@ import * as Updates from "expo-updates";
 import { getLocales } from "expo-localization";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { PropsWithChildren } from "react";
-import { Appearance, Platform, useColorScheme, type ColorSchemeName } from "react-native";
+import { Platform, useColorScheme } from "react-native";
 
 import { translations, type AppLanguage, type TranslationKey } from "@/i18n/translations";
 import { theme } from "@/theme";
+import { writeStoredThemePreference } from "@/themePreference";
 
 import { STORAGE_KEYS } from "./storageKeys";
 
@@ -67,13 +68,14 @@ export function AppSettingsProvider({ children }: PropsWithChildren) {
   // essere attivo (needsDark) non corrisponde a quello con cui l'app è
   // effettivamente partita (theme.isDark) — sia perché l'utente ha appena
   // cambiato l'impostazione, sia perché all'avvio a freddo il telefono era in
-  // un tema di sistema diverso da una preferenza esplicita già salvata.
+  // un tema di sistema diverso da una preferenza esplicita già salvata. La
+  // preferenza va scritta su file PRIMA del reload (in modo sincrono) così
+  // src/theme.ts la trova subito al riavvio del bundle, senza dipendere da
+  // Appearance.setColorScheme() (non affidabile dentro Expo Go).
   const appliedRef = useRef<boolean | null>(null);
   useEffect(() => {
-    Appearance.setColorScheme(
-      (settings.theme === "system" ? null : settings.theme) as ColorSchemeName,
-    );
     if (!hydrated) return;
+    writeStoredThemePreference(settings.theme);
     const needsDark = settings.theme === "system" ? systemScheme === "dark" : settings.theme === "dark";
     if (appliedRef.current === needsDark) return;
     appliedRef.current = needsDark;

@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   respectBtnYes: { backgroundColor: theme.colors.success },
   respectBtnNo: { backgroundColor: theme.colors.danger },
   respectLabel: { color: theme.colors.textMuted, fontFamily: theme.font.family.bold, fontSize: 12.5 },
-  activeRespectLabel: { color: theme.colors.background },
+  activeRespectLabel: { color: theme.colors.primaryText },
   scartoRow: {
     flexDirection: "row",
     flexWrap: "wrap",

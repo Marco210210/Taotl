@@ -223,11 +223,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(23,24,29,.12)",
+    backgroundColor: theme.colors.inkSoft,
   },
   checkSelected: { backgroundColor: theme.colors.success },
   checkText: { color: theme.colors.textMuted, fontFamily: theme.font.family.extraBold, fontSize: 13 },
-  checkTextSelected: { color: theme.colors.background },
+  checkTextSelected: { color: theme.colors.primaryText },
   helper: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 12 },
   empty: {
     padding: 16,

@@ -1,12 +1,20 @@
 import { Appearance, type ColorValue } from "react-native";
 
+import { readStoredThemePreference } from "@/themePreference";
+
 // I colori "chiaro/scuro" vengono decisi una sola volta, quando il modulo viene
 // caricato (non ad ogni render): per applicare un cambio di tema serve un
 // ricaricamento della app (vedi AppSettingsContext, che lo fa in automatico
-// quando l'utente cambia l'impostazione). Appearance.getColorScheme() riflette
-// sia il tema di sistema sia un'eventuale forzatura fatta con
-// Appearance.setColorScheme(), quindi funziona anche per l'override manuale.
-const isDark = Appearance.getColorScheme() === "dark";
+// quando l'utente cambia l'impostazione). La preferenza esplicita (se l'utente
+// ha scelto "chiaro"/"scuro" invece di "sistema") viene letta in modo
+// sincrono da file (vedi themePreference.ts): Appearance.setColorScheme() da
+// solo non è affidabile dentro Expo Go, che può non applicare/persistere la
+// forzatura tra un reload e l'altro.
+const storedPreference = readStoredThemePreference();
+const isDark =
+  storedPreference === "system"
+    ? Appearance.getColorScheme() === "dark"
+    : storedPreference === "dark";
 
 function semanticColor(light: string, dark: string): ColorValue {
   return isDark ? dark : light;
@@ -15,12 +23,25 @@ function semanticColor(light: string, dark: string): ColorValue {
 export const theme = {
   colors: {
     background: semanticColor("#F8F8F5", "#16171B"),
+    // Varianti attenuate di `background`, da usare come testo sopra sfondi
+    // che si invertono tra i due temi (quelli con backgroundColor:
+    // theme.colors.text, es. il pannello "modalità personalizzata" o la
+    // schermata di fine partita) — stesso ruolo di textMuted/textFaint ma
+    // "al contrario".
+    backgroundMuted: semanticColor("rgba(248, 248, 245, 0.62)", "rgba(22, 23, 27, 0.55)"),
+    backgroundFaint: semanticColor("rgba(248, 248, 245, 0.42)", "rgba(22, 23, 27, 0.4)"),
+    backgroundSoft: semanticColor("rgba(248, 248, 245, 0.08)", "rgba(22, 23, 27, 0.08)"),
     surface: semanticColor("#FFFFFF", "rgba(244, 241, 232, 0.06)"),
     surfaceAlt: semanticColor("#F0F0EC", "rgba(244, 241, 232, 0.08)"),
     border: semanticColor("rgba(23, 24, 29, 0.11)", "rgba(244, 241, 232, 0.10)"),
     borderStrong: semanticColor("rgba(23, 24, 29, 0.15)", "rgba(244, 241, 232, 0.14)"),
     primary: semanticColor("#CF3545", "#E8515F"),
-    primaryText: semanticColor("#F8F8F5", "#16171B"),
+    // Colore fisso (non cambia tra chiaro/scuro): per il testo/le icone sopra
+    // sfondi "colorati" che restano scuri/saturi in entrambi i temi (bottoni
+    // primary/danger/success, avatar, hero verde...). Da NON confondere con
+    // `background`, che invece è pensato per sfondi che si invertono (vedi
+    // sotto) e cambia valore tra i due temi.
+    primaryText: "#F8F8F5",
     text: semanticColor("#17181D", "#F4F1E8"),
     textMuted: semanticColor("rgba(23, 24, 29, 0.52)", "rgba(244, 241, 232, 0.5)"),
     textFaint: semanticColor("rgba(23, 24, 29, 0.30)", "rgba(244, 241, 232, 0.25)"),

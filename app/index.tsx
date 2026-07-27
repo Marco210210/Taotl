@@ -147,13 +147,13 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: theme.colors.success },
+  safe: { flex: 1, backgroundColor: theme.colors.successHero },
   page: { flexGrow: 1, backgroundColor: theme.colors.background },
   hero: {
     paddingHorizontal: 22,
     paddingTop: 28,
     paddingBottom: 26,
-    backgroundColor: theme.colors.success,
+    backgroundColor: theme.colors.successHero,
     gap: 14,
   },
   heroCopy: {

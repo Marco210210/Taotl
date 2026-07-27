@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
   },
   formula: {
-    color: theme.colors.background,
+    color: theme.colors.primaryText,
     fontFamily: theme.font.family.display,
     fontSize: 24,
     lineHeight: 29,

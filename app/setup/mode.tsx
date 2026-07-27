@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
   },
   customText: {
-    color: "rgba(248,248,245,.72)",
+    color: theme.colors.backgroundMuted,
     fontFamily: theme.font.family.medium,
     fontSize: 11.5,
     lineHeight: 17,

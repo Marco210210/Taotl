@@ -11,7 +11,7 @@ export function BrandMark({
   inverse?: boolean;
 }) {
   const { t } = useAppSettings();
-  const tileColor = inverse ? theme.colors.success : theme.colors.background;
+  const tileColor = inverse ? theme.colors.success : theme.colors.primaryText;
 
   return (
     <View style={[styles.row, compact && styles.compactRow]}>
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
   mask: { width: 38, height: 38 },
   compactMask: { width: 31, height: 31 },
   wordmark: {
-    color: theme.colors.background,
+    color: theme.colors.primaryText,
     fontFamily: theme.font.family.display,
     fontSize: 34,
     lineHeight: 36,
@@ -58,6 +58,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 2.4,
   },
-  inverseText: { color: theme.colors.background },
+  inverseText: { color: theme.colors.primaryText },
   inverseKicker: { color: "rgba(248, 248, 245, .64)" },
 });
