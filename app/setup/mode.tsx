@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
@@ -9,10 +10,11 @@ import type { GameMode } from "@/game/types";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useGame } from "@/state/GameContext";
 import { useSetup } from "@/state/SetupContext";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 export default function SetupModeScreen() {
-  const { t } = useAppSettings();
+  const { t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { mode, setMode, selectedPlayers, dealerId, reset } = useSetup();
   const { startGame } = useGame();
 
@@ -95,45 +97,47 @@ export default function SetupModeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  list: { gap: 10 },
-  option: {
-    padding: 15,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-    gap: 8,
-  },
-  optionSelected: { borderColor: theme.colors.primary },
-  optionHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
-  optionTitle: { flex: 1, color: theme.colors.text, fontFamily: theme.font.family.extraBold, fontSize: 15.5 },
-  turnCount: { color: theme.colors.textMuted, fontFamily: theme.font.family.bold, fontSize: 10, letterSpacing: 0.7 },
-  turnCountSelected: { color: theme.colors.primary },
-  optionDescription: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 12.5, lineHeight: 18 },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: 5 },
-  chip: {
-    minWidth: 26,
-    height: 26,
-    paddingHorizontal: 6,
-    borderRadius: 7,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.inkSoft,
-  },
-  chipText: { color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 11 },
-  customPanel: { padding: 13, borderRadius: 12, backgroundColor: theme.colors.text, gap: 4 },
-  customTitle: {
-    color: theme.colors.yellow,
-    fontFamily: theme.font.family.bold,
-    fontSize: 9.5,
-    letterSpacing: 1.2,
-  },
-  customText: {
-    color: theme.colors.backgroundMuted,
-    fontFamily: theme.font.family.medium,
-    fontSize: 11.5,
-    lineHeight: 17,
-  },
-  pressed: { opacity: 0.74 },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    list: { gap: 10 },
+    option: {
+      padding: 15,
+      borderRadius: 14,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      gap: 8,
+    },
+    optionSelected: { borderColor: colors.primary },
+    optionHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+    optionTitle: { flex: 1, color: colors.text, fontFamily: theme.font.family.extraBold, fontSize: 15.5 },
+    turnCount: { color: colors.textMuted, fontFamily: theme.font.family.bold, fontSize: 10, letterSpacing: 0.7 },
+    turnCountSelected: { color: colors.primary },
+    optionDescription: { color: colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 12.5, lineHeight: 18 },
+    chips: { flexDirection: "row", flexWrap: "wrap", gap: 5 },
+    chip: {
+      minWidth: 26,
+      height: 26,
+      paddingHorizontal: 6,
+      borderRadius: 7,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.inkSoft,
+    },
+    chipText: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 11 },
+    customPanel: { padding: 13, borderRadius: 12, backgroundColor: colors.text, gap: 4 },
+    customTitle: {
+      color: colors.yellow,
+      fontFamily: theme.font.family.bold,
+      fontSize: 9.5,
+      letterSpacing: 1.2,
+    },
+    customText: {
+      color: colors.backgroundMuted,
+      fontFamily: theme.font.family.medium,
+      fontSize: 11.5,
+      lineHeight: 17,
+    },
+    pressed: { opacity: 0.74 },
+  });
+}

@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Button } from "@/components/Button";
@@ -12,10 +12,11 @@ import { useAppSettings } from "@/state/AppSettingsContext";
 import { useAccount } from "@/state/AccountContext";
 import { useSetup } from "@/state/SetupContext";
 import { useRoster } from "@/state/useRoster";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 export default function SetupPlayersScreen() {
-  const { t } = useAppSettings();
+  const { t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { account, room } = useAccount();
   const { players, loading, addPlayer } = useRoster();
   const { selectedPlayers, togglePlayer } = useSetup();
@@ -91,7 +92,7 @@ export default function SetupPlayersScreen() {
           value={newName}
           onChangeText={setNewName}
           placeholder={t("players.addPlaceholder")}
-          placeholderTextColor={theme.colors.textMuted}
+          placeholderTextColor={colors.textMuted as string}
           style={styles.input}
           onSubmitEditing={handleAddPlayer}
           returnKeyType="done"
@@ -157,92 +158,94 @@ export default function SetupPlayersScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  verifiedCard: { gap: 8 },
-  verifiedHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
-  verifiedDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: theme.colors.textFaint },
-  verifiedDotActive: { backgroundColor: theme.colors.success },
-  verifiedTitle: {
-    flex: 1,
-    color: theme.colors.text,
-    fontFamily: theme.font.family.extraBold,
-    fontSize: 10,
-    letterSpacing: 1,
-  },
-  verifiedCode: {
-    color: theme.colors.success,
-    fontFamily: theme.font.family.extraBold,
-    fontSize: 13,
-    letterSpacing: 2,
-  },
-  verifiedBody: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 11, lineHeight: 17 },
-  verifiedLink: { minHeight: 38, flexDirection: "row", alignItems: "center" },
-  verifiedLinkText: { flex: 1, color: theme.colors.success, fontFamily: theme.font.family.bold, fontSize: 11 },
-  addRow: { flexDirection: "row", gap: 8, alignItems: "center" },
-  input: {
-    flex: 1,
-    height: 52,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.borderStrong,
-    paddingHorizontal: 14,
-    backgroundColor: theme.colors.surface,
-    color: theme.colors.text,
-    fontFamily: theme.font.family.semibold,
-    fontSize: 14,
-  },
-  addButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.text,
-  },
-  addButtonText: { color: theme.colors.background, fontFamily: theme.font.family.regular, fontSize: 28 },
-  list: { gap: 9 },
-  playerRow: {
-    minHeight: 64,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 13,
-    borderWidth: 1.5,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-  },
-  playerRowSelected: { borderColor: theme.colors.success },
-  playerInfo: { flex: 1 },
-  playerName: { color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 14.5 },
-  playerMeta: { marginTop: 2, color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 11 },
-  check: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.inkSoft,
-  },
-  checkSelected: { backgroundColor: theme.colors.success },
-  checkText: { color: theme.colors.textMuted, fontFamily: theme.font.family.extraBold, fontSize: 13 },
-  checkTextSelected: { color: theme.colors.primaryText },
-  helper: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 12 },
-  empty: {
-    padding: 16,
-    borderRadius: 13,
-    color: theme.colors.textMuted,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    fontFamily: theme.font.family.medium,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  manageLink: { minHeight: 44, flexDirection: "row", alignItems: "center", paddingHorizontal: 4 },
-  manageText: { flex: 1, color: theme.colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 12 },
-  manageArrow: { color: theme.colors.text, fontSize: 22 },
-  disabled: { opacity: 0.4 },
-  pressed: { opacity: 0.72 },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    verifiedCard: { gap: 8 },
+    verifiedHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+    verifiedDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.textFaint },
+    verifiedDotActive: { backgroundColor: colors.success },
+    verifiedTitle: {
+      flex: 1,
+      color: colors.text,
+      fontFamily: theme.font.family.extraBold,
+      fontSize: 10,
+      letterSpacing: 1,
+    },
+    verifiedCode: {
+      color: colors.success,
+      fontFamily: theme.font.family.extraBold,
+      fontSize: 13,
+      letterSpacing: 2,
+    },
+    verifiedBody: { color: colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 11, lineHeight: 17 },
+    verifiedLink: { minHeight: 38, flexDirection: "row", alignItems: "center" },
+    verifiedLinkText: { flex: 1, color: colors.success, fontFamily: theme.font.family.bold, fontSize: 11 },
+    addRow: { flexDirection: "row", gap: 8, alignItems: "center" },
+    input: {
+      flex: 1,
+      height: 52,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+      paddingHorizontal: 14,
+      backgroundColor: colors.surface,
+      color: colors.text,
+      fontFamily: theme.font.family.semibold,
+      fontSize: 14,
+    },
+    addButton: {
+      width: 52,
+      height: 52,
+      borderRadius: 12,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.text,
+    },
+    addButtonText: { color: colors.background, fontFamily: theme.font.family.regular, fontSize: 28 },
+    list: { gap: 9 },
+    playerRow: {
+      minHeight: 64,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 11,
+      borderRadius: 13,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    playerRowSelected: { borderColor: colors.success },
+    playerInfo: { flex: 1 },
+    playerName: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 14.5 },
+    playerMeta: { marginTop: 2, color: colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 11 },
+    check: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.inkSoft,
+    },
+    checkSelected: { backgroundColor: colors.success },
+    checkText: { color: colors.textMuted, fontFamily: theme.font.family.extraBold, fontSize: 13 },
+    checkTextSelected: { color: colors.primaryText },
+    helper: { color: colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 12 },
+    empty: {
+      padding: 16,
+      borderRadius: 13,
+      color: colors.textMuted,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      fontFamily: theme.font.family.medium,
+      fontSize: 12,
+      lineHeight: 18,
+    },
+    manageLink: { minHeight: 44, flexDirection: "row", alignItems: "center", paddingHorizontal: 4 },
+    manageText: { flex: 1, color: colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 12 },
+    manageArrow: { color: colors.text, fontSize: 22 },
+    disabled: { opacity: 0.4 },
+    pressed: { opacity: 0.72 },
+  });
+}

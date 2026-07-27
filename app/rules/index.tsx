@@ -1,10 +1,11 @@
+import { useMemo } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 
 import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { TOTAL_CARDS } from "@/game/constants";
 import { useAppSettings } from "@/state/AppSettingsContext";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 const SUITS = [
   require("../../assets/design/suit-heart.png"),
@@ -15,7 +16,8 @@ const SUITS = [
 ];
 
 export default function RulesScreen() {
-  const { t } = useAppSettings();
+  const { t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <ScreenContainer>
       <View style={styles.formulaCard}>
@@ -49,30 +51,32 @@ export default function RulesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  formulaCard: { padding: 18, borderRadius: 14, backgroundColor: theme.colors.success, gap: 7 },
-  eyebrow: {
-    color: "rgba(248,248,245,.68)",
-    fontFamily: theme.font.family.bold,
-    fontSize: 9.5,
-    letterSpacing: 1.4,
-  },
-  formula: {
-    color: theme.colors.primaryText,
-    fontFamily: theme.font.family.display,
-    fontSize: 24,
-    lineHeight: 29,
-  },
-  negativeFormula: { color: theme.colors.yellow, fontFamily: theme.font.family.display, fontSize: 21 },
-  note: {
-    marginTop: 3,
-    color: "rgba(248,248,245,.72)",
-    fontFamily: theme.font.family.medium,
-    fontSize: 11.5,
-    lineHeight: 17,
-  },
-  title: { color: theme.colors.text, fontFamily: theme.font.family.extraBold, fontSize: 15 },
-  body: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 12, lineHeight: 18 },
-  suits: { flexDirection: "row", justifyContent: "space-around", paddingVertical: 8 },
-  suit: { width: 32, height: 32 },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    formulaCard: { padding: 18, borderRadius: 14, backgroundColor: colors.success, gap: 7 },
+    eyebrow: {
+      color: "rgba(248,248,245,.68)",
+      fontFamily: theme.font.family.bold,
+      fontSize: 9.5,
+      letterSpacing: 1.4,
+    },
+    formula: {
+      color: colors.primaryText,
+      fontFamily: theme.font.family.display,
+      fontSize: 24,
+      lineHeight: 29,
+    },
+    negativeFormula: { color: colors.yellow, fontFamily: theme.font.family.display, fontSize: 21 },
+    note: {
+      marginTop: 3,
+      color: "rgba(248,248,245,.72)",
+      fontFamily: theme.font.family.medium,
+      fontSize: 11.5,
+      lineHeight: 17,
+    },
+    title: { color: colors.text, fontFamily: theme.font.family.extraBold, fontSize: 15 },
+    body: { color: colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 12, lineHeight: 18 },
+    suits: { flexDirection: "row", justifyContent: "space-around", paddingVertical: 8 },
+    suit: { width: 32, height: 32 },
+  });
+}

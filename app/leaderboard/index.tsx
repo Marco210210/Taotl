@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { fetchLeaderboard } from "@/api/leaderboard";
@@ -10,10 +10,11 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 export default function LeaderboardScreen() {
-  const { t } = useAppSettings();
+  const { t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { account } = useAccount();
   const [entries, setEntries] = useState<LeaderboardEntryDTO[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,34 +93,36 @@ export default function LeaderboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  helper: { fontSize: theme.font.small, color: theme.colors.textMuted, fontFamily: theme.font.family.medium },
-  error: { fontSize: theme.font.small, color: theme.colors.danger, fontFamily: theme.font.family.semibold },
-  list: { gap: theme.spacing(1) },
-  row: { flexDirection: "row", alignItems: "center", gap: theme.spacing(1) },
-  position: {
-    width: 26,
-    color: theme.colors.textMuted,
-    fontFamily: theme.font.family.extraBold,
-    fontSize: theme.font.body,
-  },
-  info: { flex: 1 },
-  name: { color: theme.colors.text, fontSize: theme.font.body, fontFamily: theme.font.family.bold },
-  meta: { color: theme.colors.textMuted, fontSize: theme.font.small, fontFamily: theme.font.family.medium },
-  wins: {
-    color: theme.colors.success,
-    fontSize: theme.font.heading,
-    fontFamily: theme.font.family.extraBold,
-    fontVariant: ["tabular-nums"],
-  },
-  winsLabel: {
-    color: theme.colors.textMuted,
-    fontSize: 9,
-    fontFamily: theme.font.family.semibold,
-    textTransform: "uppercase",
-  },
-  manageLink: { minHeight: 44, flexDirection: "row", alignItems: "center", paddingHorizontal: 4 },
-  manageText: { flex: 1, color: theme.colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 12 },
-  manageArrow: { color: theme.colors.text, fontSize: 22 },
-  pressed: { opacity: 0.72 },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    helper: { fontSize: theme.font.small, color: colors.textMuted, fontFamily: theme.font.family.medium },
+    error: { fontSize: theme.font.small, color: colors.danger, fontFamily: theme.font.family.semibold },
+    list: { gap: theme.spacing(1) },
+    row: { flexDirection: "row", alignItems: "center", gap: theme.spacing(1) },
+    position: {
+      width: 26,
+      color: colors.textMuted,
+      fontFamily: theme.font.family.extraBold,
+      fontSize: theme.font.body,
+    },
+    info: { flex: 1 },
+    name: { color: colors.text, fontSize: theme.font.body, fontFamily: theme.font.family.bold },
+    meta: { color: colors.textMuted, fontSize: theme.font.small, fontFamily: theme.font.family.medium },
+    wins: {
+      color: colors.success,
+      fontSize: theme.font.heading,
+      fontFamily: theme.font.family.extraBold,
+      fontVariant: ["tabular-nums"],
+    },
+    winsLabel: {
+      color: colors.textMuted,
+      fontSize: 9,
+      fontFamily: theme.font.family.semibold,
+      textTransform: "uppercase",
+    },
+    manageLink: { minHeight: 44, flexDirection: "row", alignItems: "center", paddingHorizontal: 4 },
+    manageText: { flex: 1, color: colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 12 },
+    manageArrow: { color: colors.text, fontSize: 22 },
+    pressed: { opacity: 0.72 },
+  });
+}

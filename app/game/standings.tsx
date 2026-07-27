@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
@@ -8,10 +9,11 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useGame } from "@/state/GameContext";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 export default function StandingsScreen() {
-  const { t } = useAppSettings();
+  const { t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { game, ranked } = useGame();
 
   if (!game) {
@@ -112,49 +114,51 @@ export default function StandingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  ranking: { gap: 8 },
-  rankRow: {
-    minHeight: 68,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 13,
-    paddingVertical: 10,
-    borderRadius: 14,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  firstRow: { backgroundColor: theme.colors.firstPlace },
-  position: { width: 20, color: theme.colors.textMuted, fontFamily: theme.font.family.extraBold, fontSize: 15 },
-  firstPosition: { color: theme.colors.gold },
-  playerInfo: { flex: 1 },
-  name: { color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 14.5 },
-  delta: { marginTop: 2, color: theme.colors.success, fontFamily: theme.font.family.semibold, fontSize: 10.5 },
-  total: {
-    color: theme.colors.text,
-    fontFamily: theme.font.family.extraBold,
-    fontSize: 24,
-    fontVariant: ["tabular-nums"],
-  },
-  negative: { color: theme.colors.danger },
-  roundLog: { padding: 14, gap: 12 },
-  sectionTitle: {
-    color: theme.colors.textMuted,
-    fontFamily: theme.font.family.bold,
-    fontSize: 9.5,
-    letterSpacing: 1.3,
-  },
-  roundBlock: { gap: 8 },
-  roundDivider: { borderTopWidth: 1, borderTopColor: theme.colors.border, paddingTop: 12 },
-  roundHeader: { gap: 2 },
-  roundTitle: { color: theme.colors.text, fontFamily: theme.font.family.extraBold, fontSize: 12 },
-  roundMeta: { color: theme.colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 10.5 },
-  resultChips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  resultChip: { flexDirection: "row", gap: 7, paddingHorizontal: 9, paddingVertical: 6, borderRadius: 8 },
-  positiveChip: { backgroundColor: theme.colors.positiveSoft },
-  negativeChip: { backgroundColor: theme.colors.negativeSoft },
-  chipName: { color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 10.5 },
-  chipScore: { color: theme.colors.success, fontFamily: theme.font.family.extraBold, fontSize: 11.5 },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    ranking: { gap: 8 },
+    rankRow: {
+      minHeight: 68,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingHorizontal: 13,
+      paddingVertical: 10,
+      borderRadius: 14,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    firstRow: { backgroundColor: colors.firstPlace },
+    position: { width: 20, color: colors.textMuted, fontFamily: theme.font.family.extraBold, fontSize: 15 },
+    firstPosition: { color: colors.gold },
+    playerInfo: { flex: 1 },
+    name: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 14.5 },
+    delta: { marginTop: 2, color: colors.success, fontFamily: theme.font.family.semibold, fontSize: 10.5 },
+    total: {
+      color: colors.text,
+      fontFamily: theme.font.family.extraBold,
+      fontSize: 24,
+      fontVariant: ["tabular-nums"],
+    },
+    negative: { color: colors.danger },
+    roundLog: { padding: 14, gap: 12 },
+    sectionTitle: {
+      color: colors.textMuted,
+      fontFamily: theme.font.family.bold,
+      fontSize: 9.5,
+      letterSpacing: 1.3,
+    },
+    roundBlock: { gap: 8 },
+    roundDivider: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 12 },
+    roundHeader: { gap: 2 },
+    roundTitle: { color: colors.text, fontFamily: theme.font.family.extraBold, fontSize: 12 },
+    roundMeta: { color: colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 10.5 },
+    resultChips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+    resultChip: { flexDirection: "row", gap: 7, paddingHorizontal: 9, paddingVertical: 6, borderRadius: 8 },
+    positiveChip: { backgroundColor: colors.positiveSoft },
+    negativeChip: { backgroundColor: colors.negativeSoft },
+    chipName: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 10.5 },
+    chipScore: { color: colors.success, fontFamily: theme.font.family.extraBold, fontSize: 11.5 },
+  });
+}

@@ -11,10 +11,11 @@ import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useRoster } from "@/state/useRoster";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 export default function AddManualGameScreen() {
-  const { t } = useAppSettings();
+  const { t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { token } = useAccount();
   const { players, loading: rosterLoading } = useRoster();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -134,7 +135,7 @@ export default function AddManualGameScreen() {
         value={playedAt}
         onChangeText={setPlayedAt}
         placeholder={t("leaderboard.playedAtPlaceholder")}
-        placeholderTextColor={theme.colors.textMuted}
+        placeholderTextColor={colors.textMuted as string}
         style={styles.input}
       />
       <Text style={styles.helper}>{t("leaderboard.playedAtHint")}</Text>
@@ -144,48 +145,50 @@ export default function AddManualGameScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  sectionTitle: { color: theme.colors.text, fontSize: 15, fontFamily: theme.font.family.extraBold },
-  helper: { fontSize: theme.font.small, color: theme.colors.textMuted, fontFamily: theme.font.family.medium },
-  error: { fontSize: theme.font.small, color: theme.colors.danger, fontFamily: theme.font.family.semibold },
-  list: { gap: 9 },
-  playerRow: {
-    minHeight: 56,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 13,
-    borderWidth: 1.5,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-  },
-  playerRowSelected: { borderColor: theme.colors.success },
-  winnerRowSelected: { borderColor: theme.colors.primary },
-  playerName: { flex: 1, color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 14.5 },
-  check: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.inkSoft,
-  },
-  checkSelected: { backgroundColor: theme.colors.success },
-  winnerCheckSelected: { backgroundColor: theme.colors.primary },
-  checkText: { color: theme.colors.textMuted, fontFamily: theme.font.family.extraBold, fontSize: 13 },
-  checkTextSelected: { color: theme.colors.primaryText },
-  input: {
-    minHeight: 50,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.borderStrong,
-    backgroundColor: theme.colors.background,
-    color: theme.colors.text,
-    paddingHorizontal: 14,
-    fontFamily: theme.font.family.semibold,
-    fontSize: 15,
-  },
-  pressed: { opacity: 0.72 },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    sectionTitle: { color: colors.text, fontSize: 15, fontFamily: theme.font.family.extraBold },
+    helper: { fontSize: theme.font.small, color: colors.textMuted, fontFamily: theme.font.family.medium },
+    error: { fontSize: theme.font.small, color: colors.danger, fontFamily: theme.font.family.semibold },
+    list: { gap: 9 },
+    playerRow: {
+      minHeight: 56,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 9,
+      borderRadius: 13,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    playerRowSelected: { borderColor: colors.success },
+    winnerRowSelected: { borderColor: colors.primary },
+    playerName: { flex: 1, color: colors.text, fontFamily: theme.font.family.bold, fontSize: 14.5 },
+    check: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.inkSoft,
+    },
+    checkSelected: { backgroundColor: colors.success },
+    winnerCheckSelected: { backgroundColor: colors.primary },
+    checkText: { color: colors.textMuted, fontFamily: theme.font.family.extraBold, fontSize: 13 },
+    checkTextSelected: { color: colors.primaryText },
+    input: {
+      minHeight: 50,
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+      backgroundColor: colors.background,
+      color: colors.text,
+      paddingHorizontal: 14,
+      fontFamily: theme.font.family.semibold,
+      fontSize: 15,
+    },
+    pressed: { opacity: 0.72 },
+  });
+}

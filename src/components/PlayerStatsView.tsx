@@ -7,7 +7,8 @@ import { Card } from "@/components/Card";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import type { Player } from "@/game/types";
 import type { TranslationKey } from "@/i18n/translations";
-import { theme } from "@/theme";
+import { useAppSettings } from "@/state/AppSettingsContext";
+import { theme, type ThemeColors } from "@/theme";
 
 interface PlayerStatsViewProps {
   player: Player;
@@ -21,6 +22,8 @@ interface PlayerStatsViewProps {
 // altro giocatore aperta dalla classifica generale: stessa vista, sola
 // lettura, cambia solo quali partite vengono passate.
 export function PlayerStatsView({ player, games, locale, t, fromPath }: PlayerStatsViewProps) {
+  const { colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const myGames = useMemo(
     () => games.filter((game) => game.standings.some((entry) => entry.playerId === player.id)),
     [games, player.id],
@@ -92,29 +95,31 @@ export function PlayerStatsView({ player, games, locale, t, fromPath }: PlayerSt
   );
 }
 
-const styles = StyleSheet.create({
-  helper: {
-    fontSize: theme.font.small,
-    color: theme.colors.textMuted,
-    fontFamily: theme.font.family.medium,
-    marginTop: theme.spacing(0.5),
-  },
-  profileCard: { alignItems: "center", paddingVertical: 20 },
-  profileName: { color: theme.colors.text, fontSize: theme.font.title, fontFamily: theme.font.family.extraBold },
-  statsGrid: { flexDirection: "row", gap: theme.spacing(1) },
-  statCard: { flex: 1, alignItems: "center", paddingHorizontal: theme.spacing(0.5) },
-  statValue: { color: theme.colors.success, fontSize: theme.font.heading, fontFamily: theme.font.family.extraBold },
-  statLabel: { color: theme.colors.textMuted, fontSize: 10, fontFamily: theme.font.family.semibold, textAlign: "center" },
-  sectionTitle: { color: theme.colors.text, fontSize: theme.font.heading, fontFamily: theme.font.family.extraBold },
-  pressed: { opacity: 0.72 },
-  gameRow: { flexDirection: "row", alignItems: "center", gap: theme.spacing(1) },
-  gameInfo: { flex: 1 },
-  gameTitle: { color: theme.colors.text, fontSize: theme.font.body, fontFamily: theme.font.family.bold },
-  gameScore: {
-    color: theme.colors.success,
-    fontSize: theme.font.heading,
-    fontFamily: theme.font.family.extraBold,
-    fontVariant: ["tabular-nums"],
-  },
-  negative: { color: theme.colors.danger },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    helper: {
+      fontSize: theme.font.small,
+      color: colors.textMuted,
+      fontFamily: theme.font.family.medium,
+      marginTop: theme.spacing(0.5),
+    },
+    profileCard: { alignItems: "center", paddingVertical: 20 },
+    profileName: { color: colors.text, fontSize: theme.font.title, fontFamily: theme.font.family.extraBold },
+    statsGrid: { flexDirection: "row", gap: theme.spacing(1) },
+    statCard: { flex: 1, alignItems: "center", paddingHorizontal: theme.spacing(0.5) },
+    statValue: { color: colors.success, fontSize: theme.font.heading, fontFamily: theme.font.family.extraBold },
+    statLabel: { color: colors.textMuted, fontSize: 10, fontFamily: theme.font.family.semibold, textAlign: "center" },
+    sectionTitle: { color: colors.text, fontSize: theme.font.heading, fontFamily: theme.font.family.extraBold },
+    pressed: { opacity: 0.72 },
+    gameRow: { flexDirection: "row", alignItems: "center", gap: theme.spacing(1) },
+    gameInfo: { flex: 1 },
+    gameTitle: { color: colors.text, fontSize: theme.font.body, fontFamily: theme.font.family.bold },
+    gameScore: {
+      color: colors.success,
+      fontSize: theme.font.heading,
+      fontFamily: theme.font.family.extraBold,
+      fontVariant: ["tabular-nums"],
+    },
+    negative: { color: colors.danger },
+  });
+}

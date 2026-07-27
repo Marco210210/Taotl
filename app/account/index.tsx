@@ -9,14 +9,15 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 type AuthMode = "register" | "login";
 
 export default function AccountScreen() {
   const { from } = useLocalSearchParams<{ from?: string }>();
   const backDestination = from === "setup" ? "/setup/players" : "/profile";
-  const { t } = useAppSettings();
+  const { t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const {
     account,
     room,
@@ -150,7 +151,7 @@ export default function AccountScreen() {
                 value={handle}
                 onChangeText={setHandle}
                 placeholder={t("account.handlePlaceholder")}
-                placeholderTextColor={theme.colors.textMuted}
+                placeholderTextColor={colors.textMuted as string}
                 style={styles.input}
               />
 
@@ -161,7 +162,7 @@ export default function AccountScreen() {
                     value={firstName}
                     onChangeText={setFirstName}
                     placeholder={t("account.firstNamePlaceholder")}
-                    placeholderTextColor={theme.colors.textMuted}
+                    placeholderTextColor={colors.textMuted as string}
                     style={styles.input}
                   />
 
@@ -170,7 +171,7 @@ export default function AccountScreen() {
                     value={lastName}
                     onChangeText={setLastName}
                     placeholder={t("account.lastNamePlaceholder")}
-                    placeholderTextColor={theme.colors.textMuted}
+                    placeholderTextColor={colors.textMuted as string}
                     style={styles.input}
                   />
 
@@ -179,7 +180,7 @@ export default function AccountScreen() {
                     value={displayName}
                     onChangeText={setDisplayName}
                     placeholder={t("account.displayNamePlaceholder")}
-                    placeholderTextColor={theme.colors.textMuted}
+                    placeholderTextColor={colors.textMuted as string}
                     style={styles.input}
                   />
 
@@ -191,7 +192,7 @@ export default function AccountScreen() {
                     value={email}
                     onChangeText={setEmail}
                     placeholder={t("account.emailPlaceholder")}
-                    placeholderTextColor={theme.colors.textMuted}
+                    placeholderTextColor={colors.textMuted as string}
                     style={styles.input}
                   />
                 </>
@@ -205,7 +206,7 @@ export default function AccountScreen() {
                 value={password}
                 onChangeText={setPassword}
                 placeholder={t("account.passwordPlaceholder")}
-                placeholderTextColor={theme.colors.textMuted}
+                placeholderTextColor={colors.textMuted as string}
                 style={styles.input}
               />
               {mode === "register" && (
@@ -218,7 +219,7 @@ export default function AccountScreen() {
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     placeholder={t("account.confirmPasswordPlaceholder")}
-                    placeholderTextColor={theme.colors.textMuted}
+                    placeholderTextColor={colors.textMuted as string}
                     style={styles.input}
                   />
                   <Text style={styles.security}>{t("account.passwordHint")}</Text>
@@ -267,7 +268,7 @@ export default function AccountScreen() {
                     value={joinCode}
                     onChangeText={(value) => setJoinCode(value.replace(/[^a-z0-9]/gi, "").toUpperCase())}
                     placeholder={t("account.joinCodePlaceholder")}
-                    placeholderTextColor={theme.colors.textMuted}
+                    placeholderTextColor={colors.textMuted as string}
                     style={[styles.input, styles.codeInput]}
                   />
                   <Button
@@ -311,69 +312,71 @@ export default function AccountScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  tabs: {
-    flexDirection: "row",
-    padding: 4,
-    gap: 4,
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.surfaceAlt,
-  },
-  tab: { flex: 1, minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: 9 },
-  tabActive: { backgroundColor: theme.colors.surface },
-  tabText: { color: theme.colors.textMuted, fontFamily: theme.font.family.bold, fontSize: 13 },
-  tabTextActive: { color: theme.colors.text },
-  label: { color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 12, marginTop: 4 },
-  input: {
-    minHeight: 50,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.borderStrong,
-    backgroundColor: theme.colors.background,
-    color: theme.colors.text,
-    paddingHorizontal: 14,
-    fontFamily: theme.font.family.semibold,
-    fontSize: 15,
-  },
-  codeInput: { letterSpacing: 5, textAlign: "center", fontFamily: theme.font.family.extraBold, fontSize: 20 },
-  forgotLink: { minHeight: 32, justifyContent: "center", alignItems: "flex-end" },
-  forgotText: { color: theme.colors.success, fontFamily: theme.font.family.bold, fontSize: 12 },
-  error: { color: theme.colors.danger, fontFamily: theme.font.family.semibold, fontSize: 12, lineHeight: 17 },
-  security: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 10.5, lineHeight: 16 },
-  identityCard: { alignItems: "center", paddingVertical: 22 },
-  eyebrow: { color: theme.colors.success, fontFamily: theme.font.family.extraBold, fontSize: 10, letterSpacing: 1.2 },
-  name: { color: theme.colors.text, fontFamily: theme.font.family.extraBold, fontSize: 26 },
-  handle: { color: theme.colors.textMuted, fontFamily: theme.font.family.bold, fontSize: 14 },
-  helper: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 11 },
-  body: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 12, lineHeight: 18 },
-  divider: { height: 1, marginVertical: 8, backgroundColor: theme.colors.border },
-  codeLabel: {
-    marginTop: 8,
-    color: theme.colors.textMuted,
-    fontFamily: theme.font.family.extraBold,
-    fontSize: 9,
-    letterSpacing: 1.1,
-    textAlign: "center",
-  },
-  code: {
-    color: theme.colors.text,
-    fontFamily: theme.font.family.extraBold,
-    fontSize: 36,
-    letterSpacing: 8,
-    textAlign: "center",
-  },
-  participantTitle: { marginTop: 10, color: theme.colors.text, fontFamily: theme.font.family.extraBold, fontSize: 14 },
-  participant: {
-    minHeight: 48,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  participantDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: theme.colors.success },
-  participantText: { flex: 1 },
-  participantName: { color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 13 },
-  participantHandle: { color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 10 },
-  participantRole: { color: theme.colors.success, fontFamily: theme.font.family.extraBold, fontSize: 10 },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    tabs: {
+      flexDirection: "row",
+      padding: 4,
+      gap: 4,
+      borderRadius: theme.radius.md,
+      backgroundColor: colors.surfaceAlt,
+    },
+    tab: { flex: 1, minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: 9 },
+    tabActive: { backgroundColor: colors.surface },
+    tabText: { color: colors.textMuted, fontFamily: theme.font.family.bold, fontSize: 13 },
+    tabTextActive: { color: colors.text },
+    label: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 12, marginTop: 4 },
+    input: {
+      minHeight: 50,
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+      backgroundColor: colors.background,
+      color: colors.text,
+      paddingHorizontal: 14,
+      fontFamily: theme.font.family.semibold,
+      fontSize: 15,
+    },
+    codeInput: { letterSpacing: 5, textAlign: "center", fontFamily: theme.font.family.extraBold, fontSize: 20 },
+    forgotLink: { minHeight: 32, justifyContent: "center", alignItems: "flex-end" },
+    forgotText: { color: colors.success, fontFamily: theme.font.family.bold, fontSize: 12 },
+    error: { color: colors.danger, fontFamily: theme.font.family.semibold, fontSize: 12, lineHeight: 17 },
+    security: { color: colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 10.5, lineHeight: 16 },
+    identityCard: { alignItems: "center", paddingVertical: 22 },
+    eyebrow: { color: colors.success, fontFamily: theme.font.family.extraBold, fontSize: 10, letterSpacing: 1.2 },
+    name: { color: colors.text, fontFamily: theme.font.family.extraBold, fontSize: 26 },
+    handle: { color: colors.textMuted, fontFamily: theme.font.family.bold, fontSize: 14 },
+    helper: { color: colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 11 },
+    body: { color: colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 12, lineHeight: 18 },
+    divider: { height: 1, marginVertical: 8, backgroundColor: colors.border },
+    codeLabel: {
+      marginTop: 8,
+      color: colors.textMuted,
+      fontFamily: theme.font.family.extraBold,
+      fontSize: 9,
+      letterSpacing: 1.1,
+      textAlign: "center",
+    },
+    code: {
+      color: colors.text,
+      fontFamily: theme.font.family.extraBold,
+      fontSize: 36,
+      letterSpacing: 8,
+      textAlign: "center",
+    },
+    participantTitle: { marginTop: 10, color: colors.text, fontFamily: theme.font.family.extraBold, fontSize: 14 },
+    participant: {
+      minHeight: 48,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    participantDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.success },
+    participantText: { flex: 1 },
+    participantName: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 13 },
+    participantHandle: { color: colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 10 },
+    participantRole: { color: colors.success, fontFamily: theme.font.family.extraBold, fontSize: 10 },
+  });
+}

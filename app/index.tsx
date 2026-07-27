@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { useMemo } from "react";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -7,10 +8,11 @@ import { Button } from "@/components/Button";
 import { getFixedSequence } from "@/game/modes";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useGame } from "@/state/GameContext";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 export default function HomeScreen() {
-  const { t } = useAppSettings();
+  const { t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { game, isHydrated, ranked, resetGame } = useGame();
   const menuItems = [
     { label: t("home.history"), route: "/history" as const, icon: require("../assets/design/suit-heart.png") },
@@ -146,95 +148,97 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: theme.colors.successHero },
-  page: { flexGrow: 1, backgroundColor: theme.colors.background },
-  hero: {
-    paddingHorizontal: 22,
-    paddingTop: 28,
-    paddingBottom: 26,
-    backgroundColor: theme.colors.successHero,
-    gap: 14,
-  },
-  heroCopy: {
-    color: "rgba(248,248,245,.72)",
-    fontFamily: theme.font.family.medium,
-    fontSize: 12,
-  },
-  content: {
-    width: "100%",
-    maxWidth: 620,
-    alignSelf: "center",
-    padding: 18,
-    gap: 14,
-  },
-  activeCard: {
-    padding: 16,
-    borderRadius: 14,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.borderStrong,
-    gap: 11,
-  },
-  activeTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  activeLabel: {
-    color: theme.colors.primary,
-    fontFamily: theme.font.family.bold,
-    fontSize: 10,
-    letterSpacing: 1.5,
-  },
-  roundMeta: { color: theme.colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 11 },
-  leaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
-  leaderName: { color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 15 },
-  activeMeta: { marginTop: 2, color: theme.colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 11 },
-  leaderScore: {
-    color: theme.colors.text,
-    fontFamily: theme.font.family.extraBold,
-    fontSize: 22,
-    fontVariant: ["tabular-nums"],
-  },
-  progressTrack: { height: 5, borderRadius: 99, overflow: "hidden", backgroundColor: theme.colors.inkSoft },
-  progressFill: { height: "100%", borderRadius: 99, backgroundColor: theme.colors.success },
-  resumeHint: { color: theme.colors.success, fontFamily: theme.font.family.bold, fontSize: 11 },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  tile: {
-    width: "48%",
-    flexGrow: 1,
-    minHeight: 108,
-    padding: 15,
-    borderRadius: 14,
-    justifyContent: "space-between",
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.borderStrong,
-  },
-  tileIcon: { width: 25, height: 25 },
-  tileLabel: { color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 13.5, lineHeight: 17 },
-  leaderboardCard: {
-    minHeight: 64,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.borderStrong,
-  },
-  leaderboardIcon: { width: 26, height: 26 },
-  leaderboardLabel: { flex: 1, color: theme.colors.text, fontFamily: theme.font.family.extraBold, fontSize: 15 },
-  leaderboardArrow: { color: theme.colors.text, fontFamily: theme.font.family.regular, fontSize: 26 },
-  rosterLink: {
-    minHeight: 50,
-    paddingHorizontal: 15,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: theme.colors.inkSoft,
-  },
-  rosterText: { flex: 1, color: theme.colors.text, fontFamily: theme.font.family.semibold, fontSize: 12.5 },
-  rosterArrow: { color: theme.colors.text, fontFamily: theme.font.family.regular, fontSize: 24 },
-  deleteLink: { minHeight: 44, alignItems: "center", justifyContent: "center" },
-  deleteText: { color: theme.colors.danger, fontFamily: theme.font.family.semibold, fontSize: 12 },
-  pressed: { opacity: 0.72 },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.successHero },
+    page: { flexGrow: 1, backgroundColor: colors.background },
+    hero: {
+      paddingHorizontal: 22,
+      paddingTop: 28,
+      paddingBottom: 26,
+      backgroundColor: colors.successHero,
+      gap: 14,
+    },
+    heroCopy: {
+      color: "rgba(248,248,245,.72)",
+      fontFamily: theme.font.family.medium,
+      fontSize: 12,
+    },
+    content: {
+      width: "100%",
+      maxWidth: 620,
+      alignSelf: "center",
+      padding: 18,
+      gap: 14,
+    },
+    activeCard: {
+      padding: 16,
+      borderRadius: 14,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+      gap: 11,
+    },
+    activeTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+    activeLabel: {
+      color: colors.primary,
+      fontFamily: theme.font.family.bold,
+      fontSize: 10,
+      letterSpacing: 1.5,
+    },
+    roundMeta: { color: colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 11 },
+    leaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
+    leaderName: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 15 },
+    activeMeta: { marginTop: 2, color: colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 11 },
+    leaderScore: {
+      color: colors.text,
+      fontFamily: theme.font.family.extraBold,
+      fontSize: 22,
+      fontVariant: ["tabular-nums"],
+    },
+    progressTrack: { height: 5, borderRadius: 99, overflow: "hidden", backgroundColor: colors.inkSoft },
+    progressFill: { height: "100%", borderRadius: 99, backgroundColor: colors.success },
+    resumeHint: { color: colors.success, fontFamily: theme.font.family.bold, fontSize: 11 },
+    grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+    tile: {
+      width: "48%",
+      flexGrow: 1,
+      minHeight: 108,
+      padding: 15,
+      borderRadius: 14,
+      justifyContent: "space-between",
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+    },
+    tileIcon: { width: 25, height: 25 },
+    tileLabel: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 13.5, lineHeight: 17 },
+    leaderboardCard: {
+      minHeight: 64,
+      paddingHorizontal: 16,
+      borderRadius: 14,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+    },
+    leaderboardIcon: { width: 26, height: 26 },
+    leaderboardLabel: { flex: 1, color: colors.text, fontFamily: theme.font.family.extraBold, fontSize: 15 },
+    leaderboardArrow: { color: colors.text, fontFamily: theme.font.family.regular, fontSize: 26 },
+    rosterLink: {
+      minHeight: 50,
+      paddingHorizontal: 15,
+      borderRadius: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.inkSoft,
+    },
+    rosterText: { flex: 1, color: colors.text, fontFamily: theme.font.family.semibold, fontSize: 12.5 },
+    rosterArrow: { color: colors.text, fontFamily: theme.font.family.regular, fontSize: 24 },
+    deleteLink: { minHeight: 44, alignItems: "center", justifyContent: "center" },
+    deleteText: { color: colors.danger, fontFamily: theme.font.family.semibold, fontSize: 12 },
+    pressed: { opacity: 0.72 },
+  });
+}

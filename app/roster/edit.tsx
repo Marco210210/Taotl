@@ -1,6 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Button } from "@/components/Button";
@@ -9,10 +9,11 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useRoster } from "@/state/useRoster";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 export default function EditPlayerScreen() {
-  const { t } = useAppSettings();
+  const { t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { account, token } = useAccount();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { players, loading, addPlayer, renamePlayer, setPlayerPhoto, removePlayer } = useRoster();
@@ -117,7 +118,7 @@ export default function EditPlayerScreen() {
   if (id && loading && !existing) {
     return (
       <ScreenContainer style={styles.loading}>
-        <ActivityIndicator color={theme.colors.primary} size="large" />
+        <ActivityIndicator color={colors.primary as string} size="large" />
         <Text style={styles.avatarHint}>{t("player.loading")}</Text>
       </ScreenContainer>
     );
@@ -147,7 +148,7 @@ export default function EditPlayerScreen() {
           value={name}
           onChangeText={setName}
           placeholder={t("player.namePlaceholder")}
-          placeholderTextColor={theme.colors.textMuted}
+          placeholderTextColor={colors.textMuted as string}
           style={styles.input}
         />
       </View>
@@ -166,21 +167,23 @@ export default function EditPlayerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  content: { alignItems: "stretch" },
-  loading: { alignItems: "center", justifyContent: "center" },
-  avatarWrapper: { alignItems: "center", gap: theme.spacing(1) },
-  avatarHint: { color: theme.colors.textMuted, fontSize: theme.font.small },
-  error: { color: theme.colors.danger, fontSize: theme.font.body, textAlign: "center" },
-  label: { color: theme.colors.textMuted, fontSize: theme.font.small, fontWeight: "700", marginBottom: 6 },
-  input: {
-    backgroundColor: theme.colors.surfaceAlt,
-    borderRadius: theme.radius.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    paddingHorizontal: theme.spacing(1.5),
-    paddingVertical: 10,
-    color: theme.colors.text,
-    fontSize: theme.font.body,
-  },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    content: { alignItems: "stretch" },
+    loading: { alignItems: "center", justifyContent: "center" },
+    avatarWrapper: { alignItems: "center", gap: theme.spacing(1) },
+    avatarHint: { color: colors.textMuted, fontSize: theme.font.small },
+    error: { color: colors.danger, fontSize: theme.font.body, textAlign: "center" },
+    label: { color: colors.textMuted, fontSize: theme.font.small, fontWeight: "700", marginBottom: 6 },
+    input: {
+      backgroundColor: colors.surfaceAlt,
+      borderRadius: theme.radius.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: theme.spacing(1.5),
+      paddingVertical: 10,
+      color: colors.text,
+      fontSize: theme.font.body,
+    },
+  });
+}

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 
 import { BUILD_STAMP } from "@/buildInfo";
@@ -8,7 +9,7 @@ import {
   type LanguagePreference,
   type ThemePreference,
 } from "@/state/AppSettingsContext";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 export default function SettingsScreen() {
   const {
@@ -21,7 +22,9 @@ export default function SettingsScreen() {
     setVibrationEnabled,
     setNotificationsEnabled,
     t,
+    colors,
   } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   return (
     <ScreenContainer>
@@ -84,6 +87,8 @@ export default function SettingsScreen() {
 }
 
 function SettingTitle({ title, description }: { title: string; description: string }) {
+  const { colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View>
       <Text style={styles.title}>{title}</Text>
@@ -103,6 +108,8 @@ function ToggleRow({
   value: boolean;
   onChange: (value: boolean) => void;
 }) {
+  const { colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={styles.toggleRow}>
       <View style={styles.toggleInfo}>
@@ -112,8 +119,8 @@ function ToggleRow({
       <Switch
         value={value}
         onValueChange={onChange}
-        trackColor={{ false: theme.colors.borderStrong as string, true: theme.colors.success as string }}
-        thumbColor={theme.colors.surface as string}
+        trackColor={{ false: colors.borderStrong as string, true: colors.success as string }}
+        thumbColor={colors.surface as string}
       />
     </View>
   );
@@ -128,6 +135,8 @@ function SegmentedPicker<T extends string>({
   options: { value: T; label: string }[];
   onChange: (value: T) => void;
 }) {
+  const { colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={styles.segmented}>
       {options.map((option) => {
@@ -154,87 +163,89 @@ function SegmentedPicker<T extends string>({
   );
 }
 
-const styles = StyleSheet.create({
-  intro: {
-    color: theme.colors.textMuted,
-    fontFamily: theme.font.family.medium,
-    fontSize: 12.5,
-    lineHeight: 19,
-  },
-  sectionLabel: {
-    marginBottom: -8,
-    color: theme.colors.textMuted,
-    fontFamily: theme.font.family.bold,
-    fontSize: 9.5,
-    letterSpacing: 1.3,
-  },
-  title: {
-    color: theme.colors.text,
-    fontFamily: theme.font.family.bold,
-    fontSize: 14,
-  },
-  description: {
-    marginTop: 2,
-    color: theme.colors.textMuted,
-    fontFamily: theme.font.family.medium,
-    fontSize: 10.5,
-    lineHeight: 15,
-  },
-  divider: {
-    height: 1,
-    marginVertical: 4,
-    backgroundColor: theme.colors.border,
-  },
-  segmented: {
-    flexDirection: "row",
-    padding: 3,
-    borderRadius: 11,
-    backgroundColor: theme.colors.inkSoft,
-  },
-  segment: {
-    minHeight: 38,
-    flex: 1,
-    paddingHorizontal: 6,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 9,
-  },
-  segmentSelected: {
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  segmentText: {
-    color: theme.colors.textMuted,
-    fontFamily: theme.font.family.semibold,
-    fontSize: 10.5,
-    textAlign: "center",
-  },
-  segmentTextSelected: {
-    color: theme.colors.text,
-    fontFamily: theme.font.family.extraBold,
-  },
-  toggleRow: {
-    minHeight: 58,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  toggleInfo: { flex: 1 },
-  note: {
-    paddingHorizontal: 8,
-    color: theme.colors.textMuted,
-    fontFamily: theme.font.family.medium,
-    fontSize: 10.5,
-    lineHeight: 16,
-    textAlign: "center",
-  },
-  buildStamp: {
-    marginTop: 2,
-    color: theme.colors.textFaint,
-    fontFamily: theme.font.family.medium,
-    fontSize: 9.5,
-    textAlign: "center",
-  },
-  pressed: { opacity: 0.7 },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    intro: {
+      color: colors.textMuted,
+      fontFamily: theme.font.family.medium,
+      fontSize: 12.5,
+      lineHeight: 19,
+    },
+    sectionLabel: {
+      marginBottom: -8,
+      color: colors.textMuted,
+      fontFamily: theme.font.family.bold,
+      fontSize: 9.5,
+      letterSpacing: 1.3,
+    },
+    title: {
+      color: colors.text,
+      fontFamily: theme.font.family.bold,
+      fontSize: 14,
+    },
+    description: {
+      marginTop: 2,
+      color: colors.textMuted,
+      fontFamily: theme.font.family.medium,
+      fontSize: 10.5,
+      lineHeight: 15,
+    },
+    divider: {
+      height: 1,
+      marginVertical: 4,
+      backgroundColor: colors.border,
+    },
+    segmented: {
+      flexDirection: "row",
+      padding: 3,
+      borderRadius: 11,
+      backgroundColor: colors.inkSoft,
+    },
+    segment: {
+      minHeight: 38,
+      flex: 1,
+      paddingHorizontal: 6,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 9,
+    },
+    segmentSelected: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    segmentText: {
+      color: colors.textMuted,
+      fontFamily: theme.font.family.semibold,
+      fontSize: 10.5,
+      textAlign: "center",
+    },
+    segmentTextSelected: {
+      color: colors.text,
+      fontFamily: theme.font.family.extraBold,
+    },
+    toggleRow: {
+      minHeight: 58,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
+    toggleInfo: { flex: 1 },
+    note: {
+      paddingHorizontal: 8,
+      color: colors.textMuted,
+      fontFamily: theme.font.family.medium,
+      fontSize: 10.5,
+      lineHeight: 16,
+      textAlign: "center",
+    },
+    buildStamp: {
+      marginTop: 2,
+      color: colors.textFaint,
+      fontFamily: theme.font.family.medium,
+      fontSize: 9.5,
+      textAlign: "center",
+    },
+    pressed: { opacity: 0.7 },
+  });
+}

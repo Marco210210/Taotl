@@ -1,6 +1,8 @@
+import { useMemo } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 
-import { theme } from "@/theme";
+import { useAppSettings } from "@/state/AppSettingsContext";
+import { theme, type ThemeColors } from "@/theme";
 
 export function PlayerAvatar({
   name,
@@ -13,6 +15,8 @@ export function PlayerAvatar({
   size?: number;
   colorKey?: string;
 }) {
+  const { colors, avatarColors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const initials = name.trim().slice(0, 2).toUpperCase() || "?";
   const dimensionStyle = { width: size, height: size, borderRadius: size / 2 };
 
@@ -21,22 +25,31 @@ export function PlayerAvatar({
   }
 
   return (
-    <View style={[styles.base, styles.fallback, { backgroundColor: getAvatarColor(colorKey ?? name) }, dimensionStyle]}>
+    <View
+      style={[
+        styles.base,
+        styles.fallback,
+        { backgroundColor: getAvatarColor(colorKey ?? name, avatarColors) },
+        dimensionStyle,
+      ]}
+    >
       <Text style={[styles.initials, { fontSize: size * 0.38 }]}>{initials}</Text>
     </View>
   );
 }
 
-function getAvatarColor(value: string): string {
+function getAvatarColor(value: string, avatarColors: readonly string[]): string {
   let hash = 0;
   for (let index = 0; index < value.length; index += 1) {
     hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
   }
-  return theme.avatarColors[hash % theme.avatarColors.length];
+  return avatarColors[hash % avatarColors.length];
 }
 
-const styles = StyleSheet.create({
-  base: { alignItems: "center", justifyContent: "center", overflow: "hidden" },
-  fallback: { borderWidth: 1, borderColor: "rgba(255,255,255,.25)" },
-  initials: { color: theme.colors.primaryText, fontFamily: theme.font.family.extraBold },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    base: { alignItems: "center", justifyContent: "center", overflow: "hidden" },
+    fallback: { borderWidth: 1, borderColor: "rgba(255,255,255,.25)" },
+    initials: { color: colors.primaryText, fontFamily: theme.font.family.extraBold },
+  });
+}

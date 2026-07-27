@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
@@ -14,7 +14,7 @@ import type { RoundPlayerResult } from "@/game/types";
 import { validateScarto } from "@/game/validation";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useGame } from "@/state/GameContext";
-import { theme } from "@/theme";
+import { theme, type ThemeColors } from "@/theme";
 
 interface Draft {
   respected: boolean | null;
@@ -22,7 +22,8 @@ interface Draft {
 }
 
 export default function ScoringScreen() {
-  const { resolvedLanguage, t } = useAppSettings();
+  const { resolvedLanguage, t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { game, currentRoundInfo, confirmRoundResults } = useGame();
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const isSubmitting = useRef(false);
@@ -199,63 +200,65 @@ export default function ScoringScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  statsRow: { flexDirection: "row", gap: 7 },
-  helper: { fontSize: 11, color: theme.colors.textMuted, fontFamily: theme.font.family.semibold, marginTop: 2 },
-  error: { color: theme.colors.danger, fontSize: theme.font.small, fontFamily: theme.font.family.semibold },
-  constraintError: {
-    color: theme.colors.danger,
-    fontSize: 11.5,
-    lineHeight: 17,
-    fontFamily: theme.font.family.bold,
-    textAlign: "center",
-    borderRadius: 11,
-    padding: 12,
-    backgroundColor: theme.colors.negativeSoft,
-  },
-  standingsButton: {
-    minHeight: 44,
-    borderRadius: 11,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.inkSoft,
-  },
-  standingsText: { color: theme.colors.text, fontFamily: theme.font.family.bold, fontSize: 11.5 },
-  playerCard: { padding: 13, gap: 12 },
-  playerHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
-  playerInfo: { flex: 1 },
-  playerName: { fontSize: 14.5, fontFamily: theme.font.family.bold, color: theme.colors.text },
-  score: {
-    minWidth: 46,
-    textAlign: "right",
-    fontSize: 19,
-    fontFamily: theme.font.family.extraBold,
-    fontVariant: ["tabular-nums"],
-    color: theme.colors.success,
-  },
-  scorePending: { color: theme.colors.textFaint },
-  scoreNegative: { color: theme.colors.danger },
-  respectRow: { flexDirection: "row", gap: 8 },
-  respectBtn: {
-    flex: 1,
-    minHeight: 46,
-    paddingVertical: 12,
-    borderRadius: 11,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.inkSoft,
-  },
-  respectBtnYes: { backgroundColor: theme.colors.success },
-  respectBtnNo: { backgroundColor: theme.colors.danger },
-  respectLabel: { color: theme.colors.textMuted, fontFamily: theme.font.family.bold, fontSize: 12.5 },
-  activeRespectLabel: { color: theme.colors.primaryText },
-  scartoRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-    paddingTop: 3,
-  },
-  scartoLabel: { color: theme.colors.danger, fontFamily: theme.font.family.bold, fontSize: 11.5 },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    statsRow: { flexDirection: "row", gap: 7 },
+    helper: { fontSize: 11, color: colors.textMuted, fontFamily: theme.font.family.semibold, marginTop: 2 },
+    error: { color: colors.danger, fontSize: theme.font.small, fontFamily: theme.font.family.semibold },
+    constraintError: {
+      color: colors.danger,
+      fontSize: 11.5,
+      lineHeight: 17,
+      fontFamily: theme.font.family.bold,
+      textAlign: "center",
+      borderRadius: 11,
+      padding: 12,
+      backgroundColor: colors.negativeSoft,
+    },
+    standingsButton: {
+      minHeight: 44,
+      borderRadius: 11,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.inkSoft,
+    },
+    standingsText: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 11.5 },
+    playerCard: { padding: 13, gap: 12 },
+    playerHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+    playerInfo: { flex: 1 },
+    playerName: { fontSize: 14.5, fontFamily: theme.font.family.bold, color: colors.text },
+    score: {
+      minWidth: 46,
+      textAlign: "right",
+      fontSize: 19,
+      fontFamily: theme.font.family.extraBold,
+      fontVariant: ["tabular-nums"],
+      color: colors.success,
+    },
+    scorePending: { color: colors.textFaint },
+    scoreNegative: { color: colors.danger },
+    respectRow: { flexDirection: "row", gap: 8 },
+    respectBtn: {
+      flex: 1,
+      minHeight: 46,
+      paddingVertical: 12,
+      borderRadius: 11,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.inkSoft,
+    },
+    respectBtnYes: { backgroundColor: colors.success },
+    respectBtnNo: { backgroundColor: colors.danger },
+    respectLabel: { color: colors.textMuted, fontFamily: theme.font.family.bold, fontSize: 12.5 },
+    activeRespectLabel: { color: colors.primaryText },
+    scartoRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+      paddingTop: 3,
+    },
+    scartoLabel: { color: colors.danger, fontFamily: theme.font.family.bold, fontSize: 11.5 },
+  });
+}

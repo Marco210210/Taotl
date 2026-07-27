@@ -63,7 +63,7 @@ function FontGate() {
 }
 
 function AppNavigation() {
-  const { resolvedTheme, t } = useAppSettings();
+  const { resolvedTheme, t, colors } = useAppSettings();
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -74,12 +74,12 @@ function AppNavigation() {
             <StatusBar style={resolvedTheme === "dark" ? "light" : "dark"} />
             <Stack
               screenOptions={{
-                headerStyle: { backgroundColor: theme.colors.surface },
-                headerTintColor: theme.colors.text,
+                headerStyle: { backgroundColor: colors.surface as string },
+                headerTintColor: colors.text as string,
                 headerTitleStyle: { fontFamily: theme.font.family.bold, fontSize: 15 },
                 headerShadowVisible: false,
                 headerBackTitle: t("common.back"),
-                contentStyle: { backgroundColor: theme.colors.background },
+                contentStyle: { backgroundColor: colors.background as string },
               }}
             >
               <Stack.Screen name="index" options={{ headerShown: false }} />
