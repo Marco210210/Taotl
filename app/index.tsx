@@ -1,21 +1,25 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import { useMemo } from "react";
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BrandMark } from "@/components/BrandMark";
 import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
 import { getFixedSequence } from "@/game/modes";
 import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useGame } from "@/state/GameContext";
+import { STORAGE_KEYS } from "@/state/storageKeys";
 import { theme, type ThemeColors } from "@/theme";
 
 export default function HomeScreen() {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { account } = useAccount();
+  const { account, loading: accountLoading } = useAccount();
   const { game, isHydrated, ranked, resetGame } = useGame();
+  const [showAccountPrompt, setShowAccountPrompt] = useState(false);
   const menuItems = [
     { label: t("home.history"), route: "/history" as const, icon: require("../assets/design/suit-heart.png") },
     { label: t("home.profiles"), route: "/profile" as const, icon: require("../assets/design/suit-diamond.png") },
@@ -30,6 +34,37 @@ export default function HomeScreen() {
     game && game.mode !== "personalizzata" ? getFixedSequence(game.mode, game.players.length).length : null;
   const leaderEntry = ranked[0];
   const leader = game?.players.find((player) => player.id === leaderEntry?.playerId) ?? game?.players[0];
+
+  useEffect(() => {
+    let active = true;
+    if (accountLoading) return () => {
+      active = false;
+    };
+    if (account) {
+      setShowAccountPrompt(false);
+      return () => {
+        active = false;
+      };
+    }
+    AsyncStorage.getItem(STORAGE_KEYS.accountPromptSeen)
+      .then((seen) => {
+        if (active && seen !== "yes") setShowAccountPrompt(true);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [account, accountLoading]);
+
+  const rememberAccountPrompt = async () => {
+    setShowAccountPrompt(false);
+    await AsyncStorage.setItem(STORAGE_KEYS.accountPromptSeen, "yes").catch(() => {});
+  };
+
+  const openAccount = () => {
+    void rememberAccountPrompt();
+    router.push({ pathname: "/account", params: { from: "home" } });
+  };
 
   const resumeGame = () => {
     if (!game) return;
@@ -51,6 +86,30 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+      <Modal
+        animationType="fade"
+        transparent
+        visible={showAccountPrompt}
+        onRequestClose={() => void rememberAccountPrompt()}
+      >
+        <View style={styles.promptOverlay}>
+          <Card style={styles.promptCard}>
+            <Text style={styles.promptEyebrow}>{t("account.promptRecommended")}</Text>
+            <Text style={styles.promptTitle}>{t("account.promptTitle")}</Text>
+            <Text style={styles.promptBody}>{t("account.promptBody")}</Text>
+            <Button
+              label={t("account.promptCreate")}
+              variant="success"
+              onPress={openAccount}
+            />
+            <Button
+              label={t("account.promptGuest")}
+              variant="ghost"
+              onPress={() => void rememberAccountPrompt()}
+            />
+          </Card>
+        </View>
+      </Modal>
       <ScrollView contentContainerStyle={styles.page}>
         <View style={styles.hero}>
           <BrandMark />
@@ -281,5 +340,37 @@ function makeStyles(colors: ThemeColors) {
     deleteLink: { minHeight: 44, alignItems: "center", justifyContent: "center" },
     deleteText: { color: colors.danger, fontFamily: theme.font.family.semibold, fontSize: 12 },
     pressed: { opacity: 0.72 },
+    promptOverlay: {
+      flex: 1,
+      justifyContent: "center",
+      padding: 22,
+      backgroundColor: "rgba(0, 0, 0, 0.58)",
+    },
+    promptCard: {
+      width: "100%",
+      maxWidth: 440,
+      alignSelf: "center",
+      padding: 20,
+      gap: 12,
+    },
+    promptEyebrow: {
+      color: colors.success,
+      fontFamily: theme.font.family.extraBold,
+      fontSize: 10,
+      letterSpacing: 1.3,
+    },
+    promptTitle: {
+      color: colors.text,
+      fontFamily: theme.font.family.extraBold,
+      fontSize: 22,
+      lineHeight: 27,
+    },
+    promptBody: {
+      color: colors.textMuted,
+      fontFamily: theme.font.family.medium,
+      fontSize: 13,
+      lineHeight: 19,
+      marginBottom: 2,
+    },
   });
 }

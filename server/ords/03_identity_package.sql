@@ -212,6 +212,7 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
     v_password     VARCHAR2(200);
     v_salt         VARCHAR2(64);
     v_json         CLOB;
+    v_existing     NUMBER;
   BEGIN
     SELECT normalized_handle(JSON_VALUE(p_body, '$.handle' RETURNING VARCHAR2(100))),
            TRIM(JSON_VALUE(p_body, '$.displayName' RETURNING VARCHAR2(80))),
@@ -235,10 +236,26 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
       RAISE_APPLICATION_ERROR(-20400, 'Indirizzo email non valido.');
     END IF;
     IF v_password IS NULL OR LENGTH(v_password) < 8 OR LENGTH(v_password) > 72
-       OR NOT REGEXP_LIKE(v_password, '[A-Z]')
+       OR NOT REGEXP_LIKE(v_password, '[[:upper:]]')
        OR NOT REGEXP_LIKE(v_password, '[0-9]') THEN
       RAISE_APPLICATION_ERROR(-20400,
-        'La password deve avere almeno 8 caratteri, una maiuscola e un numero.');
+        'La password deve avere da 8 a 72 caratteri, una maiuscola e un numero.');
+    END IF;
+
+    SELECT COUNT(*)
+      INTO v_existing
+      FROM taotl_accounts
+     WHERE handle_normalized = v_handle;
+    IF v_existing > 0 THEN
+      RAISE_APPLICATION_ERROR(-20409, 'Questo Taotl ID è già in uso.');
+    END IF;
+
+    SELECT COUNT(*)
+      INTO v_existing
+      FROM taotl_accounts
+     WHERE email = v_email;
+    IF v_existing > 0 THEN
+      RAISE_APPLICATION_ERROR(-20409, 'Questa email è già collegata a un account.');
     END IF;
 
     v_id := 'usr_' || LOWER(RAWTOHEX(SYS_GUID()));
@@ -542,10 +559,12 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
   END complete_room_game;
 
   FUNCTION link_account_player(p_authorization IN VARCHAR2, p_body IN BLOB) RETURN CLOB IS
-    v_admin_id  VARCHAR2(60);
-    v_account_id VARCHAR2(60);
-    v_player_id VARCHAR2(60);
-    v_json      CLOB;
+    v_admin_id          VARCHAR2(60);
+    v_account_id        VARCHAR2(60);
+    v_player_id         VARCHAR2(60);
+    v_existing_player_id VARCHAR2(60);
+    v_exists            NUMBER;
+    v_json              CLOB;
   BEGIN
     v_admin_id := require_admin(p_authorization);
 
@@ -558,12 +577,53 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
       RAISE_APPLICATION_ERROR(-20400, 'accountId e playerId sono obbligatori.');
     END IF;
 
-    MERGE INTO taotl_account_players t
-    USING (SELECT v_account_id AS account_id, v_player_id AS player_id FROM dual) src
-    ON (t.account_id = src.account_id)
-    WHEN MATCHED THEN UPDATE SET player_id = src.player_id, linked_at = SYSTIMESTAMP
-    WHEN NOT MATCHED THEN
-      INSERT (account_id, player_id) VALUES (src.account_id, src.player_id);
+    SELECT COUNT(*)
+      INTO v_exists
+      FROM taotl_accounts
+     WHERE id = v_account_id
+       AND is_active = 'Y';
+    IF v_exists = 0 THEN
+      RAISE_APPLICATION_ERROR(-20404, 'Account non trovato.');
+    END IF;
+
+    SELECT COUNT(*)
+      INTO v_exists
+      FROM players
+     WHERE id = v_player_id
+       AND is_active = 'Y';
+    IF v_exists = 0 THEN
+      RAISE_APPLICATION_ERROR(-20404, 'Giocatore non trovato.');
+    END IF;
+
+    BEGIN
+      SELECT player_id
+        INTO v_existing_player_id
+        FROM taotl_account_players
+       WHERE account_id = v_account_id;
+
+      IF v_existing_player_id = v_player_id THEN
+        v_json := account_json(v_account_id);
+        COMMIT;
+        RETURN v_json;
+      END IF;
+      RAISE_APPLICATION_ERROR(-20409,
+        'Questo account è già collegato a un altro giocatore.');
+    EXCEPTION
+      WHEN NO_DATA_FOUND THEN
+        NULL;
+    END;
+
+    SELECT COUNT(*)
+      INTO v_exists
+      FROM taotl_account_players
+     WHERE player_id = v_player_id;
+    IF v_exists > 0 THEN
+      RAISE_APPLICATION_ERROR(-20409,
+        'Questo giocatore è già collegato a un altro account.');
+    END IF;
+
+    INSERT INTO taotl_account_players(account_id, player_id)
+    VALUES (v_account_id, v_player_id);
 
     v_json := account_json(v_account_id);
     COMMIT;

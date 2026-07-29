@@ -23,11 +23,13 @@ export default function MyProfileScreen() {
   const [games, setGames] = useState<GameHistorySummaryDTO[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntryDTO[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       setLoading(true);
+      setLoadError(null);
       Promise.all([fetchRoster(), fetchHistory(), fetchLeaderboard()])
         .then(([roster, history, entries]) => {
           if (!active) return;
@@ -35,13 +37,18 @@ export default function MyProfileScreen() {
           setGames(history.games);
           setLeaderboard(entries);
         })
+        .catch((reason) => {
+          if (active) {
+            setLoadError(reason instanceof Error ? reason.message : t("profile.loadFailed"));
+          }
+        })
         .finally(() => {
           if (active) setLoading(false);
         });
       return () => {
         active = false;
       };
-    }, []),
+    }, [t]),
   );
 
   const linkedPlayer = account?.linkedPlayerId
@@ -100,6 +107,12 @@ export default function MyProfileScreen() {
         onPress={() => router.push({ pathname: "/leaderboard", params: { from: "profile" } })}
       />
 
+      {!!loadError && (
+        <Card>
+          <Text style={styles.error}>{loadError}</Text>
+        </Card>
+      )}
+
       {account && !linkedPlayer && (
         <Card>
           <Text style={styles.waitingText}>{t("profile.waitingLink")}</Text>
@@ -151,6 +164,13 @@ function makeStyles(colors: ThemeColors) {
       fontSize: 12.5,
       lineHeight: 18,
       fontFamily: theme.font.family.medium,
+      textAlign: "center",
+    },
+    error: {
+      color: colors.danger,
+      fontSize: 12.5,
+      lineHeight: 18,
+      fontFamily: theme.font.family.semibold,
       textAlign: "center",
     },
   });

@@ -57,17 +57,17 @@ BEGIN
                 JSON_ARRAYAGG(
                   JSON_OBJECT(
                     ''id''       VALUE id,
-                    ''name''     VALUE name,
+                    ''name''     VALUE player_name,
                     ''hasPhoto'' VALUE
                       CASE WHEN photo IS NULL THEN ''false'' ELSE ''true'' END FORMAT JSON
                     RETURNING CLOB
                   )
-                  ORDER BY created_at, name
+                  ORDER BY created_at, player_name
                   RETURNING CLOB
                 ),
                 TO_CLOB(''[]'')
               )
-         FROM players
+         FROM player_display_names_v
         WHERE is_active = ''Y'''
   );
 
@@ -108,12 +108,12 @@ BEGIN
       'SELECT ''application/json'',
               JSON_OBJECT(
                 ''id''       VALUE id,
-                ''name''     VALUE name,
+                ''name''     VALUE player_name,
                 ''hasPhoto'' VALUE
                   CASE WHEN photo IS NULL THEN ''false'' ELSE ''true'' END FORMAT JSON
                 RETURNING CLOB
               )
-         FROM players
+         FROM player_display_names_v
         WHERE id = :id
           AND is_active = ''Y'''
   );

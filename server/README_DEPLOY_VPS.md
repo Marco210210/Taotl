@@ -47,6 +47,7 @@ ordine:
 @sql/07_email_and_password_reset.sql
 @sql/02_views.sql
 @sql/08_verified_stats_and_legacy_wins.sql
+@sql/09_account_display_names_and_repairs.sql
 @ords/03_identity_package.sql
 @ords/01_api_package.sql
 @ords/02_module.sql
@@ -66,7 +67,10 @@ additiva per percentuale vittorie, vittorie storiche e chiusura delle stanze è:
 
 ```sql
 @sql/08_verified_stats_and_legacy_wins.sql
+@sql/09_account_display_names_and_repairs.sql
 @ords/03_identity_package.sql
+@ords/01_api_package.sql
+@ords/02_module.sql
 @ords/04_identity_module.sql
 ```
 
