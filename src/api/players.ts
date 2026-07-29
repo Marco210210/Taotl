@@ -31,7 +31,7 @@ function fromDTO(dto: PlayerDTO): Player {
 // resta sempre utilizzabile anche prima che il server Oracle sia online.
 export async function fetchRoster(): Promise<{ players: Player[]; fromCache: boolean }> {
   try {
-    const dtos = await apiClient.get<PlayerDTO[]>("/players");
+    const dtos = await apiClient.get<PlayerDTO[]>("/players/");
     const players = dtos.map(fromDTO);
     await writeCache(players);
     return { players, fromCache: false };

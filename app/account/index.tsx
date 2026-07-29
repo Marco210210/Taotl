@@ -16,7 +16,13 @@ type AuthMode = "register" | "login";
 export default function AccountScreen() {
   const { from } = useLocalSearchParams<{ from?: string }>();
   const backDestination =
-    from === "setup" ? "/setup/players" : from === "admin" ? "/admin" : "/profile";
+    from === "setup"
+      ? "/setup/players"
+      : from === "admin"
+        ? "/admin"
+        : from === "home"
+          ? "/"
+          : "/profile";
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const {
@@ -49,7 +55,10 @@ export default function AccountScreen() {
   );
 
   const isPasswordValid = (value: string) =>
-    value.length >= 8 && /[A-Z]/.test(value) && /[0-9]/.test(value);
+    value.length >= 8 &&
+    value.length <= 72 &&
+    /[A-ZÀ-ÖØ-Þ]/.test(value) &&
+    /[0-9]/.test(value);
 
   const submitAuth = async () => {
     setMessage(null);
@@ -150,6 +159,7 @@ export default function AccountScreen() {
               <TextInput
                 autoCapitalize="none"
                 autoCorrect={false}
+                maxLength={25}
                 value={handle}
                 onChangeText={setHandle}
                 placeholder={t("account.handlePlaceholder")}
@@ -161,6 +171,7 @@ export default function AccountScreen() {
                 <>
                   <Text style={styles.label}>{t("account.firstName")}</Text>
                   <TextInput
+                    maxLength={80}
                     value={firstName}
                     onChangeText={setFirstName}
                     placeholder={t("account.firstNamePlaceholder")}
@@ -170,6 +181,7 @@ export default function AccountScreen() {
 
                   <Text style={styles.label}>{t("account.lastName")}</Text>
                   <TextInput
+                    maxLength={80}
                     value={lastName}
                     onChangeText={setLastName}
                     placeholder={t("account.lastNamePlaceholder")}
@@ -179,6 +191,7 @@ export default function AccountScreen() {
 
                   <Text style={styles.label}>{t("account.displayName")}</Text>
                   <TextInput
+                    maxLength={80}
                     value={displayName}
                     onChangeText={setDisplayName}
                     placeholder={t("account.displayNamePlaceholder")}
@@ -191,6 +204,7 @@ export default function AccountScreen() {
                     autoCapitalize="none"
                     autoCorrect={false}
                     keyboardType="email-address"
+                    maxLength={160}
                     value={email}
                     onChangeText={setEmail}
                     placeholder={t("account.emailPlaceholder")}
@@ -204,6 +218,7 @@ export default function AccountScreen() {
               <TextInput
                 autoCapitalize="none"
                 autoCorrect={false}
+                maxLength={72}
                 secureTextEntry
                 value={password}
                 onChangeText={setPassword}
@@ -217,6 +232,7 @@ export default function AccountScreen() {
                   <TextInput
                     autoCapitalize="none"
                     autoCorrect={false}
+                    maxLength={72}
                     secureTextEntry
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}

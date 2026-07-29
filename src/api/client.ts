@@ -7,6 +7,46 @@ export class ApiUnavailableError extends Error {
   }
 }
 
+export class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiRequestError";
+  }
+}
+
+function messageForStatus(status: number): string {
+  if (status === 400) return "Controlla i dati inseriti e riprova.";
+  if (status === 401) return "Accesso non valido o sessione scaduta.";
+  if (status === 403) return "Non hai i permessi per questa operazione.";
+  if (status === 404) return "Servizio temporaneamente non disponibile. Riprova tra poco.";
+  if (status === 409) return "Questi dati risultano già utilizzati.";
+  if (status === 429) return "Troppi tentativi. Attendi qualche minuto e riprova.";
+  return "Il server non è riuscito a completare la richiesta. Riprova.";
+}
+
+async function readErrorMessage(response: Response): Promise<string> {
+  const text = await response.text().catch(() => "");
+  if (text) {
+    try {
+      const payload = JSON.parse(text) as { message?: unknown };
+      if (
+        typeof payload.message === "string" &&
+        payload.message.trim() &&
+        payload.message !== "Not Found" &&
+        payload.message !== "The request could not be processed for a user defined resource"
+      ) {
+        return payload.message.trim();
+      }
+    } catch {
+      // La risposta non è JSON: si usa il messaggio sicuro associato allo status.
+    }
+  }
+  return messageForStatus(response.status);
+}
+
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const baseUrl = getApiBaseUrl();
   if (!baseUrl) {
@@ -34,8 +74,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     });
 
     if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(`Richiesta fallita (${response.status}): ${text || response.statusText}`);
+      throw new ApiRequestError(await readErrorMessage(response), response.status);
     }
 
     if (response.status === 204) {
@@ -57,7 +96,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     }
     return undefined as T;
   } catch (err) {
-    if (err instanceof ApiUnavailableError) throw err;
+    if (err instanceof ApiUnavailableError || err instanceof ApiRequestError) throw err;
     if (err instanceof Error && err.name === "AbortError") {
       throw new Error("Il server non ha risposto in tempo.");
     }

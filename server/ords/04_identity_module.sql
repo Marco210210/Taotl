@@ -120,7 +120,7 @@ BEGIN
                   SELECT JSON_ARRAYAGG(
                            JSON_OBJECT(
                              ''id''        VALUE gp.player_id,
-                             ''name''      VALUE p.name,
+                             ''name''      VALUE p.player_name,
                              ''seatOrder'' VALUE gp.seat_order
                              RETURNING CLOB
                            )
@@ -128,7 +128,7 @@ BEGIN
                            RETURNING CLOB
                          )
                     FROM game_players gp
-                    JOIN players p ON p.id = gp.player_id
+                    JOIN player_display_names_v p ON p.id = gp.player_id
                    WHERE gp.game_id = g.id
                 ) FORMAT JSON,
                 ''standings''     VALUE (
@@ -157,7 +157,7 @@ BEGIN
                                SELECT JSON_ARRAYAGG(
                                         JSON_OBJECT(
                                           ''playerId''  VALUE rb.player_id,
-                                          ''name''      VALUE p.name,
+                                          ''name''      VALUE p.player_name,
                                           ''bid''       VALUE rb.bid,
                                           ''respected'' VALUE
                                             CASE rb.respected
@@ -172,7 +172,7 @@ BEGIN
                                         RETURNING CLOB
                                       )
                                  FROM round_bids rb
-                                 JOIN players p ON p.id = rb.player_id
+                                 JOIN player_display_names_v p ON p.id = rb.player_id
                                  JOIN game_players gp
                                    ON gp.game_id = g.id
                                   AND gp.player_id = rb.player_id
@@ -225,9 +225,40 @@ BEGIN
     p_mimes_allowed => 'application/json',
     p_source        => q'~
       DECLARE
-        v_json CLOB;
+        v_json    CLOB;
+        v_status  PLS_INTEGER := 200;
+        v_reason  VARCHAR2(40);
+        v_code    PLS_INTEGER;
+        v_message VARCHAR2(4000);
       BEGIN
-        v_json := taotl_identity_api.register_account(:body);
+        BEGIN
+          v_json := taotl_identity_api.register_account(:body);
+        EXCEPTION
+          WHEN OTHERS THEN
+            v_code := SQLCODE;
+            ROLLBACK;
+            v_status := CASE v_code
+              WHEN -20400 THEN 400
+              WHEN -20409 THEN 409
+              ELSE 500
+            END;
+            v_reason := CASE v_status
+              WHEN 400 THEN 'Bad Request'
+              WHEN 409 THEN 'Conflict'
+              ELSE 'Internal Server Error'
+            END;
+            v_message := CASE
+              WHEN v_code IN (-20400, -20409)
+                THEN REGEXP_REPLACE(SQLERRM, '^ORA-[0-9]+: *', '')
+              ELSE 'Registrazione non riuscita. Riprova tra poco.'
+            END;
+            SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB)
+              INTO v_json
+              FROM dual;
+        END;
+        IF v_status != 200 THEN
+          OWA_UTIL.status_line(v_status, v_reason, FALSE);
+        END IF;
         OWA_UTIL.mime_header('application/json', FALSE);
         HTP.p('Cache-Control: no-store');
         OWA_UTIL.http_header_close;
@@ -244,9 +275,40 @@ BEGIN
     p_mimes_allowed => 'application/json',
     p_source        => q'~
       DECLARE
-        v_json CLOB;
+        v_json    CLOB;
+        v_status  PLS_INTEGER := 200;
+        v_reason  VARCHAR2(40);
+        v_code    PLS_INTEGER;
+        v_message VARCHAR2(4000);
       BEGIN
-        v_json := taotl_identity_api.login_account(:body);
+        BEGIN
+          v_json := taotl_identity_api.login_account(:body);
+        EXCEPTION
+          WHEN OTHERS THEN
+            v_code := SQLCODE;
+            ROLLBACK;
+            v_status := CASE v_code
+              WHEN -20401 THEN 401
+              WHEN -20429 THEN 429
+              ELSE 500
+            END;
+            v_reason := CASE v_status
+              WHEN 401 THEN 'Unauthorized'
+              WHEN 429 THEN 'Too Many Requests'
+              ELSE 'Internal Server Error'
+            END;
+            v_message := CASE
+              WHEN v_code IN (-20401, -20429)
+                THEN REGEXP_REPLACE(SQLERRM, '^ORA-[0-9]+: *', '')
+              ELSE 'Accesso non riuscito. Riprova tra poco.'
+            END;
+            SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB)
+              INTO v_json
+              FROM dual;
+        END;
+        IF v_status != 200 THEN
+          OWA_UTIL.status_line(v_status, v_reason, FALSE);
+        END IF;
         OWA_UTIL.mime_header('application/json', FALSE);
         HTP.p('Cache-Control: no-store');
         OWA_UTIL.http_header_close;
@@ -485,9 +547,46 @@ BEGIN
     p_mimes_allowed => 'application/json',
     p_source        => q'~
       DECLARE
-        v_json CLOB;
+        v_json    CLOB;
+        v_status  PLS_INTEGER := 200;
+        v_reason  VARCHAR2(40);
+        v_code    PLS_INTEGER;
+        v_message VARCHAR2(4000);
       BEGIN
-        v_json := taotl_identity_api.link_account_player(:p_authorization, :body);
+        BEGIN
+          v_json := taotl_identity_api.link_account_player(:p_authorization, :body);
+        EXCEPTION
+          WHEN OTHERS THEN
+            v_code := SQLCODE;
+            ROLLBACK;
+            v_status := CASE v_code
+              WHEN -20400 THEN 400
+              WHEN -20401 THEN 401
+              WHEN -20403 THEN 403
+              WHEN -20404 THEN 404
+              WHEN -20409 THEN 409
+              ELSE 500
+            END;
+            v_reason := CASE v_status
+              WHEN 400 THEN 'Bad Request'
+              WHEN 401 THEN 'Unauthorized'
+              WHEN 403 THEN 'Forbidden'
+              WHEN 404 THEN 'Not Found'
+              WHEN 409 THEN 'Conflict'
+              ELSE 'Internal Server Error'
+            END;
+            v_message := CASE
+              WHEN v_code IN (-20400, -20401, -20403, -20404, -20409)
+                THEN REGEXP_REPLACE(SQLERRM, '^ORA-[0-9]+: *', '')
+              ELSE 'Collegamento non riuscito. Riprova tra poco.'
+            END;
+            SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB)
+              INTO v_json
+              FROM dual;
+        END;
+        IF v_status != 200 THEN
+          OWA_UTIL.status_line(v_status, v_reason, FALSE);
+        END IF;
         OWA_UTIL.mime_header('application/json', FALSE);
         HTP.p('Cache-Control: no-store');
         OWA_UTIL.http_header_close;

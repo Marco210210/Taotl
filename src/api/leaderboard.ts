@@ -16,7 +16,7 @@ export interface AdminAccountDTO {
 }
 
 export function fetchLeaderboard(): Promise<LeaderboardEntryDTO[]> {
-  return apiClient.get<LeaderboardEntryDTO[]>("/taotl/leaderboard");
+  return apiClient.get<LeaderboardEntryDTO[]>("/taotl/leaderboard/");
 }
 
 // Riservate all'admin: il backend verifica il token di sessione (require_admin).
@@ -28,7 +28,7 @@ export function addManualGame(
 }
 
 export function fetchAdminAccounts(adminToken: string): Promise<AdminAccountDTO[]> {
-  return apiClient.getAuthenticated<AdminAccountDTO[]>("/taotl/admin/accounts", adminToken);
+  return apiClient.getAuthenticated<AdminAccountDTO[]>("/taotl/admin/accounts/", adminToken);
 }
 
 export function linkAccountToPlayer(

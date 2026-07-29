@@ -86,7 +86,7 @@ export async function syncFinishedGame(
 
 export async function fetchHistory(): Promise<{ games: GameHistorySummaryDTO[]; fromCache: boolean }> {
   try {
-    const games = await apiClient.get<GameHistorySummaryDTO[]>("/taotl/games");
+    const games = await apiClient.get<GameHistorySummaryDTO[]>("/taotl/games/");
     await AsyncStorage.setItem(LOCAL_HISTORY_KEY, JSON.stringify(games));
     return { games, fromCache: false };
   } catch {

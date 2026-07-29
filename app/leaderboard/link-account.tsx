@@ -27,6 +27,23 @@ export default function LinkAccountScreen() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const availableAccounts = useMemo(
+    () => accounts.filter((candidate) => candidate.linkedPlayerId === null),
+    [accounts],
+  );
+  const linkedPlayerIds = useMemo(
+    () =>
+      new Set(
+        accounts
+          .map((candidate) => candidate.linkedPlayerId)
+          .filter((playerId): playerId is string => playerId !== null),
+      ),
+    [accounts],
+  );
+  const availablePlayers = useMemo(
+    () => players.filter((player) => !linkedPlayerIds.has(player.id)),
+    [linkedPlayerIds, players],
+  );
 
   useEffect(() => {
     if (!token) return;
@@ -78,8 +95,11 @@ export default function LinkAccountScreen() {
 
       <Text style={styles.sectionTitle}>{t("leaderboard.chooseAccount")}</Text>
       {accountsLoading && <Text style={styles.helper}>{t("common.loading")}</Text>}
+      {!accountsLoading && availableAccounts.length === 0 && (
+        <Text style={styles.helper}>{t("leaderboard.noAccountsToLink")}</Text>
+      )}
       <View style={styles.list}>
-        {accounts.map((acc) => {
+        {availableAccounts.map((acc) => {
           const selected = selectedAccountId === acc.id;
           return (
             <Pressable
@@ -89,10 +109,7 @@ export default function LinkAccountScreen() {
             >
               <View style={styles.rowInfo}>
                 <Text style={styles.rowName}>{acc.displayName}</Text>
-                <Text style={styles.rowMeta}>
-                  @{acc.handle}
-                  {acc.linkedPlayerId ? ` · ${t("leaderboard.alreadyLinked")}` : ""}
-                </Text>
+                <Text style={styles.rowMeta}>@{acc.handle}</Text>
               </View>
             </Pressable>
           );
@@ -101,8 +118,11 @@ export default function LinkAccountScreen() {
 
       <Text style={styles.sectionTitle}>{t("leaderboard.choosePlayer")}</Text>
       {rosterLoading && <Text style={styles.helper}>{t("common.loading")}</Text>}
+      {!rosterLoading && availablePlayers.length === 0 && (
+        <Text style={styles.helper}>{t("leaderboard.noPlayersToLink")}</Text>
+      )}
       <View style={styles.list}>
-        {players.map((player) => {
+        {availablePlayers.map((player) => {
           const selected = selectedPlayerId === player.id;
           return (
             <Pressable

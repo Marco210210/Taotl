@@ -12,4 +12,7 @@ export function getAppKey(): string | null {
   return key && key.trim().length > 0 ? key : null;
 }
 
-export const REQUEST_TIMEOUT_MS = 8000;
+// Oracle esegue l'hash della password prima di rispondere a registrazione e login.
+// Su un'istanza Always Free, nei momenti di carico, otto secondi possono essere
+// troppo pochi e il client finirebbe per mostrare un falso errore di password.
+export const REQUEST_TIMEOUT_MS = 20000;

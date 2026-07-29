@@ -70,6 +70,7 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
   ) IS
     v_id   players.id%TYPE;
     v_name players.name%TYPE;
+    v_exists NUMBER;
   BEGIN
     check_app_key(p_key);
 
@@ -80,6 +81,15 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
 
     IF v_id IS NULL OR TRIM(v_name) IS NULL THEN
       RAISE_APPLICATION_ERROR(-20400, 'Id e nome del giocatore sono obbligatori.');
+    END IF;
+
+    SELECT COUNT(*)
+      INTO v_exists
+      FROM players
+     WHERE is_active = 'Y'
+       AND LOWER(TRIM(name)) = LOWER(TRIM(v_name));
+    IF v_exists > 0 THEN
+      RAISE_APPLICATION_ERROR(-20409, 'Esiste già un giocatore con questo nome.');
     END IF;
 
     INSERT INTO players (id, name)
@@ -93,6 +103,7 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
     p_body IN BLOB
   ) IS
     v_name players.name%TYPE;
+    v_exists NUMBER;
   BEGIN
     check_app_key(p_key);
 
@@ -102,6 +113,16 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
 
     IF TRIM(v_name) IS NULL THEN
       RAISE_APPLICATION_ERROR(-20400, 'Il nome del giocatore è obbligatorio.');
+    END IF;
+
+    SELECT COUNT(*)
+      INTO v_exists
+      FROM players
+     WHERE is_active = 'Y'
+       AND id != p_id
+       AND LOWER(TRIM(name)) = LOWER(TRIM(v_name));
+    IF v_exists > 0 THEN
+      RAISE_APPLICATION_ERROR(-20409, 'Esiste già un giocatore con questo nome.');
     END IF;
 
     UPDATE players
