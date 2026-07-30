@@ -13,6 +13,19 @@ import { theme, type ThemeColors } from "@/theme";
 
 type AuthMode = "register" | "login";
 
+function sanitizeHandleInput(value: string): string {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/^@+/, "")
+    .replace(/[\s.-]+/g, "_")
+    .replace(/[^a-z0-9_]/g, "")
+    .replace(/_+/g, "_")
+    .slice(0, 24);
+}
+
 export default function AccountScreen() {
   const { from } = useLocalSearchParams<{ from?: string }>();
   const backDestination =
@@ -49,10 +62,7 @@ export default function AccountScreen() {
   const [joinCode, setJoinCode] = useState("");
   const [message, setMessage] = useState<string | null>(null);
 
-  const normalizedHandle = useMemo(
-    () => handle.trim().toLowerCase().replace(/^@/, ""),
-    [handle],
-  );
+  const normalizedHandle = useMemo(() => sanitizeHandleInput(handle), [handle]);
 
   const isPasswordValid = (value: string) =>
     value.length >= 8 &&
@@ -159,9 +169,12 @@ export default function AccountScreen() {
               <TextInput
                 autoCapitalize="none"
                 autoCorrect={false}
-                maxLength={25}
+                maxLength={24}
                 value={handle}
-                onChangeText={setHandle}
+                onChangeText={(value) => {
+                  setHandle(sanitizeHandleInput(value));
+                  setMessage(null);
+                }}
                 placeholder={t("account.handlePlaceholder")}
                 placeholderTextColor={colors.textMuted as string}
                 style={styles.input}
@@ -173,7 +186,10 @@ export default function AccountScreen() {
                   <TextInput
                     maxLength={80}
                     value={firstName}
-                    onChangeText={setFirstName}
+                    onChangeText={(value) => {
+                      setFirstName(value);
+                      setMessage(null);
+                    }}
                     placeholder={t("account.firstNamePlaceholder")}
                     placeholderTextColor={colors.textMuted as string}
                     style={styles.input}
@@ -183,7 +199,10 @@ export default function AccountScreen() {
                   <TextInput
                     maxLength={80}
                     value={lastName}
-                    onChangeText={setLastName}
+                    onChangeText={(value) => {
+                      setLastName(value);
+                      setMessage(null);
+                    }}
                     placeholder={t("account.lastNamePlaceholder")}
                     placeholderTextColor={colors.textMuted as string}
                     style={styles.input}
@@ -193,7 +212,10 @@ export default function AccountScreen() {
                   <TextInput
                     maxLength={80}
                     value={displayName}
-                    onChangeText={setDisplayName}
+                    onChangeText={(value) => {
+                      setDisplayName(value);
+                      setMessage(null);
+                    }}
                     placeholder={t("account.displayNamePlaceholder")}
                     placeholderTextColor={colors.textMuted as string}
                     style={styles.input}
@@ -206,7 +228,10 @@ export default function AccountScreen() {
                     keyboardType="email-address"
                     maxLength={160}
                     value={email}
-                    onChangeText={setEmail}
+                    onChangeText={(value) => {
+                      setEmail(value);
+                      setMessage(null);
+                    }}
                     placeholder={t("account.emailPlaceholder")}
                     placeholderTextColor={colors.textMuted as string}
                     style={styles.input}
@@ -221,7 +246,10 @@ export default function AccountScreen() {
                 maxLength={72}
                 secureTextEntry
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(value) => {
+                  setPassword(value);
+                  setMessage(null);
+                }}
                 placeholder={t("account.passwordPlaceholder")}
                 placeholderTextColor={colors.textMuted as string}
                 style={styles.input}
@@ -235,7 +263,10 @@ export default function AccountScreen() {
                     maxLength={72}
                     secureTextEntry
                     value={confirmPassword}
-                    onChangeText={setConfirmPassword}
+                    onChangeText={(value) => {
+                      setConfirmPassword(value);
+                      setMessage(null);
+                    }}
                     placeholder={t("account.confirmPasswordPlaceholder")}
                     placeholderTextColor={colors.textMuted as string}
                     style={styles.input}
@@ -250,7 +281,7 @@ export default function AccountScreen() {
                 </Pressable>
               )}
 
-              {!!(message || authError) && <Text style={styles.error}>{message || authError}</Text>}
+              {!!message && <Text style={styles.error}>{message}</Text>}
               <Button
                 label={t(mode === "register" ? "account.create" : "account.enter")}
                 onPress={submitAuth}
