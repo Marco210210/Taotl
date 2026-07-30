@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Button } from "@/components/Button";
@@ -12,6 +12,26 @@ import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme, type ThemeColors } from "@/theme";
 
 type AuthMode = "register" | "login";
+type AuthField =
+  | "handle"
+  | "firstName"
+  | "lastName"
+  | "displayName"
+  | "email"
+  | "password"
+  | "confirmPassword";
+type FieldErrors = Partial<Record<AuthField, string>>;
+
+const REGISTER_FIELD_ORDER: AuthField[] = [
+  "handle",
+  "firstName",
+  "lastName",
+  "displayName",
+  "email",
+  "password",
+  "confirmPassword",
+];
+const LOGIN_FIELD_ORDER: AuthField[] = ["handle", "password"];
 
 function sanitizeHandleInput(value: string): string {
   return value
@@ -61,6 +81,14 @@ export default function AccountScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const handleRef = useRef<TextInput>(null);
+  const firstNameRef = useRef<TextInput>(null);
+  const lastNameRef = useRef<TextInput>(null);
+  const displayNameRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
 
   const normalizedHandle = useMemo(() => sanitizeHandleInput(handle), [handle]);
 
@@ -70,30 +98,70 @@ export default function AccountScreen() {
     /[A-ZÀ-ÖØ-Þ]/.test(value) &&
     /[0-9]/.test(value);
 
-  const submitAuth = async () => {
+  const focusField = (field: AuthField) => {
+    const target =
+      field === "handle"
+        ? handleRef
+        : field === "firstName"
+          ? firstNameRef
+          : field === "lastName"
+            ? lastNameRef
+            : field === "displayName"
+              ? displayNameRef
+              : field === "email"
+                ? emailRef
+                : field === "password"
+                  ? passwordRef
+                  : confirmPasswordRef;
+    target.current?.focus();
+  };
+
+  const updateVisibleFieldError = (field: AuthField, nextError: string | null) => {
     setMessage(null);
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      if (nextError) {
+        next[field] = nextError;
+      } else {
+        delete next[field];
+      }
+      return next;
+    });
+  };
+
+  const validateAuthFields = (): FieldErrors => {
+    const errors: FieldErrors = {};
+
     if (!/^[a-z0-9_]{3,24}$/.test(normalizedHandle)) {
-      setMessage(t("account.invalidHandle"));
-      return;
+      errors.handle = t("account.invalidHandle");
+    }
+    if (mode === "register") {
+      if (!firstName.trim()) errors.firstName = t("account.invalidFirstName");
+      if (!lastName.trim()) errors.lastName = t("account.invalidLastName");
+      if (!displayName.trim()) errors.displayName = t("account.invalidName");
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) {
+        errors.email = t("account.invalidEmail");
+      }
     }
     if (!isPasswordValid(password)) {
-      setMessage(t("account.invalidPassword"));
-      return;
+      errors.password = t("account.invalidPassword");
     }
-    if (mode === "register" && !displayName.trim()) {
-      setMessage(t("account.invalidName"));
-      return;
+    if (mode === "register" && (!confirmPassword || password !== confirmPassword)) {
+      errors.confirmPassword = t("account.passwordMismatch");
     }
-    if (mode === "register" && (!firstName.trim() || !lastName.trim())) {
-      setMessage(t("account.invalidFullName"));
-      return;
-    }
-    if (mode === "register" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) {
-      setMessage(t("account.invalidEmail"));
-      return;
-    }
-    if (mode === "register" && password !== confirmPassword) {
-      setMessage(t("account.passwordMismatch"));
+
+    return errors;
+  };
+
+  const submitAuth = async () => {
+    setMessage(null);
+    const nextErrors = validateAuthFields();
+    setFieldErrors(nextErrors);
+    const fieldOrder = mode === "register" ? REGISTER_FIELD_ORDER : LOGIN_FIELD_ORDER;
+    const firstInvalidField = fieldOrder.find((field) => nextErrors[field]);
+    if (firstInvalidField) {
+      setTimeout(() => focusField(firstInvalidField), 0);
       return;
     }
     try {
@@ -111,7 +179,23 @@ export default function AccountScreen() {
       }
       setPassword("");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : authError);
+      const errorMessage = error instanceof Error ? error.message : authError;
+      const normalizedError = errorMessage?.toLocaleLowerCase("it") ?? "";
+      const serverField =
+        normalizedError.includes("email")
+          ? "email"
+          : normalizedError.includes("taotl id")
+            ? "handle"
+            : normalizedError.includes("password")
+              ? "password"
+              : null;
+
+      if (serverField && errorMessage) {
+        setFieldErrors((current) => ({ ...current, [serverField]: errorMessage }));
+        setTimeout(() => focusField(serverField), 0);
+      } else {
+        setMessage(errorMessage);
+      }
     }
   };
 
@@ -154,6 +238,7 @@ export default function AccountScreen() {
                   onPress={() => {
                     setMode(value);
                     setMessage(null);
+                    setFieldErrors({});
                   }}
                   style={[styles.tab, mode === value && styles.tabActive]}
                 >
@@ -167,62 +252,79 @@ export default function AccountScreen() {
             <Card>
               <Text style={styles.label}>{t("account.handle")}</Text>
               <TextInput
+                ref={handleRef}
                 autoCapitalize="none"
                 autoCorrect={false}
                 maxLength={24}
                 value={handle}
                 onChangeText={(value) => {
-                  setHandle(sanitizeHandleInput(value));
-                  setMessage(null);
+                  const nextValue = sanitizeHandleInput(value);
+                  setHandle(nextValue);
+                  updateVisibleFieldError(
+                    "handle",
+                    /^[a-z0-9_]{3,24}$/.test(nextValue) ? null : t("account.invalidHandle"),
+                  );
                 }}
                 placeholder={t("account.handlePlaceholder")}
                 placeholderTextColor={colors.textMuted as string}
-                style={styles.input}
+                style={[styles.input, fieldErrors.handle && styles.inputError]}
               />
+              {fieldErrors.handle ? (
+                <Text style={styles.fieldError}>{fieldErrors.handle}</Text>
+              ) : (
+                <Text style={styles.fieldHint}>{t("account.handleHint")}</Text>
+              )}
 
               {mode === "register" && (
                 <>
                   <Text style={styles.label}>{t("account.firstName")}</Text>
                   <TextInput
+                    ref={firstNameRef}
                     maxLength={80}
                     value={firstName}
                     onChangeText={(value) => {
                       setFirstName(value);
-                      setMessage(null);
+                      updateVisibleFieldError("firstName", value.trim() ? null : t("account.invalidFirstName"));
                     }}
                     placeholder={t("account.firstNamePlaceholder")}
                     placeholderTextColor={colors.textMuted as string}
-                    style={styles.input}
+                    style={[styles.input, fieldErrors.firstName && styles.inputError]}
                   />
+                  {!!fieldErrors.firstName && <Text style={styles.fieldError}>{fieldErrors.firstName}</Text>}
 
                   <Text style={styles.label}>{t("account.lastName")}</Text>
                   <TextInput
+                    ref={lastNameRef}
                     maxLength={80}
                     value={lastName}
                     onChangeText={(value) => {
                       setLastName(value);
-                      setMessage(null);
+                      updateVisibleFieldError("lastName", value.trim() ? null : t("account.invalidLastName"));
                     }}
                     placeholder={t("account.lastNamePlaceholder")}
                     placeholderTextColor={colors.textMuted as string}
-                    style={styles.input}
+                    style={[styles.input, fieldErrors.lastName && styles.inputError]}
                   />
+                  {!!fieldErrors.lastName && <Text style={styles.fieldError}>{fieldErrors.lastName}</Text>}
 
                   <Text style={styles.label}>{t("account.displayName")}</Text>
                   <TextInput
+                    ref={displayNameRef}
                     maxLength={80}
                     value={displayName}
                     onChangeText={(value) => {
                       setDisplayName(value);
-                      setMessage(null);
+                      updateVisibleFieldError("displayName", value.trim() ? null : t("account.invalidName"));
                     }}
                     placeholder={t("account.displayNamePlaceholder")}
                     placeholderTextColor={colors.textMuted as string}
-                    style={styles.input}
+                    style={[styles.input, fieldErrors.displayName && styles.inputError]}
                   />
+                  {!!fieldErrors.displayName && <Text style={styles.fieldError}>{fieldErrors.displayName}</Text>}
 
                   <Text style={styles.label}>{t("account.email")}</Text>
                   <TextInput
+                    ref={emailRef}
                     autoCapitalize="none"
                     autoCorrect={false}
                     keyboardType="email-address"
@@ -230,17 +332,22 @@ export default function AccountScreen() {
                     value={email}
                     onChangeText={(value) => {
                       setEmail(value);
-                      setMessage(null);
+                      updateVisibleFieldError(
+                        "email",
+                        /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value.trim()) ? null : t("account.invalidEmail"),
+                      );
                     }}
                     placeholder={t("account.emailPlaceholder")}
                     placeholderTextColor={colors.textMuted as string}
-                    style={styles.input}
+                    style={[styles.input, fieldErrors.email && styles.inputError]}
                   />
+                  {!!fieldErrors.email && <Text style={styles.fieldError}>{fieldErrors.email}</Text>}
                 </>
               )}
 
               <Text style={styles.label}>{t("account.password")}</Text>
               <TextInput
+                ref={passwordRef}
                 autoCapitalize="none"
                 autoCorrect={false}
                 maxLength={72}
@@ -248,16 +355,31 @@ export default function AccountScreen() {
                 value={password}
                 onChangeText={(value) => {
                   setPassword(value);
-                  setMessage(null);
+                  updateVisibleFieldError(
+                    "password",
+                    isPasswordValid(value) ? null : t("account.invalidPassword"),
+                  );
+                  if (mode === "register") {
+                    updateVisibleFieldError(
+                      "confirmPassword",
+                      value === confirmPassword ? null : t("account.passwordMismatch"),
+                    );
+                  }
                 }}
                 placeholder={t("account.passwordPlaceholder")}
                 placeholderTextColor={colors.textMuted as string}
-                style={styles.input}
+                style={[styles.input, fieldErrors.password && styles.inputError]}
               />
+              {fieldErrors.password ? (
+                <Text style={styles.fieldError}>{fieldErrors.password}</Text>
+              ) : mode === "register" ? (
+                <Text style={styles.fieldHint}>{t("account.passwordHint")}</Text>
+              ) : null}
               {mode === "register" && (
                 <>
                   <Text style={styles.label}>{t("account.confirmPassword")}</Text>
                   <TextInput
+                    ref={confirmPasswordRef}
                     autoCapitalize="none"
                     autoCorrect={false}
                     maxLength={72}
@@ -265,13 +387,18 @@ export default function AccountScreen() {
                     value={confirmPassword}
                     onChangeText={(value) => {
                       setConfirmPassword(value);
-                      setMessage(null);
+                      updateVisibleFieldError(
+                        "confirmPassword",
+                        value === password ? null : t("account.passwordMismatch"),
+                      );
                     }}
                     placeholder={t("account.confirmPasswordPlaceholder")}
                     placeholderTextColor={colors.textMuted as string}
-                    style={styles.input}
+                    style={[styles.input, fieldErrors.confirmPassword && styles.inputError]}
                   />
-                  <Text style={styles.security}>{t("account.passwordHint")}</Text>
+                  {!!fieldErrors.confirmPassword && (
+                    <Text style={styles.fieldError}>{fieldErrors.confirmPassword}</Text>
+                  )}
                 </>
               )}
 
@@ -386,6 +513,25 @@ function makeStyles(colors: ThemeColors) {
       paddingHorizontal: 14,
       fontFamily: theme.font.family.semibold,
       fontSize: 15,
+    },
+    inputError: {
+      borderWidth: 2,
+      borderColor: colors.danger,
+      backgroundColor: colors.negativeSoft,
+    },
+    fieldError: {
+      marginTop: -4,
+      color: colors.danger,
+      fontFamily: theme.font.family.bold,
+      fontSize: 11,
+      lineHeight: 15,
+    },
+    fieldHint: {
+      marginTop: -4,
+      color: colors.textMuted,
+      fontFamily: theme.font.family.medium,
+      fontSize: 10.5,
+      lineHeight: 15,
     },
     codeInput: { letterSpacing: 5, textAlign: "center", fontFamily: theme.font.family.extraBold, fontSize: 20 },
     forgotLink: { minHeight: 32, justifyContent: "center", alignItems: "flex-end" },
