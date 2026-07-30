@@ -153,19 +153,12 @@ function BiddingStep({
     .reduce((sum, playerId) => sum + (calls[playerId] ?? 0), 0);
   const forbiddenBid = getForbiddenBidForDealer(otherBidsSum, roundInfo.cardsDealt);
   const total = roundInfo.biddingOrder.reduce((sum, playerId) => sum + (calls[playerId] ?? 0), 0);
-  const valid = total !== roundInfo.cardsDealt && calls[dealerId] !== forbiddenBid;
+  const dealerHasForbiddenBid = forbiddenBid !== null && calls[dealerId] === forbiddenBid;
+  const valid = total !== roundInfo.cardsDealt && !dealerHasForbiddenBid;
 
   useEffect(() => {
     setCalls(Object.fromEntries(roundInfo.biddingOrder.map((playerId) => [playerId, 0])));
   }, [roundInfo.index, roundInfo.biddingOrder]);
-
-  useEffect(() => {
-    if (forbiddenBid === null || calls[dealerId] !== forbiddenBid) return;
-    setCalls((previous) => ({
-      ...previous,
-      [dealerId]: forbiddenBid === 0 ? Math.min(1, roundInfo.cardsDealt) : 0,
-    }));
-  }, [calls, dealerId, forbiddenBid, roundInfo.cardsDealt]);
 
   const confirm = () => {
     if (!valid) return;
@@ -218,6 +211,12 @@ function BiddingStep({
           </Pressable>
         )}
       </View>
+
+      {dealerHasForbiddenBid && (
+        <Text style={styles.bidWarning}>
+          {t("game.dealerBidWarning")} {forbiddenBid}. {t("game.chooseAnotherBid")}
+        </Text>
+      )}
 
       <View style={styles.callsList}>
         {roundInfo.biddingOrder.map((playerId) => {
@@ -299,6 +298,18 @@ function makeStyles(colors: ThemeColors) {
     callName: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 14.5 },
     callMeta: { marginTop: 2, color: colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 10.5 },
     dealerMeta: { color: colors.terracotta },
+    bidWarning: {
+      padding: 12,
+      borderRadius: 11,
+      borderWidth: 1,
+      borderColor: colors.warning,
+      color: colors.warning,
+      backgroundColor: colors.negativeSoft,
+      fontFamily: theme.font.family.bold,
+      fontSize: 11.5,
+      lineHeight: 17,
+      textAlign: "center",
+    },
     bidFooter: { gap: 9 },
     sumLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
     sumLabel: { color: colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 12 },

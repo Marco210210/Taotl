@@ -53,6 +53,7 @@ export default function ScoringScreen() {
   if (!game || game.status !== "scoring" || !currentRoundInfo) return null;
 
   const playerById = new Map(game.players.map((p) => [p.id, p]));
+  const totalBids = game.pendingBids.reduce((sum, bid) => sum + bid.bid, 0);
   const allPlayersDecided = game.pendingBids.every((b) => {
     const draft = drafts[b.playerId];
     if (!draft || draft.respected === null) return false;
@@ -128,7 +129,7 @@ export default function ScoringScreen() {
         description={t("game.resultsDescription")}
       />
       <View style={styles.statsRow}>
-        <StatBox label={t("game.cardsEach")} value={currentRoundInfo.cardsDealt} />
+        <StatBox label={t("game.bidsOnCards")} value={`${totalBids}/${currentRoundInfo.cardsDealt}`} />
         <StatBox label={t("game.trick")} value={`± ${currentRoundInfo.presaValue}`} />
         <StatBox label={t("game.respect")} value={`+ ${currentRoundInfo.rispettoValue}`} />
       </View>
