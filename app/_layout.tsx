@@ -66,15 +66,19 @@ function AppNavigation() {
   const { resolvedTheme, t, colors } = useAppSettings();
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background as string }}>
+      <SafeAreaProvider style={{ backgroundColor: colors.background as string }}>
         <AccountProvider>
           <GameProvider>
             <SetupProvider>
             <StatusBar style={resolvedTheme === "dark" ? "light" : "dark"} />
             <Stack
               screenOptions={{
-                headerStyle: { backgroundColor: colors.surface as string },
+                // Nel tema scuro `surface` è volutamente semitrasparente. Un
+                // header nativo semitrasparente viene composto sul bianco di
+                // sistema e crea la fascia chiara visibile su iOS. Per la barra
+                // di navigazione serve invece uno sfondo sempre opaco.
+                headerStyle: { backgroundColor: colors.background as string },
                 headerTintColor: colors.text as string,
                 headerTitleStyle: { fontFamily: theme.font.family.bold, fontSize: 15 },
                 headerShadowVisible: false,
