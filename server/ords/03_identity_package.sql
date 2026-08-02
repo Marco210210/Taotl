@@ -751,6 +751,8 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
                  'id'             VALUE a.id,
                  'handle'         VALUE a.handle_normalized,
                  'displayName'    VALUE a.display_name,
+                 'firstName'      VALUE a.first_name,
+                 'lastName'       VALUE a.last_name,
                  'linkedPlayerId' VALUE ap.player_id
                  RETURNING CLOB
                )
