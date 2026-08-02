@@ -104,6 +104,7 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
   ) IS
     v_name players.name%TYPE;
     v_exists NUMBER;
+    v_linked NUMBER;
   BEGIN
     check_app_key(p_key);
 
@@ -113,6 +114,15 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
 
     IF TRIM(v_name) IS NULL THEN
       RAISE_APPLICATION_ERROR(-20400, 'Il nome del giocatore è obbligatorio.');
+    END IF;
+
+    SELECT COUNT(*)
+      INTO v_linked
+      FROM taotl_account_players
+     WHERE player_id = p_id;
+    IF v_linked > 0 THEN
+      RAISE_APPLICATION_ERROR(-20409,
+        'Il nome è gestito dal Taotl ID collegato e non può essere modificato dalla rubrica.');
     END IF;
 
     SELECT COUNT(*)
