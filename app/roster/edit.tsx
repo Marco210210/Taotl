@@ -4,6 +4,7 @@ import type { Href } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
+import { fetchAdminAccounts } from "@/api/leaderboard";
 import { Button } from "@/components/Button";
 import { LinearBackButton } from "@/components/LinearBackButton";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -12,6 +13,8 @@ import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useRoster } from "@/state/useRoster";
 import { theme, type ThemeColors } from "@/theme";
+
+type AccountLinkStatus = "not-applicable" | "checking" | "linked" | "unlinked" | "unavailable";
 
 export default function EditPlayerScreen() {
   const { t, colors } = useAppSettings();
@@ -33,6 +36,7 @@ export default function EditPlayerScreen() {
   const [loadedPlayerId, setLoadedPlayerId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [accountLinkStatus, setAccountLinkStatus] = useState<AccountLinkStatus>("not-applicable");
 
   useEffect(() => {
     if (existing && loadedPlayerId !== existing.id) {
@@ -41,6 +45,41 @@ export default function EditPlayerScreen() {
       setLoadedPlayerId(existing.id);
     }
   }, [existing, loadedPlayerId]);
+
+  useEffect(() => {
+    if (!existing) {
+      setAccountLinkStatus("not-applicable");
+      return;
+    }
+    if (account?.linkedPlayerId === existing.id) {
+      setAccountLinkStatus("linked");
+      return;
+    }
+    if (!account?.isAdmin || !token) {
+      setAccountLinkStatus("not-applicable");
+      return;
+    }
+
+    let active = true;
+    setAccountLinkStatus("checking");
+    fetchAdminAccounts(token)
+      .then((accounts) => {
+        if (!active) return;
+        setAccountLinkStatus(
+          accounts.some((candidate) => candidate.linkedPlayerId === existing.id) ? "linked" : "unlinked",
+        );
+      })
+      .catch(() => {
+        if (active) setAccountLinkStatus("unavailable");
+      });
+    return () => {
+      active = false;
+    };
+  }, [account?.isAdmin, account?.linkedPlayerId, existing, token]);
+
+  const isNameLocked = accountLinkStatus === "linked"
+    || accountLinkStatus === "checking"
+    || accountLinkStatus === "unavailable";
 
   const pickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -71,7 +110,7 @@ export default function EditPlayerScreen() {
       let playerId: string;
       if (existing) {
         playerId = existing.id;
-        if (trimmed !== existing.name) {
+        if (!isNameLocked && trimmed !== existing.name) {
           await renamePlayer(playerId, trimmed);
         }
       } else {
@@ -163,10 +202,17 @@ export default function EditPlayerScreen() {
         <TextInput
           value={name}
           onChangeText={setName}
+          editable={!isNameLocked}
           placeholder={t("player.namePlaceholder")}
           placeholderTextColor={colors.textMuted as string}
-          style={styles.input}
+          style={[styles.input, isNameLocked && styles.inputLocked]}
         />
+        {accountLinkStatus === "linked" && (
+          <Text style={styles.fieldHint}>{t("player.linkedNameLocked")}</Text>
+        )}
+        {accountLinkStatus === "unavailable" && (
+          <Text style={styles.fieldError}>{t("player.accountLinkUnavailable")}</Text>
+        )}
       </View>
 
       <Button label={t("common.save")} onPress={handleSave} loading={saving} disabled={!name.trim()} />
@@ -201,6 +247,21 @@ function makeStyles(colors: ThemeColors) {
       paddingVertical: 10,
       color: colors.text,
       fontSize: theme.font.body,
+    },
+    inputLocked: { color: colors.textMuted, opacity: 0.72 },
+    fieldHint: {
+      marginTop: 6,
+      color: colors.textMuted,
+      fontSize: 10.5,
+      lineHeight: 15,
+      fontFamily: theme.font.family.medium,
+    },
+    fieldError: {
+      marginTop: 6,
+      color: colors.danger,
+      fontSize: 10.5,
+      lineHeight: 15,
+      fontFamily: theme.font.family.semibold,
     },
   });
 }

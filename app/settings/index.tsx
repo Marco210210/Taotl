@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 
-import { BUILD_STAMP } from "@/buildInfo";
+import { APP_VERSION, BUILD_STAMP } from "@/buildInfo";
 import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import {
@@ -81,7 +81,7 @@ export default function SettingsScreen() {
       </Card>
 
       <Text style={styles.note}>{t("settings.accountNote")}</Text>
-      <Text style={styles.buildStamp}>{t("settings.build")} {BUILD_STAMP}</Text>
+      <Text style={styles.buildStamp}>{t("settings.build")} {APP_VERSION} · {BUILD_STAMP}</Text>
     </ScreenContainer>
   );
 }
