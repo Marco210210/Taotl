@@ -13,6 +13,7 @@ import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useRoster } from "@/state/useRoster";
 import { theme, type ThemeColors } from "@/theme";
+import { appDateInputToIso, normalizeAppDateInput } from "@/utils/date";
 
 export default function AddManualGameScreen() {
   const { from } = useLocalSearchParams<{ from?: string }>();
@@ -43,9 +44,14 @@ export default function AddManualGameScreen() {
 
   const handleSubmit = async () => {
     if (!token || !winnerId) return;
-    if (playedAt.trim() && !/^\d{4}-\d{2}-\d{2}$/.test(playedAt.trim())) {
-      setError(t("leaderboard.invalidDate"));
-      return;
+    let playedAtIso: string | undefined;
+    if (playedAt.trim()) {
+      const parsedDate = appDateInputToIso(playedAt);
+      if (!parsedDate) {
+        setError(t("leaderboard.invalidDate"));
+        return;
+      }
+      playedAtIso = parsedDate;
     }
     setSaving(true);
     setError(null);
@@ -54,7 +60,7 @@ export default function AddManualGameScreen() {
         players: winnerOnly ? [] : selectedIds,
         winnerId,
         winnerOnly,
-        playedAt: playedAt.trim() || undefined,
+        playedAt: playedAtIso,
       });
       router.dismissTo(backDestination);
     } catch (reason) {
@@ -171,7 +177,10 @@ export default function AddManualGameScreen() {
       <Text style={styles.sectionTitle}>{t("leaderboard.playedAt")}</Text>
       <TextInput
         value={playedAt}
-        onChangeText={setPlayedAt}
+        onChangeText={(value) => {
+          setPlayedAt(normalizeAppDateInput(value));
+          if (error === t("leaderboard.invalidDate")) setError(null);
+        }}
         placeholder={t("leaderboard.playedAtPlaceholder")}
         placeholderTextColor={colors.textMuted as string}
         style={styles.input}

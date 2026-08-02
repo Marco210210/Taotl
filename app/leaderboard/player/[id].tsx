@@ -21,7 +21,7 @@ import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme, type ThemeColors } from "@/theme";
 
 export default function LeaderboardPlayerScreen() {
-  const { locale, t, colors } = useAppSettings();
+  const { t, colors } = useAppSettings();
   const { account, token } = useAccount();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
@@ -92,7 +92,6 @@ export default function LeaderboardPlayerScreen() {
         player={player}
         games={games}
         officialStats={officialStats}
-        locale={locale}
         t={t}
         fromPath="leaderboard"
         leaderboardOrigin={from}

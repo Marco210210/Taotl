@@ -10,11 +10,12 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme, type ThemeColors } from "@/theme";
+import { formatAppDate } from "@/utils/date";
 
 export default function HistoryScreen() {
   const { from } = useLocalSearchParams<{ from?: string }>();
   const backDestination = from === "admin" ? "/admin" : "/";
-  const { locale, t, colors } = useAppSettings();
+  const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const [games, setGames] = useState<GameHistorySummaryDTO[]>([]);
   const [fromCache, setFromCache] = useState(false);
@@ -65,11 +66,7 @@ export default function HistoryScreen() {
           <Card style={styles.gameCard}>
             <View style={styles.titleRow}>
               <Text style={styles.date}>
-                {new Date(g.startedAt).toLocaleDateString(locale, {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                }).toUpperCase()}
+                {formatAppDate(g.startedAt)}
               </Text>
               <Text style={styles.meta}>{t(`mode.${g.mode}`)} · {g.numPlayers} {t("history.players")}</Text>
             </View>

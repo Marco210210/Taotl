@@ -16,7 +16,7 @@ import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme, type ThemeColors } from "@/theme";
 
 export default function MyProfileScreen() {
-  const { locale, t, colors } = useAppSettings();
+  const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { account } = useAccount();
   const [players, setPlayers] = useState<Player[]>([]);
@@ -124,7 +124,6 @@ export default function MyProfileScreen() {
           player={linkedPlayer}
           games={games}
           officialStats={officialStats}
-          locale={locale}
           t={t}
           fromPath="profile"
         />
