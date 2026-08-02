@@ -21,11 +21,13 @@ import { GameProvider } from "@/state/GameContext";
 import { SetupProvider } from "@/state/SetupContext";
 import { LinearBackButton } from "@/components/LinearBackButton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { installGlobalErrorReporting } from "@/monitoring/errorReporter";
 import { AccountProvider } from "@/state/AccountContext";
 import { AppSettingsProvider, useAppSettings } from "@/state/AppSettingsContext";
 import { theme } from "@/theme";
 
 void SplashScreen.preventAutoHideAsync();
+installGlobalErrorReporting();
 
 // L'error boundary è il componente più esterno apposta: un errore durante il
 // caricamento dei font (prima ancora che l'app abbia qualcosa da mostrare)
