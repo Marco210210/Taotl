@@ -3,6 +3,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import { Platform } from "react-native";
 
 import type { Player } from "@/game/types";
+import { reportError } from "@/monitoring/errorReporter";
 import { STORAGE_KEYS } from "@/state/storageKeys";
 import { generateId } from "@/utils/id";
 
@@ -94,10 +95,15 @@ export async function uploadPlayerPhoto(
         "Content-Type": contentType,
         Accept: "application/json",
       },
+    }).catch((error) => {
+      reportError("api.photoUpload", error, { path: `/players/${id}/photo`, method: "PUT" });
+      throw error;
     });
 
     if (response.status < 200 || response.status >= 300) {
-      throw new Error(`Caricamento della foto fallito (${response.status}).`);
+      const uploadError = new Error(`Caricamento della foto fallito (${response.status}).`);
+      reportError("api.photoUpload", uploadError, { path: `/players/${id}/photo`, status: response.status });
+      throw uploadError;
     }
   }
 

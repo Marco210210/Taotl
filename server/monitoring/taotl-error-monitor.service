@@ -1,0 +1,24 @@
+[Unit]
+Description=Taotl error collector and Telegram monitor
+After=network-online.target taotl-expo-go.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ubuntu/progetti/Taotl
+EnvironmentFile=/home/ubuntu/progetti/Taotl/.env
+EnvironmentFile=-/home/ubuntu/.config/taotl-monitor.env
+Environment=PYTHONUNBUFFERED=1
+Environment=TAOTL_MONITOR_BIND=127.0.0.1
+Environment=TAOTL_MONITOR_PORT=8091
+ExecStart=/usr/bin/python3 /home/ubuntu/progetti/Taotl/server/monitoring/error_collector.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/ubuntu/.local/state/taotl-monitor
+
+[Install]
+WantedBy=default.target

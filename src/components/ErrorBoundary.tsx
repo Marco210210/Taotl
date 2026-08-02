@@ -1,6 +1,8 @@
 import { Component, type ErrorInfo, type PropsWithChildren } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { reportError } from "@/monitoring/errorReporter";
+
 interface State {
   error: Error | null;
 }
@@ -23,6 +25,7 @@ export class ErrorBoundary extends Component<PropsWithChildren, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    reportError("react.render", error, { componentStack: info.componentStack ?? undefined });
     console.error("Errore non gestito:", error, info.componentStack);
   }
 

@@ -22,6 +22,7 @@ export default function SetupPlayersScreen() {
   const { selectedPlayers, togglePlayer } = useSetup();
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   const selectedIds = new Set(selectedPlayers.map((player) => player.id));
   const canAddMore = selectedPlayers.length < MAX_PLAYERS;
@@ -31,10 +32,13 @@ export default function SetupPlayersScreen() {
     const name = newName.trim();
     if (!name) return;
     setAdding(true);
+    setAddError(null);
     try {
       const player = await addPlayer(name);
       if (canAddMore) togglePlayer(player);
       setNewName("");
+    } catch (error) {
+      setAddError(error instanceof Error ? error.message : t("players.addFailed"));
     } finally {
       setAdding(false);
     }
@@ -90,7 +94,10 @@ export default function SetupPlayersScreen() {
       <View style={styles.addRow}>
         <TextInput
           value={newName}
-          onChangeText={setNewName}
+          onChangeText={(value) => {
+            setNewName(value);
+            setAddError(null);
+          }}
           placeholder={t("players.addPlaceholder")}
           placeholderTextColor={colors.textMuted as string}
           style={styles.input}
@@ -107,6 +114,7 @@ export default function SetupPlayersScreen() {
           <Text pointerEvents="none" style={styles.addButtonText}>{adding ? "…" : "+"}</Text>
         </Pressable>
       </View>
+      {!!addError && <Text style={styles.addError}>{addError}</Text>}
 
       <View style={styles.list}>
         {loading && <Text style={styles.helper}>{t("players.loading")}</Text>}
@@ -202,6 +210,16 @@ function makeStyles(colors: ThemeColors) {
       backgroundColor: colors.text,
     },
     addButtonText: { color: colors.background, fontFamily: theme.font.family.regular, fontSize: 28 },
+    addError: {
+      marginTop: -4,
+      padding: 11,
+      borderRadius: 10,
+      color: colors.danger,
+      backgroundColor: colors.negativeSoft,
+      fontFamily: theme.font.family.bold,
+      fontSize: 11.5,
+      lineHeight: 17,
+    },
     list: { gap: 9 },
     playerRow: {
       minHeight: 64,
