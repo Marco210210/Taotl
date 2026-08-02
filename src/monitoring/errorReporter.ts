@@ -4,6 +4,12 @@ type ErrorContextValue = string | number | boolean | null | undefined;
 
 const recentReports = new Map<string, number>();
 const DEDUPLICATION_WINDOW_MS = 30_000;
+let globalHandlerInstalled = false;
+
+interface ErrorUtilsLike {
+  getGlobalHandler?: () => (error: Error, isFatal?: boolean) => void;
+  setGlobalHandler: (handler: (error: Error, isFatal?: boolean) => void) => void;
+}
 
 function redact(value: string, maxLength: number): string {
   return value
@@ -65,4 +71,16 @@ export function reportError(
   }).catch(() => {
     // Il monitor non deve mai generare un secondo errore o bloccare l'app.
   });
+}
+
+export function installGlobalErrorReporting(): void {
+  if (globalHandlerInstalled) return;
+  const errorUtils = (globalThis as typeof globalThis & { ErrorUtils?: ErrorUtilsLike }).ErrorUtils;
+  if (!errorUtils?.setGlobalHandler) return;
+  const previousHandler = errorUtils.getGlobalHandler?.();
+  errorUtils.setGlobalHandler((error, isFatal) => {
+    reportError("javascript.global", error, { isFatal: !!isFatal });
+    previousHandler?.(error, isFatal);
+  });
+  globalHandlerInstalled = true;
 }
