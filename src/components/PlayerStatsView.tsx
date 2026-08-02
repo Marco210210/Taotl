@@ -22,6 +22,12 @@ interface PlayerStatsViewProps {
   t: (key: TranslationKey) => string;
   fromPath: "profile" | "leaderboard";
   leaderboardOrigin?: string;
+  showAccountInfo?: boolean;
+  accountInfo?: {
+    displayName: string;
+    handle: string;
+  } | null;
+  accountInfoUnavailable?: boolean;
 }
 
 // Condiviso fra "Il mio profilo" (le proprie statistiche) e la scheda di un
@@ -35,6 +41,9 @@ export function PlayerStatsView({
   t,
   fromPath,
   leaderboardOrigin,
+  showAccountInfo = false,
+  accountInfo = null,
+  accountInfoUnavailable = false,
 }: PlayerStatsViewProps) {
   const { colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -67,6 +76,31 @@ export function PlayerStatsView({
         <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={78} />
         <Text style={styles.profileName}>{player.name}</Text>
       </Card>
+
+      {showAccountInfo && (
+        <Card style={styles.accountCard}>
+          <View style={styles.accountHeader}>
+            <Text style={styles.accountTitle}>{t("leaderboard.accountTitle")}</Text>
+            {!accountInfoUnavailable && (
+              <View style={[styles.accountBadge, !accountInfo && styles.accountBadgeMissing]}>
+                <Text style={[styles.accountBadgeText, !accountInfo && styles.accountBadgeTextMissing]}>
+                  {t(accountInfo ? "leaderboard.accountLinked" : "leaderboard.accountNotLinked")}
+                </Text>
+              </View>
+            )}
+          </View>
+          {accountInfoUnavailable ? (
+            <Text style={styles.accountError}>{t("leaderboard.accountUnavailable")}</Text>
+          ) : accountInfo ? (
+            <View>
+              <Text style={styles.accountName}>{accountInfo.displayName}</Text>
+              <Text style={styles.accountHandle}>@{accountInfo.handle}</Text>
+            </View>
+          ) : (
+            <Text style={styles.accountHelper}>{t("leaderboard.accountMissingDescription")}</Text>
+          )}
+        </Card>
+      )}
 
       <View style={styles.statsGrid}>
         <Card style={styles.statCard}>
@@ -144,6 +178,37 @@ function makeStyles(colors: ThemeColors) {
     },
     profileCard: { alignItems: "center", paddingVertical: 20 },
     profileName: { color: colors.text, fontSize: theme.font.title, fontFamily: theme.font.family.extraBold },
+    accountCard: { gap: theme.spacing(1) },
+    accountHeader: { flexDirection: "row", alignItems: "center", gap: theme.spacing(1) },
+    accountTitle: {
+      flex: 1,
+      color: colors.text,
+      fontSize: theme.font.body,
+      fontFamily: theme.font.family.extraBold,
+    },
+    accountBadge: {
+      borderRadius: theme.radius.pill,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      backgroundColor: colors.positiveSoft,
+    },
+    accountBadgeMissing: { backgroundColor: colors.inkSoft },
+    accountBadgeText: {
+      color: colors.success,
+      fontSize: 9,
+      fontFamily: theme.font.family.extraBold,
+      textTransform: "uppercase",
+    },
+    accountBadgeTextMissing: { color: colors.textMuted },
+    accountName: { color: colors.text, fontSize: theme.font.body, fontFamily: theme.font.family.bold },
+    accountHandle: {
+      marginTop: 2,
+      color: colors.textMuted,
+      fontSize: theme.font.small,
+      fontFamily: theme.font.family.semibold,
+    },
+    accountHelper: { color: colors.textMuted, fontSize: theme.font.small, fontFamily: theme.font.family.medium },
+    accountError: { color: colors.danger, fontSize: theme.font.small, fontFamily: theme.font.family.semibold },
     statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing(1) },
     statCard: { width: "48%", flexGrow: 1, alignItems: "center", paddingHorizontal: theme.spacing(0.5) },
     statValue: { color: colors.success, fontSize: 18, fontFamily: theme.font.family.extraBold },

@@ -4,18 +4,25 @@ import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text } from "react-native";
 
 import { fetchHistory } from "@/api/games";
-import { fetchLeaderboard, type LeaderboardEntryDTO } from "@/api/leaderboard";
+import {
+  fetchAdminAccounts,
+  fetchLeaderboard,
+  type AdminAccountDTO,
+  type LeaderboardEntryDTO,
+} from "@/api/leaderboard";
 import { fetchRoster } from "@/api/players";
 import type { GameHistorySummaryDTO } from "@/api/types";
 import { PlayerStatsView } from "@/components/PlayerStatsView";
 import { LinearBackButton } from "@/components/LinearBackButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import type { Player } from "@/game/types";
+import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme, type ThemeColors } from "@/theme";
 
 export default function LeaderboardPlayerScreen() {
   const { locale, t, colors } = useAppSettings();
+  const { account, token } = useAccount();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
   const backDestination: Href =
@@ -25,17 +32,27 @@ export default function LeaderboardPlayerScreen() {
   const [player, setPlayer] = useState<Player | null>(null);
   const [games, setGames] = useState<GameHistorySummaryDTO[]>([]);
   const [officialStats, setOfficialStats] = useState<LeaderboardEntryDTO | undefined>();
+  const [linkedAccount, setLinkedAccount] = useState<AdminAccountDTO | null>(null);
+  const [accountInfoUnavailable, setAccountInfoUnavailable] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!id) return;
     let active = true;
-    Promise.all([fetchRoster(), fetchHistory(), fetchLeaderboard()])
-      .then(([roster, history, entries]) => {
+    const accountLookup = account?.isAdmin && token
+      ? fetchAdminAccounts(token)
+          .then((accounts) => ({ accounts, failed: false }))
+          .catch(() => ({ accounts: [] as AdminAccountDTO[], failed: true }))
+      : Promise.resolve({ accounts: [] as AdminAccountDTO[], failed: false });
+
+    Promise.all([fetchRoster(), fetchHistory(), fetchLeaderboard(), accountLookup])
+      .then(([roster, history, entries, accountResult]) => {
         if (!active) return;
         setPlayer(roster.players.find((entry) => entry.id === id) ?? null);
         setGames(history.games);
         setOfficialStats(entries.find((entry) => entry.playerId === id));
+        setLinkedAccount(accountResult.accounts.find((entry) => entry.linkedPlayerId === id) ?? null);
+        setAccountInfoUnavailable(accountResult.failed);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -43,7 +60,7 @@ export default function LeaderboardPlayerScreen() {
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [account?.isAdmin, id, token]);
 
   if (loading) {
     return (
@@ -79,6 +96,9 @@ export default function LeaderboardPlayerScreen() {
         t={t}
         fromPath="leaderboard"
         leaderboardOrigin={from}
+        showAccountInfo={Boolean(account?.isAdmin)}
+        accountInfo={linkedAccount}
+        accountInfoUnavailable={accountInfoUnavailable}
       />
     </ScreenContainer>
     </>
