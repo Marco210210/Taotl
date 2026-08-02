@@ -1,4 +1,5 @@
 import { getApiBaseUrl, getAppKey, REQUEST_TIMEOUT_MS } from "./config";
+import { reportError } from "@/monitoring/errorReporter";
 
 export class ApiUnavailableError extends Error {
   constructor(message = "Backend non configurato o non raggiungibile.") {
@@ -11,6 +12,9 @@ export class ApiRequestError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    readonly path: string,
+    readonly method: string,
+    readonly diagnostic?: string,
   ) {
     super(message);
     this.name = "ApiRequestError";
@@ -27,24 +31,36 @@ function messageForStatus(status: number): string {
   return "Il server non è riuscito a completare la richiesta. Riprova.";
 }
 
-async function readErrorMessage(response: Response): Promise<string> {
+interface ApiErrorDetails {
+  message: string;
+  diagnostic?: string;
+}
+
+async function readErrorDetails(response: Response): Promise<ApiErrorDetails> {
   const text = await response.text().catch(() => "");
   if (text) {
     try {
-      const payload = JSON.parse(text) as { message?: unknown };
+      const payload = JSON.parse(text) as { message?: unknown; cause?: unknown };
+      const cause = typeof payload.cause === "string" ? payload.cause.trim() : "";
+      const oracleMessage = cause.match(/ORA-20\d{3}:\s*([^\n]+)/)?.[1]?.trim();
+      if (oracleMessage) {
+        return { message: oracleMessage, diagnostic: cause.slice(0, 4_000) };
+      }
       if (
         typeof payload.message === "string" &&
         payload.message.trim() &&
         payload.message !== "Not Found" &&
         payload.message !== "The request could not be processed for a user defined resource"
       ) {
-        return payload.message.trim();
+        return { message: payload.message.trim(), diagnostic: text.slice(0, 4_000) };
       }
+      return { message: messageForStatus(response.status), diagnostic: (cause || text).slice(0, 4_000) };
     } catch {
       // La risposta non è JSON: si usa il messaggio sicuro associato allo status.
+      return { message: messageForStatus(response.status), diagnostic: text.slice(0, 4_000) };
     }
   }
-  return messageForStatus(response.status);
+  return { message: messageForStatus(response.status) };
 }
 
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -74,7 +90,21 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     });
 
     if (!response.ok) {
-      throw new ApiRequestError(await readErrorMessage(response), response.status);
+      const details = await readErrorDetails(response);
+      const requestError = new ApiRequestError(
+        details.message,
+        response.status,
+        path,
+        options.method ?? "GET",
+        details.diagnostic,
+      );
+      reportError("api.request", requestError, {
+        path,
+        method: requestError.method,
+        status: response.status,
+        diagnostic: details.diagnostic,
+      });
+      throw requestError;
     }
 
     if (response.status === 204) {
@@ -98,8 +128,11 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
   } catch (err) {
     if (err instanceof ApiUnavailableError || err instanceof ApiRequestError) throw err;
     if (err instanceof Error && err.name === "AbortError") {
-      throw new Error("Il server non ha risposto in tempo.");
+      const timeoutError = new Error("Il server non ha risposto in tempo.");
+      reportError("api.timeout", timeoutError, { path, method: options.method ?? "GET" });
+      throw timeoutError;
     }
+    reportError("api.network", err, { path, method: options.method ?? "GET" });
     throw err;
   } finally {
     clearTimeout(timeout);
