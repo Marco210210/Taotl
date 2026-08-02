@@ -24,7 +24,8 @@ interface PlayerStatsViewProps {
   leaderboardOrigin?: string;
   showAccountInfo?: boolean;
   accountInfo?: {
-    displayName: string;
+    firstName: string;
+    lastName: string;
     handle: string;
   } | null;
   accountInfoUnavailable?: boolean;
@@ -92,7 +93,9 @@ export function PlayerStatsView({
             <Text style={styles.accountError}>{t("leaderboard.accountUnavailable")}</Text>
           ) : accountInfo ? (
             <View>
-              <Text style={styles.accountName}>{accountInfo.displayName}</Text>
+              <Text style={styles.accountName}>
+                {`${accountInfo.firstName} ${accountInfo.lastName}`.trim()}
+              </Text>
               <Text style={styles.accountHandle}>@{accountInfo.handle}</Text>
             </View>
           ) : (

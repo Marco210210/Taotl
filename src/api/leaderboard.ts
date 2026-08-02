@@ -12,6 +12,8 @@ export interface AdminAccountDTO {
   id: string;
   handle: string;
   displayName: string;
+  firstName: string;
+  lastName: string;
   linkedPlayerId: string | null;
 }
 
