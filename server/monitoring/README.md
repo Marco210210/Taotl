@@ -13,10 +13,12 @@ Comandi del bot disponibili soltanto nella chat configurata:
 Il watchdog può riavviare soltanto il servizio Expo Go dopo due controlli falliti.
 Non riavvia e non modifica mai Oracle automaticamente.
 
-Le credenziali Telegram vanno salvate fuori dal repository:
+Le credenziali Telegram vanno salvate in `.env.telegram.local` alla radice del
+progetto (il file è escluso da Git):
 
 ```sh
-install -m 600 server/monitoring/taotl-monitor.env.example ~/.config/taotl-monitor.env
+cp server/monitoring/taotl-monitor.env.example .env.telegram.local
+chmod 600 .env.telegram.local
 systemctl --user restart taotl-error-monitor.service
 ```
 

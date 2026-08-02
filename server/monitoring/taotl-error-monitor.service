@@ -7,6 +7,7 @@ Wants=network-online.target
 Type=simple
 WorkingDirectory=/home/ubuntu/progetti/Taotl
 EnvironmentFile=/home/ubuntu/progetti/Taotl/.env
+EnvironmentFile=-/home/ubuntu/progetti/Taotl/.env.telegram.local
 EnvironmentFile=-/home/ubuntu/.config/taotl-monitor.env
 Environment=PYTHONUNBUFFERED=1
 Environment=TAOTL_MONITOR_BIND=127.0.0.1
