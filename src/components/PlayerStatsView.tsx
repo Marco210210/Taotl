@@ -9,6 +9,7 @@ import type { Player } from "@/game/types";
 import type { TranslationKey } from "@/i18n/translations";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme, type ThemeColors } from "@/theme";
+import { formatAppDate } from "@/utils/date";
 
 interface PlayerStatsViewProps {
   player: Player;
@@ -18,7 +19,6 @@ interface PlayerStatsViewProps {
     wins: number;
     rateWins: number;
   };
-  locale: string;
   t: (key: TranslationKey) => string;
   fromPath: "profile" | "leaderboard";
   leaderboardOrigin?: string;
@@ -37,7 +37,6 @@ export function PlayerStatsView({
   player,
   games,
   officialStats,
-  locale,
   t,
   fromPath,
   leaderboardOrigin,
@@ -151,7 +150,7 @@ export function PlayerStatsView({
               <View style={styles.gameRow}>
                 <View style={styles.gameInfo}>
                   <Text style={styles.gameTitle}>
-                    {new Date(game.startedAt).toLocaleDateString(locale)} · {game.numPlayers} {t("history.players")}
+                    {formatAppDate(game.startedAt)} · {game.numPlayers} {t("history.players")}
                   </Text>
                   <Text style={styles.helper}>{t("profile.position")} {position}</Text>
                 </View>

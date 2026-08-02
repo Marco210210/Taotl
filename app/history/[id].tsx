@@ -13,9 +13,10 @@ import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme, type ThemeColors } from "@/theme";
+import { formatAppDateTime } from "@/utils/date";
 
 export default function HistoryDetailScreen() {
-  const { locale, t, colors } = useAppSettings();
+  const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { account, token } = useAccount();
   const { id, from, playerId, leaderboardFrom } = useLocalSearchParams<{
@@ -130,7 +131,7 @@ export default function HistoryDetailScreen() {
       <View>
         <ScreenIntro
           title={t(`mode.${game.mode}`)}
-          description={`${new Date(game.startedAt).toLocaleString(locale)} · ${game.numPlayers} ${t("history.players")}`}
+          description={`${formatAppDateTime(game.startedAt)} · ${game.numPlayers} ${t("history.players")}`}
         />
         {fromCache && <Text style={styles.cacheNotice}>{t("history.localCopy")}</Text>}
       </View>
