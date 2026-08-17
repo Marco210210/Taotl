@@ -664,6 +664,12 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
       ELSE TO_TIMESTAMP_TZ(v_played_at_s || ' 12:00:00 +00:00', 'YYYY-MM-DD HH24:MI:SS TZH:TZM')
     END;
 
+    IF EXTRACT(YEAR FROM v_played_at) < 1900
+       OR TRUNC(CAST(v_played_at AT TIME ZONE 'UTC' AS DATE))
+          > TRUNC(CAST(SYSTIMESTAMP AT TIME ZONE 'UTC' AS DATE)) THEN
+      RAISE_APPLICATION_ERROR(-20400, 'La data della partita non può essere futura.');
+    END IF;
+
     SELECT COUNT(*) INTO v_num_players
       FROM JSON_TABLE(p_body, '$.players[*]' COLUMNS (player_id VARCHAR2(60) PATH '$'));
 

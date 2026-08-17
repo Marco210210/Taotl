@@ -142,17 +142,24 @@ export default function HistoryDetailScreen() {
       </View>
 
       <Card>
-        <Text style={styles.sectionTitle}>{t("history.finalStandings")}</Text>
+        <Text style={styles.sectionTitle}>
+          {game.mode === "manuale" ? t("history.manualParticipants") : t("history.finalStandings")}
+        </Text>
         {game.standings.map((standing, index) => (
           <View key={standing.playerId} style={styles.row}>
-            <Text style={styles.position}>{index + 1}</Text>
+            <Text style={styles.position}>
+              {game.mode === "manuale" && standing.playerId === game.winnerId ? "🏆" : index + 1}
+            </Text>
             <Text style={styles.name}>{standing.name}</Text>
-            <Text style={[styles.score, standing.total < 0 && styles.negative]}>{standing.total}</Text>
+            <Text style={[styles.score, (standing.total ?? 0) < 0 && styles.negative]}>
+              {standing.total ?? "—"}
+            </Text>
           </View>
         ))}
       </Card>
 
-      <Text style={styles.sectionTitle}>{t("history.allRounds")}</Text>
+      {game.mode === "manuale" && <Text style={styles.helper}>{t("history.manualNoRounds")}</Text>}
+      {game.mode !== "manuale" && <Text style={styles.sectionTitle}>{t("history.allRounds")}</Text>}
       {game.rounds.map((round) => (
         <Card key={round.index}>
           <Text style={styles.roundTitle}>

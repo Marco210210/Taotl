@@ -219,7 +219,10 @@ export default function AddManualGameScreen() {
         }}
         placeholder={t("leaderboard.playedAtPlaceholder")}
         placeholderTextColor={colors.textMuted as string}
-        style={styles.input}
+        keyboardType="number-pad"
+        inputMode="numeric"
+        maxLength={10}
+        style={[styles.input, error === t("leaderboard.invalidDate") && styles.inputError]}
       />
       <Text style={styles.helper}>{t("leaderboard.playedAtHint")}</Text>
 
@@ -299,6 +302,7 @@ function makeStyles(colors: ThemeColors) {
       fontFamily: theme.font.family.semibold,
       fontSize: 15,
     },
+    inputError: { borderColor: colors.danger, borderWidth: 1.5 },
     pressed: { opacity: 0.72 },
   });
 }

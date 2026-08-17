@@ -43,8 +43,14 @@ export default function ScoringScreen() {
   useEffect(() => {
     if (game?.status === "scoring") {
       const initial: Record<string, Draft> = {};
+      const previousByPlayer = new Map(
+        (game.pendingResultDrafts ?? []).map((result) => [result.playerId, result]),
+      );
       for (const bid of game.pendingBids) {
-        initial[bid.playerId] = { respected: null, scarto: 1 };
+        const previous = previousByPlayer.get(bid.playerId);
+        initial[bid.playerId] = previous
+          ? { respected: previous.respected, scarto: previous.respected ? 1 : previous.scarto }
+          : { respected: null, scarto: 1 };
       }
       setDrafts(initial);
     }

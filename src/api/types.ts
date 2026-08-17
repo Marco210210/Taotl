@@ -30,11 +30,12 @@ export interface GameSyncPayload {
 
 export interface GameHistorySummaryDTO {
   id: string;
-  mode: GameMode;
+  mode: GameMode | "manuale";
   numPlayers: number;
   startedAt: string;
   endedAt: string | null;
-  standings: { playerId: string; name: string; total: number }[];
+  winnerId?: string | null;
+  standings: { playerId: string; name: string; total: number | null }[];
 }
 
 export interface GameHistoryDetailDTO extends GameHistorySummaryDTO {

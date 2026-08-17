@@ -36,11 +36,11 @@ installGlobalErrorReporting();
 // pur lasciando un margine di ingrandimento reale.
 (Text as unknown as { defaultProps?: Record<string, unknown> }).defaultProps = {
   ...(Text as unknown as { defaultProps?: Record<string, unknown> }).defaultProps,
-  maxFontSizeMultiplier: 1.3,
+  maxFontSizeMultiplier: 1.15,
 };
 (TextInput as unknown as { defaultProps?: Record<string, unknown> }).defaultProps = {
   ...(TextInput as unknown as { defaultProps?: Record<string, unknown> }).defaultProps,
-  maxFontSizeMultiplier: 1.3,
+  maxFontSizeMultiplier: 1.15,
 };
 
 // L'error boundary è il componente più esterno apposta: un errore durante il

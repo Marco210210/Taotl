@@ -50,7 +50,11 @@ export default function HistoryScreen() {
       {loading && <Text style={styles.helper}>{t("history.loading")}</Text>}
       {!loading && games.length === 0 && <Text style={styles.helper}>{t("history.empty")}</Text>}
 
-      {games.map((g) => (
+      {games.map((g) => {
+        const winner = g.winnerId
+          ? g.standings.find((standing) => standing.playerId === g.winnerId)
+          : g.standings[0];
+        return (
         <Pressable
           key={g.id}
           accessibilityRole="button"
@@ -76,17 +80,20 @@ export default function HistoryScreen() {
               </View>
               <View style={styles.winnerInfo}>
                 <Text style={styles.winnerLabel}>{t("history.winner")}</Text>
-                <Text style={styles.winnerName}>{g.standings[0]?.name ?? "—"}</Text>
+                <Text style={styles.winnerName}>{winner?.name ?? "—"}</Text>
                 <Text style={styles.others}>
                   {g.standings.slice(1).map((standing) => standing.name).join(" · ") || t("history.twoPlayers")}
                 </Text>
               </View>
-              <Text style={styles.winnerScore}>{g.standings[0]?.total ?? 0}</Text>
+              <Text style={styles.winnerScore}>{winner?.total ?? "—"}</Text>
             </View>
-            <Text style={styles.openHint}>{t("history.openRounds")}</Text>
+            <Text style={styles.openHint}>
+              {g.mode === "manuale" ? t("history.openDetails") : t("history.openRounds")}
+            </Text>
           </Card>
         </Pressable>
-      ))}
+        );
+      })}
     </ScreenContainer>
     </>
   );

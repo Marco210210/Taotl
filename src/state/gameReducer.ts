@@ -32,6 +32,7 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
         rounds: [],
         pendingCardsDealt: null,
         pendingBids: [],
+        pendingResultDrafts: [],
         verifiedRoomId: verifiedRoomId ?? null,
         saveToAlbo,
         createdAt: new Date().toISOString(),
@@ -58,12 +59,12 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
 
     case "CONFIRM_BIDS": {
       if (!state) return state;
-      return { ...state, pendingBids: action.bids, status: "scoring" };
+      return { ...state, pendingBids: action.bids, pendingResultDrafts: [], status: "scoring" };
     }
 
     case "REOPEN_BIDS": {
       if (!state || state.status !== "scoring") return state;
-      return { ...state, pendingBids: [], status: "bidding" };
+      return { ...state, pendingBids: [], pendingResultDrafts: [], status: "bidding" };
     }
 
     case "SET_CURRENT_DEALER": {
@@ -96,6 +97,7 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
           ...state,
           rounds,
           pendingBids: [],
+          pendingResultDrafts: [],
           pendingCardsDealt: null,
           status: "finished",
           finishedAt: new Date().toISOString(),
@@ -104,7 +106,14 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
 
       const mode = state.mode;
       if (mode === "personalizzata") {
-        return { ...state, rounds, pendingBids: [], pendingCardsDealt: null, status: "awaiting-cards" };
+        return {
+          ...state,
+          rounds,
+          pendingBids: [],
+          pendingResultDrafts: [],
+          pendingCardsDealt: null,
+          status: "awaiting-cards",
+        };
       }
 
       const sequence = getFixedSequence(mode, state.players.length);
@@ -112,6 +121,7 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
         ...state,
         rounds,
         pendingBids: [],
+        pendingResultDrafts: [],
         pendingCardsDealt: sequence[rounds.length],
         status: "bidding",
       };
@@ -129,6 +139,7 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
         ...state,
         rounds,
         pendingBids,
+        pendingResultDrafts: lastRound.results,
         pendingCardsDealt: lastRound.info.cardsDealt,
         status: "scoring",
         finishedAt: null,

@@ -157,10 +157,14 @@ function DealerRow({
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
+        // Il tap continua a selezionare il mazziere; il trascinamento prende
+        // il controllo solo dopo un movimento verticale intenzionale.
+        onStartShouldSetPanResponder: () => false,
         onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dy) > 4,
+        onMoveShouldSetPanResponderCapture: (_, gesture) => Math.abs(gesture.dy) > 4,
         onPanResponderGrant: () => {
           targetIndex.current = index;
+          position.stopAnimation();
           dragOffset.setValue(0);
           setDragging(true);
           onDragStart();
@@ -198,6 +202,11 @@ function DealerRow({
             onDragEnd(index, target);
           });
         },
+        // Evita che lo ScrollView esterno interrompa il gesto appena il dito
+        // esce dalla maniglia: era la causa della riga che si evidenziava ma
+        // rimaneva ferma nel suo posto.
+        onPanResponderTerminationRequest: () => false,
+        onShouldBlockNativeResponder: () => true,
         onPanResponderTerminate: () => {
           Animated.parallel([
             Animated.spring(dragOffset, {
@@ -233,6 +242,7 @@ function DealerRow({
 
   return (
     <Animated.View
+      {...panResponder.panHandlers}
       style={[
         styles.animatedRow,
         dragging && styles.animatedRowDragging,
@@ -288,7 +298,7 @@ function DealerRow({
             <Text pointerEvents="none" style={styles.arrowText}>▼</Text>
           </Pressable>
         </View>
-        <View {...panResponder.panHandlers} style={styles.dragHandle} accessibilityLabel={`${labels.drag}: ${player.name}`}>
+        <View pointerEvents="none" style={styles.dragHandle} accessibilityLabel={`${labels.drag}: ${player.name}`}>
           <Text pointerEvents="none" style={styles.dragText}>⠿</Text>
         </View>
       </Pressable>

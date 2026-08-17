@@ -51,7 +51,7 @@ function makeStyles(colors: ThemeColors) {
       flex: 1,
       justifyContent: "center",
       padding: 22,
-      backgroundColor: "rgba(0, 0, 0, 0.58)",
+      backgroundColor: "rgba(0, 0, 0, 0.76)",
     },
     card: {
       width: "100%",
@@ -59,6 +59,16 @@ function makeStyles(colors: ThemeColors) {
       alignSelf: "center",
       padding: 20,
       gap: 12,
+      // `surface` è volutamente trasparente nel tema scuro. Nei popup deve
+      // essere invece totalmente opaco, altrimenti le scritte della pagina
+      // sottostante restano leggibili dentro al box.
+      backgroundColor: colors.background,
+      borderColor: colors.borderStrong,
+      shadowColor: "#000000",
+      shadowOffset: { width: 0, height: 12 },
+      shadowOpacity: 0.34,
+      shadowRadius: 24,
+      elevation: 18,
     },
     title: {
       color: colors.text,

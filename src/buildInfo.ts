@@ -2,5 +2,5 @@
 // poter verificare a colpo d'occhio (schermata Impostazioni) se il telefono
 // ha davvero ricaricato l'ultima versione del bundle, invece di riaprire una
 // sessione Expo Go rimasta in background con il codice precedente.
-export const APP_VERSION = "1.0.4";
-export const BUILD_STAMP = "17-08-2026 19:30 UTC";
+export const APP_VERSION = "1.0.5";
+export const BUILD_STAMP = "17-08-2026 20:40 UTC";

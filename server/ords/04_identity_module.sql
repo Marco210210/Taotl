@@ -47,7 +47,7 @@ BEGIN
   );
 
   ---------------------------------------------------------------------------
-  -- GET /taotl/games -> storico partite concluse, con classifica per partita
+  -- GET /taotl/games -> storico completo, incluse le partite inserite a mano
   ---------------------------------------------------------------------------
   ORDS.DEFINE_HANDLER(
     p_module_name => 'taotl.api',
@@ -61,7 +61,10 @@ BEGIN
                   JSON_OBJECT(
                     ''id''         VALUE g.id,
                     ''mode''       VALUE g.game_mode,
-                    ''numPlayers'' VALUE g.num_players,
+                    ''numPlayers'' VALUE (
+                      SELECT COUNT(*) FROM game_players gp_count WHERE gp_count.game_id = g.id
+                    ),
+                    ''winnerId''   VALUE g.winner_player_id,
                     ''startedAt''  VALUE
                       TO_CHAR(g.created_at,  ''YYYY-MM-DD"T"HH24:MI:SS.FF3TZH:TZM''),
                     ''endedAt''    VALUE
@@ -74,7 +77,7 @@ BEGIN
                                  ''total''    VALUE v.total
                                  RETURNING CLOB
                                )
-                               ORDER BY v.total DESC
+                               ORDER BY v.manual_won DESC, v.total DESC NULLS LAST
                                RETURNING CLOB
                              )
                         FROM game_standings_v v
@@ -88,8 +91,7 @@ BEGIN
                 TO_CLOB(''[]'')
               )
          FROM games g
-        WHERE g.finished_at IS NOT NULL
-          AND g.is_manual = ''N'''
+        WHERE g.finished_at IS NOT NULL'
   );
 
   ---------------------------------------------------------------------------
@@ -110,7 +112,10 @@ BEGIN
               JSON_OBJECT(
                 ''id''            VALUE g.id,
                 ''mode''          VALUE g.game_mode,
-                ''numPlayers''    VALUE g.num_players,
+                ''numPlayers''    VALUE (
+                  SELECT COUNT(*) FROM game_players gp_count WHERE gp_count.game_id = g.id
+                ),
+                ''winnerId''      VALUE g.winner_player_id,
                 ''startDealerId'' VALUE g.start_dealer_id,
                 ''startedAt''     VALUE
                   TO_CHAR(g.created_at, ''YYYY-MM-DD"T"HH24:MI:SS.FF3TZH:TZM''),
@@ -139,14 +144,14 @@ BEGIN
                              ''total''    VALUE v.total
                              RETURNING CLOB
                            )
-                           ORDER BY v.total DESC
+                           ORDER BY v.manual_won DESC, v.total DESC NULLS LAST
                            RETURNING CLOB
                          )
                     FROM game_standings_v v
                    WHERE v.game_id = g.id
                 ) FORMAT JSON,
                 ''rounds''        VALUE (
-                  SELECT JSON_ARRAYAGG(
+                  SELECT COALESCE(JSON_ARRAYAGG(
                            JSON_OBJECT(
                              ''index''          VALUE r.round_index,
                              ''cardsDealt''     VALUE r.cards_dealt,
@@ -182,7 +187,7 @@ BEGIN
                            )
                            ORDER BY r.round_index
                            RETURNING CLOB
-                         )
+                         ), TO_CLOB(''[]''))
                     FROM rounds r
                    WHERE r.game_id = g.id
                 ) FORMAT JSON
@@ -190,8 +195,7 @@ BEGIN
               )
          FROM games g
         WHERE g.id = :id
-          AND g.finished_at IS NOT NULL
-          AND g.is_manual = ''N'''
+          AND g.finished_at IS NOT NULL'
   );
 
   ORDS.DEFINE_HANDLER(
@@ -219,8 +223,8 @@ BEGIN
   ---------------------------------------------------------------------------
   -- GET /taotl/players/:id/manual-games -> partite manuali (senza round, solo
   -- vincitore e punteggio finale se noto) in cui quel giocatore è coinvolto.
-  -- Separato da GET /taotl/games perché quelle escludono di proposito le
-  -- partite manuali (mode "manuale" non esiste lato client, niente round).
+  -- Mantenuto per la scheda del singolo giocatore, anche se ora le partite
+  -- manuali compaiono pure nello storico generale.
   ---------------------------------------------------------------------------
   ORDS.DEFINE_TEMPLATE(
     p_module_name => 'taotl.api',

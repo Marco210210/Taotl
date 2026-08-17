@@ -51,7 +51,9 @@ export function PlayerStatsView({
   const { colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const myGames = useMemo(
-    () => games.filter((game) => game.standings.some((entry) => entry.playerId === player.id)),
+    () => games.filter(
+      (game) => game.mode !== "manuale" && game.standings.some((entry) => entry.playerId === player.id),
+    ),
     [games, player.id],
   );
 
@@ -61,9 +63,10 @@ export function PlayerStatsView({
     for (const game of myGames) {
       const mine = game.standings.find((entry) => entry.playerId === player.id);
       if (!mine) continue;
-      total += mine.total;
-      const best = Math.max(...game.standings.map((entry) => entry.total));
-      if (mine.total === best) wins += 1;
+      const mineTotal = mine.total ?? 0;
+      total += mineTotal;
+      const best = Math.max(...game.standings.map((entry) => entry.total ?? 0));
+      if (mineTotal === best) wins += 1;
     }
     return { wins, total, average: myGames.length ? total / myGames.length : 0 };
   }, [myGames, player.id]);
