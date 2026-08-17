@@ -10,7 +10,8 @@ export function ScreenContainer({
   children,
   style,
   footer,
-}: PropsWithChildren<{ style?: ViewStyle; footer?: ReactNode }>) {
+  scrollEnabled = true,
+}: PropsWithChildren<{ style?: ViewStyle; footer?: ReactNode; scrollEnabled?: boolean }>) {
   const { colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
@@ -18,6 +19,7 @@ export function ScreenContainer({
       <ScrollView
         contentContainerStyle={[styles.content, footer ? styles.contentWithFooter : null, style]}
         keyboardShouldPersistTaps="handled"
+        scrollEnabled={scrollEnabled}
       >
         {children}
       </ScrollView>
