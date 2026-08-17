@@ -4,11 +4,13 @@ import type { ActiveGame, Bid, GameMode, Player, RoundPlayerResult } from "@/gam
 import { generateId } from "@/utils/id";
 
 export type GameAction =
-  | { type: "START_GAME"; mode: GameMode; players: Player[]; startDealerId: string; verifiedRoomId?: string | null }
+  | { type: "START_GAME"; mode: GameMode; players: Player[]; startDealerId: string; verifiedRoomId?: string | null; saveToAlbo: boolean }
   | { type: "SET_PENDING_CARDS"; cardsDealt: number }
+  | { type: "REOPEN_CARDS" }
   | { type: "CONFIRM_BIDS"; bids: Bid[] }
   | { type: "REOPEN_BIDS" }
   | { type: "CONFIRM_ROUND_RESULTS"; results: RoundPlayerResult[] }
+  | { type: "UNDO_LAST_ROUND" }
   | { type: "SET_CURRENT_DEALER"; dealerId: string }
   | { type: "RESET_GAME" }
   | { type: "HYDRATE"; game: ActiveGame | null };
@@ -20,7 +22,7 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
     }
 
     case "START_GAME": {
-      const { mode, players, startDealerId, verifiedRoomId } = action;
+      const { mode, players, startDealerId, verifiedRoomId, saveToAlbo } = action;
       const base: ActiveGame = {
         id: generateId("game"),
         mode,
@@ -31,6 +33,7 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
         pendingCardsDealt: null,
         pendingBids: [],
         verifiedRoomId: verifiedRoomId ?? null,
+        saveToAlbo,
         createdAt: new Date().toISOString(),
         finishedAt: null,
       };
@@ -46,6 +49,11 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
     case "SET_PENDING_CARDS": {
       if (!state) return state;
       return { ...state, pendingCardsDealt: action.cardsDealt, status: "bidding" };
+    }
+
+    case "REOPEN_CARDS": {
+      if (!state || state.mode !== "personalizzata" || state.status !== "bidding") return state;
+      return { ...state, status: "awaiting-cards" };
     }
 
     case "CONFIRM_BIDS": {
@@ -106,6 +114,24 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
         pendingBids: [],
         pendingCardsDealt: sequence[rounds.length],
         status: "bidding",
+      };
+    }
+
+    case "UNDO_LAST_ROUND": {
+      if (!state || state.rounds.length === 0) return state;
+      const lastRound = state.rounds[state.rounds.length - 1];
+      const rounds = state.rounds.slice(0, -1);
+      const pendingBids: Bid[] = lastRound.results.map((result) => ({
+        playerId: result.playerId,
+        bid: result.bid,
+      }));
+      return {
+        ...state,
+        rounds,
+        pendingBids,
+        pendingCardsDealt: lastRound.info.cardsDealt,
+        status: "scoring",
+        finishedAt: null,
       };
     }
 

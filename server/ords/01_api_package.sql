@@ -225,10 +225,12 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
     v_dealer_id   games.start_dealer_id%TYPE;
     v_created_at  games.created_at%TYPE;
     v_finished_at games.finished_at%TYPE;
+    v_tie_winner  games.tie_break_winner_id%TYPE;
     v_round_id    rounds.id%TYPE;
   BEGIN
-    SELECT id, game_mode, num_players, start_dealer_id, created_at, finished_at
-      INTO v_game_id, v_mode, v_num_players, v_dealer_id, v_created_at, v_finished_at
+    SELECT id, game_mode, num_players, start_dealer_id, created_at, finished_at,
+           JSON_VALUE(p_body, '$.tieBreakWinnerId' RETURNING VARCHAR2(60))
+      INTO v_game_id, v_mode, v_num_players, v_dealer_id, v_created_at, v_finished_at, v_tie_winner
       FROM JSON_TABLE(p_body, '$'
              COLUMNS (
                id             VARCHAR2(60)  PATH '$.id',
@@ -255,10 +257,10 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
     USING (SELECT v_game_id AS id FROM dual) src
     ON (g.id = src.id)
     WHEN NOT MATCHED THEN
-      INSERT (id, game_mode, num_players, start_dealer_id, created_at, finished_at)
-      VALUES (v_game_id, v_mode, v_num_players, v_dealer_id, v_created_at, v_finished_at)
+      INSERT (id, game_mode, num_players, start_dealer_id, created_at, finished_at, tie_break_winner_id)
+      VALUES (v_game_id, v_mode, v_num_players, v_dealer_id, v_created_at, v_finished_at, v_tie_winner)
     WHEN MATCHED THEN
-      UPDATE SET finished_at = v_finished_at;
+      UPDATE SET finished_at = v_finished_at, tie_break_winner_id = v_tie_winner;
 
     -- Idempotenza: se questa partita era già stata inviata, sostituisce completamente
     -- giocatori al tavolo, turni e chiamate con la versione ricevuta ora.

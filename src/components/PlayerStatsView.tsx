@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import type { ManualGameDTO } from "@/api/leaderboard";
 import type { GameHistorySummaryDTO } from "@/api/types";
 import { Card } from "@/components/Card";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -14,6 +15,7 @@ import { formatAppDate } from "@/utils/date";
 interface PlayerStatsViewProps {
   player: Player;
   games: GameHistorySummaryDTO[];
+  manualGames?: ManualGameDTO[];
   officialStats?: {
     gamesPlayed: number;
     wins: number;
@@ -37,6 +39,7 @@ interface PlayerStatsViewProps {
 export function PlayerStatsView({
   player,
   games,
+  manualGames = [],
   officialStats,
   t,
   fromPath,
@@ -166,6 +169,27 @@ export function PlayerStatsView({
         );
       })}
       {myGames.length === 0 && <Text style={styles.helper}>{t("profile.noGames")}</Text>}
+
+      {manualGames.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>{t("profile.manualGames")}</Text>
+          {manualGames.map((game) => (
+            <Card key={game.id}>
+              <View style={styles.gameRow}>
+                <View style={styles.gameInfo}>
+                  <Text style={styles.gameTitle}>{formatAppDate(game.playedAt)}</Text>
+                  <Text style={styles.helper}>
+                    {game.winnerId === player.id ? t("profile.manualGameWon") : `${t("profile.manualGameWonBy")} ${game.winnerName}`}
+                  </Text>
+                </View>
+                {game.myScore !== null && (
+                  <Text style={[styles.gameScore, game.myScore < 0 && styles.negative]}>{game.myScore}</Text>
+                )}
+              </View>
+            </Card>
+          ))}
+        </>
+      )}
     </>
   );
 }

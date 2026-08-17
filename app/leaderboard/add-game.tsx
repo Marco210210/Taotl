@@ -25,6 +25,7 @@ export default function AddManualGameScreen() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [winnerId, setWinnerId] = useState<string | null>(null);
   const [winnerOnly, setWinnerOnly] = useState(false);
+  const [scores, setScores] = useState<Record<string, string>>({});
   const [playedAt, setPlayedAt] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +43,10 @@ export default function AddManualGameScreen() {
     });
   };
 
+  const setScore = (id: string, raw: string) => {
+    setScores((prev) => ({ ...prev, [id]: raw.replace(/[^0-9-]/g, "") }));
+  };
+
   const handleSubmit = async () => {
     if (!token || !winnerId) return;
     let playedAtIso: string | undefined;
@@ -53,6 +58,12 @@ export default function AddManualGameScreen() {
       }
       playedAtIso = parsedDate;
     }
+    const scoresPayload = winnerOnly
+      ? undefined
+      : Object.entries(scores)
+          .filter(([playerId, raw]) => selectedSet.has(playerId) && raw.trim() !== "")
+          .map(([playerId, raw]) => ({ playerId, score: Number(raw) }))
+          .filter((entry) => Number.isFinite(entry.score));
     setSaving(true);
     setError(null);
     try {
@@ -61,6 +72,7 @@ export default function AddManualGameScreen() {
         winnerId,
         winnerOnly,
         playedAt: playedAtIso,
+        scores: scoresPayload && scoresPayload.length > 0 ? scoresPayload : undefined,
       });
       router.dismissTo(backDestination);
     } catch (reason) {
@@ -174,6 +186,30 @@ export default function AddManualGameScreen() {
         </>
       )}
 
+      {!winnerOnly && selectedIds.length >= 2 && (
+        <>
+          <Text style={styles.sectionTitle}>{t("leaderboard.finalScores")}</Text>
+          <Text style={styles.helper}>{t("leaderboard.finalScoresHint")}</Text>
+          <View style={styles.list}>
+            {players
+              .filter((player) => selectedSet.has(player.id))
+              .map((player) => (
+                <View key={player.id} style={styles.playerRow}>
+                  <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={38} />
+                  <Text style={styles.playerName}>{player.name}</Text>
+                  <TextInput
+                    value={scores[player.id] ?? ""}
+                    onChangeText={(value) => setScore(player.id, value)}
+                    placeholder="—"
+                    placeholderTextColor={colors.textMuted as string}
+                    style={styles.scoreInput}
+                  />
+                </View>
+              ))}
+          </View>
+        </>
+      )}
+
       <Text style={styles.sectionTitle}>{t("leaderboard.playedAt")}</Text>
       <TextInput
         value={playedAt}
@@ -239,6 +275,19 @@ function makeStyles(colors: ThemeColors) {
     winnerCheckSelected: { backgroundColor: colors.primary },
     checkText: { color: colors.textMuted, fontFamily: theme.font.family.extraBold, fontSize: 13 },
     checkTextSelected: { color: colors.primaryText },
+    scoreInput: {
+      width: 62,
+      minHeight: 40,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+      backgroundColor: colors.background,
+      color: colors.text,
+      textAlign: "center",
+      paddingHorizontal: 8,
+      fontFamily: theme.font.family.bold,
+      fontSize: 14,
+    },
     input: {
       minHeight: 50,
       borderRadius: theme.radius.md,

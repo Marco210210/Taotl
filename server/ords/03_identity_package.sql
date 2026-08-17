@@ -706,9 +706,19 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
       INSERT INTO game_players (game_id, player_id, seat_order)
       VALUES (v_game_id, v_winner_id, 1);
     ELSE
-      INSERT INTO game_players (game_id, player_id, seat_order)
-      SELECT v_game_id, player_id, ROWNUM
-        FROM JSON_TABLE(p_body, '$.players[*]' COLUMNS (player_id VARCHAR2(60) PATH '$'));
+      -- "scores" è opzionale: un array {playerId, score} con solo i
+      -- partecipanti di cui si conosce il punteggio finale. Chi non compare
+      -- resta con final_score NULL (comportamento identico a prima).
+      INSERT INTO game_players (game_id, player_id, seat_order, final_score)
+      SELECT v_game_id, jp.player_id, ROWNUM,
+             (SELECT js.score
+                FROM JSON_TABLE(p_body, '$.scores[*]'
+                       COLUMNS (
+                         player_id VARCHAR2(60) PATH '$.playerId',
+                         score     NUMBER       PATH '$.score'
+                       )) js
+               WHERE js.player_id = jp.player_id)
+        FROM JSON_TABLE(p_body, '$.players[*]' COLUMNS (player_id VARCHAR2(60) PATH '$')) jp;
     END IF;
 
     SELECT JSON_OBJECT('id' VALUE v_game_id RETURNING CLOB) INTO v_json FROM dual;

@@ -8,7 +8,7 @@ import { STORAGE_KEYS } from "@/state/storageKeys";
 import { generateId } from "@/utils/id";
 
 import { apiClient, photoUrlForPlayer } from "./client";
-import { getApiBaseUrl, getAppKey } from "./config";
+import { FALLBACK_REQUEST_TIMEOUT_MS, getApiBaseUrl, getAppKey } from "./config";
 import type { PlayerDTO } from "./types";
 
 async function readCache(): Promise<Player[]> {
@@ -32,7 +32,7 @@ function fromDTO(dto: PlayerDTO): Player {
 // resta sempre utilizzabile anche prima che il server Oracle sia online.
 export async function fetchRoster(): Promise<{ players: Player[]; fromCache: boolean }> {
   try {
-    const dtos = await apiClient.get<PlayerDTO[]>("/players/");
+    const dtos = await apiClient.get<PlayerDTO[]>("/players/", FALLBACK_REQUEST_TIMEOUT_MS);
     const players = dtos.map(fromDTO);
     await writeCache(players);
     return { players, fromCache: false };

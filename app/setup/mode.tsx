@@ -1,10 +1,12 @@
 import { router } from "expo-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
+import { ToggleRow } from "@/components/ToggleRow";
 import { getFixedSequence } from "@/game/modes";
 import type { GameMode } from "@/game/types";
 import { useAppSettings } from "@/state/AppSettingsContext";
@@ -19,6 +21,7 @@ export default function SetupModeScreen() {
   const { mode, setMode, selectedPlayers, dealerId, reset } = useSetup();
   const { startGame } = useGame();
   const { room } = useAccount();
+  const [saveToAlbo, setSaveToAlbo] = useState(true);
 
   if (selectedPlayers.length === 0 || !dealerId) {
     return (
@@ -31,7 +34,7 @@ export default function SetupModeScreen() {
 
   const start = () => {
     if (!mode) return;
-    startGame(mode, selectedPlayers, dealerId, room?.id ?? null);
+    startGame(mode, selectedPlayers, dealerId, room?.id ?? null, saveToAlbo);
     reset();
     router.replace("/game/bids");
   };
@@ -95,6 +98,15 @@ export default function SetupModeScreen() {
           );
         })}
       </View>
+
+      <Card>
+        <ToggleRow
+          title={t("mode.saveToAlbo")}
+          description={t("mode.saveToAlboDescription")}
+          value={saveToAlbo}
+          onChange={setSaveToAlbo}
+        />
+      </Card>
     </ScreenContainer>
   );
 }

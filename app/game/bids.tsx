@@ -17,7 +17,7 @@ import { useGame } from "@/state/GameContext";
 import { theme, type ThemeColors } from "@/theme";
 
 export default function BidsScreen() {
-  const { game, currentRoundInfo, previousCardsDealt, setPendingCards, confirmBids } = useGame();
+  const { game, currentRoundInfo, previousCardsDealt, setPendingCards, reopenCards, confirmBids } = useGame();
 
   useEffect(() => {
     if (!game) router.replace("/");
@@ -32,7 +32,14 @@ export default function BidsScreen() {
   }
 
   if (game.status === "bidding" && currentRoundInfo) {
-    return <BiddingStep players={game.players} roundInfo={currentRoundInfo} onConfirm={confirmBids} />;
+    return (
+      <BiddingStep
+        players={game.players}
+        roundInfo={currentRoundInfo}
+        onConfirm={confirmBids}
+        onChangeCards={game.mode === "personalizzata" ? reopenCards : undefined}
+      />
+    );
   }
 
   return null;
@@ -121,13 +128,17 @@ function MiniStandings() {
           <Text style={styles.miniLink}>{t("game.detail")}</Text>
         </Pressable>
       </View>
-      {ranked.slice(0, 4).map((entry, index) => (
-        <View key={entry.playerId} style={styles.miniRow}>
-          <Text style={styles.miniPosition}>{index + 1}</Text>
-          <Text style={styles.miniName}>{playerById.get(entry.playerId)?.name}</Text>
-          <Text style={styles.miniTotal}>{entry.total}</Text>
-        </View>
-      ))}
+      {ranked.slice(0, 4).map((entry, index) => {
+        const player = playerById.get(entry.playerId);
+        return (
+          <View key={entry.playerId} style={styles.miniRow}>
+            <Text style={styles.miniPosition}>{index + 1}</Text>
+            <PlayerAvatar name={player?.name ?? "?"} photoUri={player?.photoUri} colorKey={entry.playerId} size={24} />
+            <Text style={styles.miniName}>{player?.name}</Text>
+            <Text style={styles.miniTotal}>{entry.total}</Text>
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -136,10 +147,12 @@ function BiddingStep({
   players,
   roundInfo,
   onConfirm,
+  onChangeCards,
 }: {
   players: Player[];
   roundInfo: RoundInfo;
   onConfirm: (bids: Bid[]) => void;
+  onChangeCards?: () => void;
 }) {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -208,6 +221,11 @@ function BiddingStep({
         {roundInfo.index === 1 && (
           <Pressable onPress={() => router.push("/game/dealer")} style={styles.utilityButton}>
             <Text style={styles.utilityText}>{t("game.fixDealer")}</Text>
+          </Pressable>
+        )}
+        {onChangeCards && (
+          <Pressable onPress={onChangeCards} style={styles.utilityButton}>
+            <Text style={styles.utilityText}>{t("game.changeCards")}</Text>
           </Pressable>
         )}
       </View>

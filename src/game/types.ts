@@ -49,6 +49,9 @@ export interface ActiveGame {
   // Stanza scelta prima dell'inizio: resta legata a questa partita anche se
   // l'utente apre o abbandona altri codici durante il gioco.
   verifiedRoomId?: string | null;
+  // Se false, la partita non va inviata all'albo/classifica condivisa a fine
+  // gioco: resta comunque nello storico locale del telefono.
+  saveToAlbo: boolean;
   createdAt: string;
   finishedAt: string | null;
 }

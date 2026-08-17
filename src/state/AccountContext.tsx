@@ -17,6 +17,7 @@ import {
   type AccountDTO,
   type GameRoomDTO,
 } from "@/api/auth";
+import { FALLBACK_REQUEST_TIMEOUT_MS } from "@/api/config";
 
 const SESSION_KEY = "taotl.auth-session.v1";
 const ROOM_KEY = "taotl.verified-room.v1";
@@ -74,12 +75,15 @@ export function AccountProvider({ children }: PropsWithChildren) {
     Promise.all([readSecret(), AsyncStorage.getItem(ROOM_KEY)])
       .then(async ([storedToken, storedRoomId]) => {
         if (!storedToken) return;
-        const nextAccount = await fetchMyAccount(storedToken);
+        // Timeout corto solo qui: è una rilettura silenziosa all'avvio, non
+        // un'azione interattiva dell'utente — meglio fallire in fretta su
+        // rete lenta/estera piuttosto che tenere l'app "in caricamento".
+        const nextAccount = await fetchMyAccount(storedToken, FALLBACK_REQUEST_TIMEOUT_MS);
         if (!active) return;
         setToken(storedToken);
         setAccount(nextAccount);
         if (storedRoomId) {
-          const nextRoom = await fetchGameRoom(storedToken, storedRoomId).catch(() => null);
+          const nextRoom = await fetchGameRoom(storedToken, storedRoomId, FALLBACK_REQUEST_TIMEOUT_MS).catch(() => null);
           if (nextRoom?.status === "open") {
             if (active) setRoom(nextRoom);
           } else {

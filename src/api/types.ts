@@ -13,6 +13,10 @@ export interface GameSyncPayload {
   startDealerId: string;
   createdAt: string;
   finishedAt: string | null;
+  // Valorizzato solo se in testa c'era un pareggio risolto a mano (es. carta
+  // alta): in quel caso conta come vittoria solo questo giocatore, non tutti
+  // i pari-merito. Assente/null = comportamento di sempre (vincono entrambi).
+  tieBreakWinnerId?: string | null;
   players: { id: string; name: string; seatOrder: number }[];
   rounds: {
     index: number;
@@ -53,7 +57,7 @@ export interface GameHistoryDetailDTO extends GameHistorySummaryDTO {
   }[];
 }
 
-export function toGameSyncPayload(game: ActiveGame): GameSyncPayload {
+export function toGameSyncPayload(game: ActiveGame, tieBreakWinnerId?: string | null): GameSyncPayload {
   return {
     id: game.id,
     mode: game.mode,
@@ -61,6 +65,7 @@ export function toGameSyncPayload(game: ActiveGame): GameSyncPayload {
     startDealerId: game.startDealerId,
     createdAt: game.createdAt,
     finishedAt: game.finishedAt,
+    tieBreakWinnerId: tieBreakWinnerId ?? null,
     players: game.players.map((p, index) => ({ id: p.id, name: p.name, seatOrder: index })),
     rounds: game.rounds.map((round) => ({
       index: round.info.index,

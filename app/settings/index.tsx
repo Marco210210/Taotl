@@ -1,9 +1,10 @@
 import { useMemo } from "react";
-import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { APP_VERSION, BUILD_STAMP } from "@/buildInfo";
 import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
+import { ToggleRow } from "@/components/ToggleRow";
 import {
   useAppSettings,
   type LanguagePreference,
@@ -93,35 +94,6 @@ function SettingTitle({ title, description }: { title: string; description: stri
     <View>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.description}>{description}</Text>
-    </View>
-  );
-}
-
-function ToggleRow({
-  title,
-  description,
-  value,
-  onChange,
-}: {
-  title: string;
-  description: string;
-  value: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  const { colors } = useAppSettings();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
-  return (
-    <View style={styles.toggleRow}>
-      <View style={styles.toggleInfo}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.description}>{description}</Text>
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onChange}
-        trackColor={{ false: colors.borderStrong as string, true: colors.success as string }}
-        thumbColor={colors.surface as string}
-      />
     </View>
   );
 }
@@ -224,13 +196,6 @@ function makeStyles(colors: ThemeColors) {
       color: colors.text,
       fontFamily: theme.font.family.extraBold,
     },
-    toggleRow: {
-      minHeight: 58,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-    },
-    toggleInfo: { flex: 1 },
     note: {
       paddingHorizontal: 8,
       color: colors.textMuted,

@@ -6,6 +6,7 @@ import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View 
 
 import { fetchAdminAccounts } from "@/api/leaderboard";
 import { Button } from "@/components/Button";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { LinearBackButton } from "@/components/LinearBackButton";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
@@ -37,6 +38,7 @@ export default function EditPlayerScreen() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [accountLinkStatus, setAccountLinkStatus] = useState<AccountLinkStatus>("not-applicable");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (existing && loadedPlayerId !== existing.id) {
@@ -136,30 +138,23 @@ export default function EditPlayerScreen() {
 
   const handleDelete = () => {
     if (!existing || !token) return;
-    Alert.alert(
-      t("player.deleteTitle"),
-      `${existing.name} ${t("player.deleteBody")}`,
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("common.delete"),
-          style: "destructive",
-          onPress: async () => {
-            setDeleting(true);
-            try {
-              await removePlayer(existing.id, token);
-              router.dismissTo(rosterDestination);
-            } catch (error) {
-              Alert.alert(
-                t("player.deleteFailed"),
-                error instanceof Error ? error.message : t("history.retry"),
-              );
-              setDeleting(false);
-            }
-          },
-        },
-      ],
-    );
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!existing || !token) return;
+    setShowDeleteConfirm(false);
+    setDeleting(true);
+    try {
+      await removePlayer(existing.id, token);
+      router.dismissTo(rosterDestination);
+    } catch (error) {
+      Alert.alert(
+        t("player.deleteFailed"),
+        error instanceof Error ? error.message : t("history.retry"),
+      );
+      setDeleting(false);
+    }
   };
 
   if (id && loading && !existing) {
@@ -189,6 +184,16 @@ export default function EditPlayerScreen() {
   return (
     <>
     <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={rosterDestination} /> }} />
+    <ConfirmDialog
+      visible={showDeleteConfirm}
+      title={t("player.deleteTitle")}
+      description={`${existing?.name ?? ""} ${t("player.deleteBody")}`}
+      confirmLabel={t("common.delete")}
+      cancelLabel={t("common.cancel")}
+      destructive
+      onConfirm={confirmDelete}
+      onCancel={() => setShowDeleteConfirm(false)}
+    />
     <ScreenContainer style={styles.content}>
       <Pressable onPress={pickImage} style={styles.avatarWrapper}>
         <PlayerAvatar name={name || "?"} photoUri={photoUri} size={96} />

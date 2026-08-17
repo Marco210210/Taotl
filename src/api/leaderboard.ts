@@ -21,10 +21,31 @@ export function fetchLeaderboard(): Promise<LeaderboardEntryDTO[]> {
   return apiClient.get<LeaderboardEntryDTO[]>("/taotl/leaderboard/");
 }
 
+export interface ManualGameDTO {
+  id: string;
+  playedAt: string;
+  winnerId: string;
+  winnerName: string;
+  myScore: number | null;
+  participants: { id: string; name: string }[];
+}
+
+// Partite manuali (senza round) in cui il giocatore è coinvolto: separate da
+// fetchHistory perché escluse di proposito dallo storico partite vere.
+export function fetchManualGames(playerId: string): Promise<ManualGameDTO[]> {
+  return apiClient.get<ManualGameDTO[]>(`/taotl/players/${playerId}/manual-games`);
+}
+
 // Riservate all'admin: il backend verifica il token di sessione (require_admin).
 export function addManualGame(
   adminToken: string,
-  input: { players: string[]; winnerId: string; winnerOnly?: boolean; playedAt?: string },
+  input: {
+    players: string[];
+    winnerId: string;
+    winnerOnly?: boolean;
+    playedAt?: string;
+    scores?: { playerId: string; score: number }[];
+  },
 ): Promise<{ id: string }> {
   return apiClient.postAuthenticated<{ id: string }>("/taotl/admin/games/", adminToken, input);
 }

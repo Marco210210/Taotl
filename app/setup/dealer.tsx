@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, PanResponder, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
@@ -17,24 +17,30 @@ export default function SetupDealerScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { selectedPlayers, dealerId, setDealerId, movePlayer } = useSetup();
   const [dragPreview, setDragPreview] = useState<{ from: number; to: number } | null>(null);
+  const playerCount = selectedPlayers.length;
 
-  const updateDragPreview = (from: number, offsetY: number) => {
+  // Memoizzate: sono dipendenze dirette del PanResponder creato dentro ogni
+  // DealerRow. Se cambiassero identità ad ogni render (come prima), il
+  // PanResponder verrebbe ricreato quasi ad ogni frame di onPanResponderMove
+  // (che chiama updateDragPreview, che con setDragPreview ri-renderizza
+  // questo componente) — è quello che causava gli scatti nel trascinamento.
+  const updateDragPreview = useCallback((from: number, offsetY: number) => {
     const to = Math.max(
       0,
-      Math.min(selectedPlayers.length - 1, from + Math.round(offsetY / ROW_SLOT_HEIGHT)),
+      Math.min(playerCount - 1, from + Math.round(offsetY / ROW_SLOT_HEIGHT)),
     );
     setDragPreview((current) => (
       current?.from === from && current.to === to ? current : { from, to }
     ));
     return to;
-  };
+  }, [playerCount]);
 
-  const finishDrag = (from: number, to: number) => {
+  const finishDrag = useCallback((from: number, to: number) => {
     if (from !== to) movePlayer(from, to);
     setDragPreview(null);
-  };
+  }, [movePlayer]);
 
-  const cancelDrag = () => setDragPreview(null);
+  const cancelDrag = useCallback(() => setDragPreview(null), []);
 
   const previewIndexFor = (index: number) => {
     if (!dragPreview || index === dragPreview.from) return index;

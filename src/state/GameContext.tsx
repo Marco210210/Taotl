@@ -15,11 +15,19 @@ interface GameContextValue {
   previousCardsDealt: number | null;
   totals: Record<string, number>;
   ranked: { playerId: string; total: number }[];
-  startGame: (mode: GameMode, players: Player[], startDealerId: string, verifiedRoomId?: string | null) => void;
+  startGame: (
+    mode: GameMode,
+    players: Player[],
+    startDealerId: string,
+    verifiedRoomId?: string | null,
+    saveToAlbo?: boolean,
+  ) => void;
   setPendingCards: (cardsDealt: number) => void;
+  reopenCards: () => void;
   confirmBids: (bids: Bid[]) => void;
   reopenBids: () => void;
   confirmRoundResults: (results: RoundPlayerResult[]) => void;
+  undoLastRound: () => void;
   setCurrentDealer: (dealerId: string) => void;
   resetGame: () => void;
 }
@@ -53,12 +61,22 @@ export function GameProvider({ children }: PropsWithChildren) {
     }
   }, [game, isHydrated]);
 
-  const startGame = useCallback((mode: GameMode, players: Player[], startDealerId: string, verifiedRoomId?: string | null) => {
-    dispatch({ type: "START_GAME", mode, players, startDealerId, verifiedRoomId });
+  const startGame = useCallback((
+    mode: GameMode,
+    players: Player[],
+    startDealerId: string,
+    verifiedRoomId?: string | null,
+    saveToAlbo: boolean = true,
+  ) => {
+    dispatch({ type: "START_GAME", mode, players, startDealerId, verifiedRoomId, saveToAlbo });
   }, []);
 
   const setPendingCards = useCallback((cardsDealt: number) => {
     dispatch({ type: "SET_PENDING_CARDS", cardsDealt });
+  }, []);
+
+  const reopenCards = useCallback(() => {
+    dispatch({ type: "REOPEN_CARDS" });
   }, []);
 
   const confirmBids = useCallback((bids: Bid[]) => {
@@ -71,6 +89,10 @@ export function GameProvider({ children }: PropsWithChildren) {
 
   const confirmRoundResults = useCallback((results: RoundPlayerResult[]) => {
     dispatch({ type: "CONFIRM_ROUND_RESULTS", results });
+  }, []);
+
+  const undoLastRound = useCallback(() => {
+    dispatch({ type: "UNDO_LAST_ROUND" });
   }, []);
 
   const setCurrentDealer = useCallback((dealerId: string) => {
@@ -91,13 +113,18 @@ export function GameProvider({ children }: PropsWithChildren) {
       ranked: game ? getRankedPlayers(game) : [],
       startGame,
       setPendingCards,
+      reopenCards,
       confirmBids,
       reopenBids,
       confirmRoundResults,
+      undoLastRound,
       setCurrentDealer,
       resetGame,
     };
-  }, [game, isHydrated, startGame, setPendingCards, confirmBids, reopenBids, confirmRoundResults, setCurrentDealer, resetGame]);
+  }, [
+    game, isHydrated, startGame, setPendingCards, reopenCards, confirmBids, reopenBids,
+    confirmRoundResults, undoLastRound, setCurrentDealer, resetGame,
+  ]);
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 }

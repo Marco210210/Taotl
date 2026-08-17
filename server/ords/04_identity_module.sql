@@ -216,6 +216,59 @@ BEGIN
     p_access_method      => 'IN'
   );
 
+  ---------------------------------------------------------------------------
+  -- GET /taotl/players/:id/manual-games -> partite manuali (senza round, solo
+  -- vincitore e punteggio finale se noto) in cui quel giocatore è coinvolto.
+  -- Separato da GET /taotl/games perché quelle escludono di proposito le
+  -- partite manuali (mode "manuale" non esiste lato client, niente round).
+  ---------------------------------------------------------------------------
+  ORDS.DEFINE_TEMPLATE(
+    p_module_name => 'taotl.api',
+    p_pattern     => 'players/:id/manual-games'
+  );
+
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.api',
+    p_pattern     => 'players/:id/manual-games',
+    p_method      => 'GET',
+    p_source_type => ORDS.source_type_media,
+    p_source      =>
+      'SELECT ''application/json'',
+              COALESCE(
+                JSON_ARRAYAGG(
+                  JSON_OBJECT(
+                    ''id''          VALUE g.id,
+                    ''playedAt''    VALUE
+                      TO_CHAR(g.created_at, ''YYYY-MM-DD"T"HH24:MI:SS.FF3TZH:TZM''),
+                    ''winnerId''    VALUE g.winner_player_id,
+                    ''winnerName''  VALUE wp.player_name,
+                    ''myScore''     VALUE gp.final_score,
+                    ''participants'' VALUE (
+                      SELECT JSON_ARRAYAGG(
+                               JSON_OBJECT(
+                                 ''id''   VALUE pp.id,
+                                 ''name'' VALUE pp.player_name
+                                 RETURNING CLOB
+                               )
+                               RETURNING CLOB
+                             )
+                        FROM game_players gp2
+                        JOIN player_display_names_v pp ON pp.id = gp2.player_id
+                       WHERE gp2.game_id = g.id
+                    ) FORMAT JSON
+                    RETURNING CLOB
+                  )
+                  ORDER BY g.created_at DESC
+                  RETURNING CLOB
+                ),
+                TO_CLOB(''[]'')
+              )
+         FROM games g
+         JOIN game_players gp ON gp.game_id = g.id AND gp.player_id = :id
+         LEFT JOIN player_display_names_v wp ON wp.id = g.winner_player_id
+        WHERE g.is_manual = ''Y'''
+  );
+
   ORDS.DEFINE_TEMPLATE(p_module_name => 'taotl.api', p_pattern => 'auth/register/');
   ORDS.DEFINE_HANDLER(
     p_module_name   => 'taotl.api',
