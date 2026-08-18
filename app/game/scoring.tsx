@@ -1,9 +1,10 @@
 import { router } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { NumberStepper } from "@/components/NumberStepper";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
@@ -26,6 +27,7 @@ export default function ScoringScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { game, currentRoundInfo, confirmRoundResults, reopenBids } = useGame();
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const [showRedealConfirm, setShowRedealConfirm] = useState(false);
   const isSubmitting = useRef(false);
 
   useEffect(() => {
@@ -41,8 +43,14 @@ export default function ScoringScreen() {
   useEffect(() => {
     if (game?.status === "scoring") {
       const initial: Record<string, Draft> = {};
+      const previousByPlayer = new Map(
+        (game.pendingResultDrafts ?? []).map((result) => [result.playerId, result]),
+      );
       for (const bid of game.pendingBids) {
-        initial[bid.playerId] = { respected: null, scarto: 1 };
+        const previous = previousByPlayer.get(bid.playerId);
+        initial[bid.playerId] = previous
+          ? { respected: previous.respected, scarto: previous.respected ? 1 : previous.scarto }
+          : { respected: null, scarto: 1 };
       }
       setDrafts(initial);
     }
@@ -94,25 +102,26 @@ export default function ScoringScreen() {
     router.replace(wasLastRound ? "/game/end" : "/game/standings");
   };
 
-  const handleRedeal = () => {
-    Alert.alert(
-      t("game.redealTitle"),
-      t("game.redealDescription"),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("game.redealConfirm"),
-          style: "destructive",
-          onPress: () => {
-            reopenBids();
-            router.replace("/game/bids");
-          },
-        },
-      ],
-    );
+  const handleRedeal = () => setShowRedealConfirm(true);
+
+  const confirmRedeal = () => {
+    setShowRedealConfirm(false);
+    reopenBids();
+    router.replace("/game/bids");
   };
 
   return (
+    <>
+    <ConfirmDialog
+      visible={showRedealConfirm}
+      title={t("game.redealTitle")}
+      description={t("game.redealDescription")}
+      confirmLabel={t("game.redealConfirm")}
+      cancelLabel={t("common.cancel")}
+      destructive
+      onConfirm={confirmRedeal}
+      onCancel={() => setShowRedealConfirm(false)}
+    />
     <ScreenContainer
       footer={
         <Button
@@ -221,6 +230,7 @@ export default function ScoringScreen() {
         </Text>
       )}
     </ScreenContainer>
+    </>
   );
 }
 

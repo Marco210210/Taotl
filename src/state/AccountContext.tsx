@@ -17,9 +17,12 @@ import {
   type AccountDTO,
   type GameRoomDTO,
 } from "@/api/auth";
+import { FALLBACK_REQUEST_TIMEOUT_MS } from "@/api/config";
+import { ApiRequestError } from "@/api/client";
 
 const SESSION_KEY = "taotl.auth-session.v1";
 const ROOM_KEY = "taotl.verified-room.v1";
+const ACCOUNT_CACHE_KEY = "taotl.account-cache.v1";
 
 interface AccountContextValue {
   account: AccountDTO | null;
@@ -71,35 +74,76 @@ export function AccountProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     let active = true;
-    Promise.all([readSecret(), AsyncStorage.getItem(ROOM_KEY)])
-      .then(async ([storedToken, storedRoomId]) => {
+    void (async () => {
+      try {
+        const [storedToken, storedRoomId, cachedRaw] = await Promise.all([
+          readSecret(),
+          AsyncStorage.getItem(ROOM_KEY),
+          AsyncStorage.getItem(ACCOUNT_CACHE_KEY),
+        ]);
         if (!storedToken) return;
-        const nextAccount = await fetchMyAccount(storedToken);
-        if (!active) return;
-        setToken(storedToken);
-        setAccount(nextAccount);
-        if (storedRoomId) {
-          const nextRoom = await fetchGameRoom(storedToken, storedRoomId).catch(() => null);
-          if (nextRoom?.status === "open") {
-            if (active) setRoom(nextRoom);
-          } else {
-            await AsyncStorage.removeItem(ROOM_KEY);
+
+        let cachedAccount: AccountDTO | null = null;
+        if (cachedRaw) {
+          try {
+            cachedAccount = JSON.parse(cachedRaw) as AccountDTO;
+          } catch {
+            await AsyncStorage.removeItem(ACCOUNT_CACHE_KEY);
           }
         }
-      })
-      .catch(() => {
-        void writeSecret(null);
-      })
-      .finally(() => {
+        if (active && cachedAccount) {
+          // Mostra subito il profilo noto: l'aggiornamento dal server avviene
+          // in sottofondo e non blocca l'apertura su rete lenta o estera.
+          setToken(storedToken);
+          setAccount(cachedAccount);
+          setLoading(false);
+        }
+
+        try {
+          const nextAccount = await fetchMyAccount(storedToken, FALLBACK_REQUEST_TIMEOUT_MS);
+          if (!active) return;
+          setToken(storedToken);
+          setAccount(nextAccount);
+          await AsyncStorage.setItem(ACCOUNT_CACHE_KEY, JSON.stringify(nextAccount));
+
+          if (storedRoomId) {
+            try {
+              const nextRoom = await fetchGameRoom(storedToken, storedRoomId, FALLBACK_REQUEST_TIMEOUT_MS);
+              if (!active) return;
+              if (nextRoom.status === "open") setRoom(nextRoom);
+              else await AsyncStorage.removeItem(ROOM_KEY);
+            } catch {
+              // Una rete assente non deve cancellare la stanza né rallentare
+              // l'avvio. Verrà aggiornata quando l'utente la riapre.
+            }
+          }
+        } catch (error) {
+          // Si elimina la sessione solo se il server la dichiara davvero non
+          // valida; timeout/aereo/rete estera conservano account e token.
+          if (error instanceof ApiRequestError && (error.status === 401 || error.status === 403)) {
+            await Promise.all([writeSecret(null), AsyncStorage.removeItem(ACCOUNT_CACHE_KEY)]);
+            if (active) {
+              setToken(null);
+              setAccount(null);
+            }
+          }
+        }
+      } catch {
+        // Cache locale corrotta: l'app resta utilizzabile come ospite.
+      } finally {
         if (active) setLoading(false);
-      });
+      }
+    })();
     return () => {
       active = false;
     };
   }, []);
 
   const acceptSession = useCallback(async (session: Awaited<ReturnType<typeof loginAccount>>) => {
-    await writeSecret(session.token);
+    await Promise.all([
+      writeSecret(session.token),
+      AsyncStorage.setItem(ACCOUNT_CACHE_KEY, JSON.stringify(session.account)),
+    ]);
     setToken(session.token);
     setAccount(session.account);
     setAuthError(null);
@@ -157,7 +201,11 @@ export function AccountProvider({ children }: PropsWithChildren) {
 
   const logout = useCallback(async () => {
     if (token) await logoutAccount(token).catch(() => {});
-    await Promise.all([writeSecret(null), AsyncStorage.removeItem(ROOM_KEY)]);
+    await Promise.all([
+      writeSecret(null),
+      AsyncStorage.removeItem(ROOM_KEY),
+      AsyncStorage.removeItem(ACCOUNT_CACHE_KEY),
+    ]);
     setToken(null);
     setAccount(null);
     setRoom(null);

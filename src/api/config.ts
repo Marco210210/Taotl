@@ -16,3 +16,9 @@ export function getAppKey(): string | null {
 // Su un'istanza Always Free, nei momenti di carico, otto secondi possono essere
 // troppo pochi e il client finirebbe per mostrare un falso errore di password.
 export const REQUEST_TIMEOUT_MS = 20000;
+
+// Per le chiamate che hanno già un fallback in cache locale pronto (rubrica,
+// storico, classifica) non ha senso restare bloccati fino a 20s su rete lenta
+// o estera prima di mostrare i dati in cache: un timeout più corto fa scattare
+// prima il fallback, a costo di ritentare la rete un po' più aggressivamente.
+export const FALLBACK_REQUEST_TIMEOUT_MS = 6000;

@@ -46,10 +46,14 @@ export function appDateInputToIso(value: string): string | null {
   const month = Number(match[2]);
   const year = Number(match[3]);
   const candidate = new Date(year, month - 1, day);
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
   if (
-    candidate.getFullYear() !== year
+    year < 1900
+    || candidate.getFullYear() !== year
     || candidate.getMonth() !== month - 1
     || candidate.getDate() !== day
+    || candidate.getTime() > today.getTime()
   ) {
     return null;
   }

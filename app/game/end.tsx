@@ -1,57 +1,32 @@
 import { router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { syncFinishedGame } from "@/api/games";
+import { cacheFinishedGame, syncFinishedGame } from "@/api/games";
 import { BrandMark } from "@/components/BrandMark";
 import { Button } from "@/components/Button";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useAccount } from "@/state/AccountContext";
 import { useGame } from "@/state/GameContext";
 import { theme, type ThemeColors } from "@/theme";
 
-type SyncStatus = "syncing" | "synced" | "verified" | "verification-failed" | "offline";
+type SyncStatus = "idle" | "syncing" | "synced" | "verified" | "verification-failed" | "offline" | "not-shared" | "error";
 
 export default function GameEndScreen() {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { game, ranked, resetGame } = useGame();
   const { account, token, room, clearRoom } = useAccount();
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>("syncing");
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>("idle");
   const [verifiedCount, setVerifiedCount] = useState(0);
   const [unmatchedCount, setUnmatchedCount] = useState(0);
-
-  useEffect(() => {
-    if (!game) return;
-    let cancelled = false;
-    const isRoomHost = room?.participants.some(
-      (participant) => participant.userId === account?.id && participant.isHost,
-    );
-    const verifiedRoom =
-      token && room && isRoomHost && game.verifiedRoomId === room.id
-        ? { token, roomId: room.id }
-        : undefined;
-    syncFinishedGame(game, verifiedRoom).then((result) => {
-      if (cancelled) return;
-      setVerifiedCount(result.verifiedCount);
-      setUnmatchedCount(result.unmatchedCount);
-      if (!result.synced) {
-        setSyncStatus("offline");
-      } else if (result.verification === "verified") {
-        setSyncStatus("verified");
-        void clearRoom();
-      } else if (result.verification === "failed") {
-        setSyncStatus("verification-failed");
-      } else {
-        setSyncStatus("synced");
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [game]);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const isTie = !!game && ranked.length > 1 && ranked[0]?.total === ranked[1]?.total;
+  const [tieDecided, setTieDecided] = useState(false);
+  const [tieBreakWinnerId, setTieBreakWinnerId] = useState<string | null>(null);
 
   if (!game) {
     return (
@@ -65,25 +40,128 @@ export default function GameEndScreen() {
   }
 
   const playerById = new Map(game.players.map((player) => [player.id, player]));
-  const winner = playerById.get(ranked[0]?.playerId);
+  const topTotal = ranked[0]?.total;
+  const displayedWinnerIds = tieBreakWinnerId
+    ? [tieBreakWinnerId]
+    : isTie && tieDecided
+      ? ranked.filter((entry) => entry.total === topTotal).map((entry) => entry.playerId)
+      : ranked[0]
+        ? [ranked[0].playerId]
+        : [];
+  const winnerNames = displayedWinnerIds
+    .map((playerId) => playerById.get(playerId)?.name)
+    .filter((name): name is string => !!name)
+    .join(` ${t("common.and")} `);
 
-  const home = () => {
+  const saveAndGoHome = async () => {
+    if (syncStatus === "syncing") return;
+    setSyncStatus("syncing");
+    try {
+      if (!game.saveToAlbo) {
+        await cacheFinishedGame(game);
+        setSyncStatus("not-shared");
+      } else {
+        const isRoomHost = room?.participants.some(
+          (participant) => participant.userId === account?.id && participant.isHost,
+        );
+        const verifiedRoom =
+          token && room && isRoomHost && game.verifiedRoomId === room.id
+            ? { token, roomId: room.id }
+            : undefined;
+        const result = await syncFinishedGame(game, verifiedRoom, tieBreakWinnerId);
+        setVerifiedCount(result.verifiedCount);
+        setUnmatchedCount(result.unmatchedCount);
+        if (!result.synced) {
+          setSyncStatus("offline");
+        } else if (result.verification === "verified") {
+          setSyncStatus("verified");
+          await clearRoom();
+        } else if (result.verification === "failed") {
+          setSyncStatus("verification-failed");
+        } else {
+          setSyncStatus("synced");
+        }
+      }
+      resetGame();
+      router.replace("/");
+    } catch {
+      setSyncStatus("error");
+    }
+  };
+
+  const discardAndGoHome = () => {
+    setShowDiscardConfirm(false);
     resetGame();
     router.replace("/");
   };
 
+  const resolveTie = (winnerId: string | null) => {
+    setTieBreakWinnerId(winnerId);
+    setTieDecided(true);
+  };
+
+  if (isTie && !tieDecided) {
+    const topTotal = ranked[0].total;
+    const tiedEntries = ranked.filter((entry) => entry.total === topTotal);
+    return (
+      <SafeAreaView style={styles.safe} edges={["top", "bottom", "left", "right"]}>
+        <ScrollView contentContainerStyle={styles.content}>
+          <View style={styles.seal}>
+            <BrandMark compact inverse />
+          </View>
+          <Text style={styles.kicker}>{t("end.tieKicker")}</Text>
+          <Text style={styles.winner}>{t("end.tieTitle")}</Text>
+          <Text style={styles.summary}>{t("end.tieDescription")}</Text>
+
+          <View style={styles.ranking}>
+            {tiedEntries.map((entry) => {
+              const player = playerById.get(entry.playerId);
+              if (!player) return null;
+              return (
+                <Pressable
+                  key={entry.playerId}
+                  onPress={() => resolveTie(entry.playerId)}
+                  style={({ pressed }) => [styles.row, pressed && styles.tieRowPressed]}
+                >
+                  <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={38} />
+                  <Text style={styles.name}>{player.name}</Text>
+                  <Text style={styles.total}>{entry.total}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.actions}>
+            <Button label={t("end.tieBothWinners")} variant="yellow" onPress={() => resolveTie(null)} />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom", "left", "right"]}>
+      <ConfirmDialog
+        visible={showDiscardConfirm}
+        title={t("end.discardTitle")}
+        description={t("end.discardDescription")}
+        confirmLabel={t("end.discardConfirm")}
+        cancelLabel={t("common.cancel")}
+        destructive
+        onConfirm={discardAndGoHome}
+        onCancel={() => setShowDiscardConfirm(false)}
+      />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.seal}>
           <BrandMark compact inverse />
         </View>
         <Text style={styles.kicker}>{t("end.closed")}</Text>
-        <Text style={styles.winner}>{winner?.name ?? t("end.finished")}</Text>
+        <Text style={styles.winner}>{winnerNames || t("end.finished")}</Text>
         <Text style={styles.summary}>
-          {t("end.winsWith")} {ranked[0]?.total ?? 0} {t("end.points")} · {game.rounds.length} {t("end.rounds")} · {game.players.length} {t("home.players")}
+          {t(displayedWinnerIds.length > 1 ? "end.winWithPlural" : "end.winsWith")} {ranked[0]?.total ?? 0} {t("end.points")} · {game.rounds.length} {t("end.rounds")} · {game.players.length} {t("home.players")}
         </Text>
         <Text style={styles.sync}>
+          {syncStatus === "idle" && t("end.chooseSave")}
           {syncStatus === "syncing" && t("end.saving")}
           {syncStatus === "synced" && t("end.savedOnline")}
           {syncStatus === "verified" && (
@@ -94,6 +172,8 @@ export default function GameEndScreen() {
           )}
           {syncStatus === "verification-failed" && t("end.savedVerificationFailed")}
           {syncStatus === "offline" && t("end.savedOffline")}
+          {syncStatus === "not-shared" && t("end.savedNotShared")}
+          {syncStatus === "error" && t("end.saveFailed")}
         </Text>
 
         <View style={styles.ranking}>
@@ -113,7 +193,13 @@ export default function GameEndScreen() {
 
         <View style={styles.actions}>
           <Button label={t("end.review")} variant="ghost" onPress={() => router.push("/game/standings")} />
-          <Button label={t("end.saveHome")} variant="yellow" onPress={home} />
+          <Button
+            label={t("end.saveHome")}
+            variant="yellow"
+            loading={syncStatus === "syncing"}
+            onPress={() => void saveAndGoHome()}
+          />
+          <Button label={t("end.discardHome")} variant="danger" onPress={() => setShowDiscardConfirm(true)} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -195,6 +281,7 @@ function makeStyles(colors: ThemeColors) {
       fontVariant: ["tabular-nums"],
     },
     actions: { alignSelf: "stretch", marginTop: 22, gap: 8 },
+    tieRowPressed: { opacity: 0.72 },
     empty: { flex: 1, justifyContent: "center", padding: 18, gap: 16 },
     emptyText: { color: colors.background, fontFamily: theme.font.family.semibold, textAlign: "center" },
   });

@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import type { ManualGameDTO } from "@/api/leaderboard";
 import type { GameHistorySummaryDTO } from "@/api/types";
 import { Card } from "@/components/Card";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -14,6 +15,7 @@ import { formatAppDate } from "@/utils/date";
 interface PlayerStatsViewProps {
   player: Player;
   games: GameHistorySummaryDTO[];
+  manualGames?: ManualGameDTO[];
   officialStats?: {
     gamesPlayed: number;
     wins: number;
@@ -37,6 +39,7 @@ interface PlayerStatsViewProps {
 export function PlayerStatsView({
   player,
   games,
+  manualGames = [],
   officialStats,
   t,
   fromPath,
@@ -48,7 +51,9 @@ export function PlayerStatsView({
   const { colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const myGames = useMemo(
-    () => games.filter((game) => game.standings.some((entry) => entry.playerId === player.id)),
+    () => games.filter(
+      (game) => game.mode !== "manuale" && game.standings.some((entry) => entry.playerId === player.id),
+    ),
     [games, player.id],
   );
 
@@ -58,9 +63,10 @@ export function PlayerStatsView({
     for (const game of myGames) {
       const mine = game.standings.find((entry) => entry.playerId === player.id);
       if (!mine) continue;
-      total += mine.total;
-      const best = Math.max(...game.standings.map((entry) => entry.total));
-      if (mine.total === best) wins += 1;
+      const mineTotal = mine.total ?? 0;
+      total += mineTotal;
+      const best = Math.max(...game.standings.map((entry) => entry.total ?? 0));
+      if (mineTotal === best) wins += 1;
     }
     return { wins, total, average: myGames.length ? total / myGames.length : 0 };
   }, [myGames, player.id]);
@@ -166,6 +172,27 @@ export function PlayerStatsView({
         );
       })}
       {myGames.length === 0 && <Text style={styles.helper}>{t("profile.noGames")}</Text>}
+
+      {manualGames.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>{t("profile.manualGames")}</Text>
+          {manualGames.map((game) => (
+            <Card key={game.id}>
+              <View style={styles.gameRow}>
+                <View style={styles.gameInfo}>
+                  <Text style={styles.gameTitle}>{formatAppDate(game.playedAt)}</Text>
+                  <Text style={styles.helper}>
+                    {game.winnerId === player.id ? t("profile.manualGameWon") : `${t("profile.manualGameWonBy")} ${game.winnerName}`}
+                  </Text>
+                </View>
+                {game.myScore !== null && (
+                  <Text style={[styles.gameScore, game.myScore < 0 && styles.negative]}>{game.myScore}</Text>
+                )}
+              </View>
+            </Card>
+          ))}
+        </>
+      )}
     </>
   );
 }

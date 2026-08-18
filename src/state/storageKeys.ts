@@ -3,4 +3,5 @@ export const STORAGE_KEYS = {
   rosterCache: "taotl:roster-cache:v1",
   appSettings: "taotl:app-settings:v1",
   accountPromptSeen: "taotl:account-prompt-seen:v1",
+  pendingSyncGames: "taotl:pending-sync-games:v1",
 } as const;

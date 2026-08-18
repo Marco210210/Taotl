@@ -7,8 +7,10 @@ import { fetchHistory } from "@/api/games";
 import {
   fetchAdminAccounts,
   fetchLeaderboard,
+  fetchManualGames,
   type AdminAccountDTO,
   type LeaderboardEntryDTO,
+  type ManualGameDTO,
 } from "@/api/leaderboard";
 import { fetchRoster } from "@/api/players";
 import type { GameHistorySummaryDTO } from "@/api/types";
@@ -31,6 +33,7 @@ export default function LeaderboardPlayerScreen() {
       : "/leaderboard";
   const [player, setPlayer] = useState<Player | null>(null);
   const [games, setGames] = useState<GameHistorySummaryDTO[]>([]);
+  const [manualGames, setManualGames] = useState<ManualGameDTO[]>([]);
   const [officialStats, setOfficialStats] = useState<LeaderboardEntryDTO | undefined>();
   const [linkedAccount, setLinkedAccount] = useState<AdminAccountDTO | null>(null);
   const [accountInfoUnavailable, setAccountInfoUnavailable] = useState(false);
@@ -45,11 +48,12 @@ export default function LeaderboardPlayerScreen() {
           .catch(() => ({ accounts: [] as AdminAccountDTO[], failed: true }))
       : Promise.resolve({ accounts: [] as AdminAccountDTO[], failed: false });
 
-    Promise.all([fetchRoster(), fetchHistory(), fetchLeaderboard(), accountLookup])
-      .then(([roster, history, entries, accountResult]) => {
+    Promise.all([fetchRoster(), fetchHistory(), fetchLeaderboard(), accountLookup, fetchManualGames(id).catch(() => [])])
+      .then(([roster, history, entries, accountResult, manual]) => {
         if (!active) return;
         setPlayer(roster.players.find((entry) => entry.id === id) ?? null);
         setGames(history.games);
+        setManualGames(manual);
         setOfficialStats(entries.find((entry) => entry.playerId === id));
         setLinkedAccount(accountResult.accounts.find((entry) => entry.linkedPlayerId === id) ?? null);
         setAccountInfoUnavailable(accountResult.failed);
@@ -91,6 +95,7 @@ export default function LeaderboardPlayerScreen() {
       <PlayerStatsView
         player={player}
         games={games}
+        manualGames={manualGames}
         officialStats={officialStats}
         t={t}
         fromPath="leaderboard"

@@ -63,14 +63,18 @@ async function readErrorDetails(response: Response): Promise<ApiErrorDetails> {
   return { message: messageForStatus(response.status) };
 }
 
-export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function request<T>(
+  path: string,
+  options: RequestInit = {},
+  timeoutMs: number = REQUEST_TIMEOUT_MS,
+): Promise<T> {
   const baseUrl = getApiBaseUrl();
   if (!baseUrl) {
     throw new ApiUnavailableError();
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const appKey = getAppKey();
@@ -140,22 +144,22 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 }
 
 export const apiClient = {
-  get: <T>(path: string) => request<T>(path, { method: "GET" }),
-  post: <T>(path: string, body?: unknown) =>
-    request<T>(path, { method: "POST", body: body !== undefined ? JSON.stringify(body) : undefined }),
-  put: <T>(path: string, body?: unknown) =>
-    request<T>(path, { method: "PUT", body: body !== undefined ? JSON.stringify(body) : undefined }),
-  delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
-  getAuthenticated: <T>(path: string, token: string) =>
-    request<T>(path, { method: "GET", headers: { Authorization: `Bearer ${token}` } }),
-  postAuthenticated: <T>(path: string, token: string, body?: unknown) =>
+  get: <T>(path: string, timeoutMs?: number) => request<T>(path, { method: "GET" }, timeoutMs),
+  post: <T>(path: string, body?: unknown, timeoutMs?: number) =>
+    request<T>(path, { method: "POST", body: body !== undefined ? JSON.stringify(body) : undefined }, timeoutMs),
+  put: <T>(path: string, body?: unknown, timeoutMs?: number) =>
+    request<T>(path, { method: "PUT", body: body !== undefined ? JSON.stringify(body) : undefined }, timeoutMs),
+  delete: <T>(path: string, timeoutMs?: number) => request<T>(path, { method: "DELETE" }, timeoutMs),
+  getAuthenticated: <T>(path: string, token: string, timeoutMs?: number) =>
+    request<T>(path, { method: "GET", headers: { Authorization: `Bearer ${token}` } }, timeoutMs),
+  postAuthenticated: <T>(path: string, token: string, body?: unknown, timeoutMs?: number) =>
     request<T>(path, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
       body: body !== undefined ? JSON.stringify(body) : undefined,
-    }),
-  deleteAuthenticated: <T>(path: string, token: string) =>
-    request<T>(path, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }),
+    }, timeoutMs),
+  deleteAuthenticated: <T>(path: string, token: string, timeoutMs?: number) =>
+    request<T>(path, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }, timeoutMs),
   putBinary: <T>(path: string, body: Blob, contentType: string) =>
     request<T>(path, { method: "PUT", body: body as unknown as BodyInit, headers: { "Content-Type": contentType } }),
 };

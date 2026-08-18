@@ -1,9 +1,9 @@
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text } from "react-native";
 
 import { fetchHistory } from "@/api/games";
-import { fetchLeaderboard, type LeaderboardEntryDTO } from "@/api/leaderboard";
+import { fetchLeaderboard, fetchManualGames, type LeaderboardEntryDTO, type ManualGameDTO } from "@/api/leaderboard";
 import { fetchRoster } from "@/api/players";
 import type { GameHistorySummaryDTO } from "@/api/types";
 import { Button } from "@/components/Button";
@@ -22,6 +22,7 @@ export default function MyProfileScreen() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [games, setGames] = useState<GameHistorySummaryDTO[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntryDTO[]>([]);
+  const [manualGames, setManualGames] = useState<ManualGameDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -57,6 +58,23 @@ export default function MyProfileScreen() {
   const officialStats = linkedPlayer
     ? leaderboard.find((entry) => entry.playerId === linkedPlayer.id)
     : undefined;
+
+  useEffect(() => {
+    if (!linkedPlayer) {
+      setManualGames([]);
+      return;
+    }
+    let active = true;
+    fetchManualGames(linkedPlayer.id)
+      .then((games) => {
+        if (active) setManualGames(games);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkedPlayer?.id]);
 
   if (loading) {
     return (
@@ -123,6 +141,7 @@ export default function MyProfileScreen() {
         <PlayerStatsView
           player={linkedPlayer}
           games={games}
+          manualGames={manualGames}
           officialStats={officialStats}
           t={t}
           fromPath="profile"

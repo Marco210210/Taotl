@@ -1,12 +1,15 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { getApiBaseUrl } from "@/api/config";
+import { fetchPendingSyncGames, retryPendingSyncGames } from "@/api/games";
 import { BrandMark } from "@/components/BrandMark";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { getFixedSequence } from "@/game/modes";
 import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
@@ -20,6 +23,10 @@ export default function HomeScreen() {
   const { account, loading: accountLoading } = useAccount();
   const { game, isHydrated, ranked, resetGame } = useGame();
   const [showAccountPrompt, setShowAccountPrompt] = useState(false);
+  const [showDeleteActiveConfirm, setShowDeleteActiveConfirm] = useState(false);
+  const [showNewGameConfirm, setShowNewGameConfirm] = useState(false);
+  const [showPendingSyncPrompt, setShowPendingSyncPrompt] = useState(false);
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const menuItems = [
     { label: t("home.history"), route: "/history" as const, icon: require("../assets/design/suit-heart.png") },
     { label: t("home.profiles"), route: "/profile" as const, icon: require("../assets/design/suit-diamond.png") },
@@ -56,6 +63,30 @@ export default function HomeScreen() {
     };
   }, [account, accountLoading]);
 
+  useEffect(() => {
+    // Non sovrapporsi al prompt "crea account": aspetta che sia risolto
+    // (chiuso o non necessario) prima di controllare le partite in sospeso.
+    if (!isHydrated || accountLoading || showAccountPrompt) return;
+    if (!getApiBaseUrl()) return;
+    let active = true;
+    fetchPendingSyncGames()
+      .then((pending) => {
+        if (active && pending.length > 0) {
+          setPendingSyncCount(pending.length);
+          setShowPendingSyncPrompt(true);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [isHydrated, accountLoading, showAccountPrompt]);
+
+  const addPendingSyncGames = () => {
+    setShowPendingSyncPrompt(false);
+    void retryPendingSyncGames();
+  };
+
   const rememberAccountPrompt = async () => {
     setShowAccountPrompt(false);
     await AsyncStorage.setItem(STORAGE_KEYS.accountPromptSeen, "yes").catch(() => {});
@@ -74,14 +105,20 @@ export default function HomeScreen() {
 
   const deleteActiveGame = () => {
     if (!game || game.status === "finished") return;
-    Alert.alert(
-      t("home.deleteActiveTitle"),
-      t("home.deleteActiveBody"),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        { text: t("home.deleteGame"), style: "destructive", onPress: resetGame },
-      ],
-    );
+    setShowDeleteActiveConfirm(true);
+  };
+
+  const confirmDeleteActiveGame = () => {
+    setShowDeleteActiveConfirm(false);
+    resetGame();
+  };
+
+  const startNewGame = () => {
+    if (hasActiveGame) {
+      setShowNewGameConfirm(true);
+      return;
+    }
+    router.push("/setup/players");
   };
 
   return (
@@ -110,6 +147,45 @@ export default function HomeScreen() {
           </Card>
         </View>
       </Modal>
+      <ConfirmDialog
+        visible={showPendingSyncPrompt}
+        title={t("home.pendingSyncTitle")}
+        description={
+          pendingSyncCount === 1
+            ? t("home.pendingSyncBodyOne")
+            : `${pendingSyncCount} ${t("home.pendingSyncBodyMany")}`
+        }
+        confirmLabel={t("home.pendingSyncConfirm")}
+        cancelLabel={t("home.pendingSyncDismiss")}
+        onConfirm={addPendingSyncGames}
+        onCancel={() => setShowPendingSyncPrompt(false)}
+      />
+      <ConfirmDialog
+        visible={showDeleteActiveConfirm}
+        title={t("home.deleteActiveTitle")}
+        description={t("home.deleteActiveBody")}
+        confirmLabel={t("home.deleteGame")}
+        cancelLabel={t("common.cancel")}
+        destructive
+        onConfirm={confirmDeleteActiveGame}
+        onCancel={() => setShowDeleteActiveConfirm(false)}
+      />
+      <ConfirmDialog
+        visible={showNewGameConfirm}
+        title={t("home.newGameConfirmTitle")}
+        description={`${t("home.newGameConfirmBody")} ${t("home.round")} ${currentRound} · ${game?.players.length ?? 0} ${t("home.players")}.`}
+        confirmLabel={t("home.newGameConfirmDiscard")}
+        cancelLabel={t("home.newGameConfirmResume")}
+        destructive
+        onConfirm={() => {
+          setShowNewGameConfirm(false);
+          router.push("/setup/players");
+        }}
+        onCancel={() => {
+          setShowNewGameConfirm(false);
+          resumeGame();
+        }}
+      />
       <ScrollView contentContainerStyle={styles.page}>
         <View style={styles.hero}>
           <BrandMark />
@@ -164,7 +240,7 @@ export default function HomeScreen() {
             label={t("home.newGame")}
             subtitle={t("home.newGameSubtitle")}
             trailing="→"
-            onPress={() => router.push("/setup/players")}
+            onPress={startNewGame}
           />
 
           <View style={styles.grid}>

@@ -14,6 +14,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { Text, TextInput } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -28,6 +29,19 @@ import { theme } from "@/theme";
 
 void SplashScreen.preventAutoHideAsync();
 installGlobalErrorReporting();
+
+// I layout sono tarati sul font di sistema di default: con l'accessibilità
+// del telefono impostata su testo molto grande, righe e bottoni si
+// sovrappongono. Un tetto al fattore di scala evita la rottura del layout
+// pur lasciando un margine di ingrandimento reale.
+(Text as unknown as { defaultProps?: Record<string, unknown> }).defaultProps = {
+  ...(Text as unknown as { defaultProps?: Record<string, unknown> }).defaultProps,
+  maxFontSizeMultiplier: 1.15,
+};
+(TextInput as unknown as { defaultProps?: Record<string, unknown> }).defaultProps = {
+  ...(TextInput as unknown as { defaultProps?: Record<string, unknown> }).defaultProps,
+  maxFontSizeMultiplier: 1.15,
+};
 
 // L'error boundary è il componente più esterno apposta: un errore durante il
 // caricamento dei font (prima ancora che l'app abbia qualcosa da mostrare)

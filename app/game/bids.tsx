@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { NumberStepper } from "@/components/NumberStepper";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
@@ -17,7 +18,17 @@ import { useGame } from "@/state/GameContext";
 import { theme, type ThemeColors } from "@/theme";
 
 export default function BidsScreen() {
-  const { game, currentRoundInfo, previousCardsDealt, setPendingCards, confirmBids } = useGame();
+  const {
+    game,
+    currentRoundInfo,
+    previousCardsDealt,
+    setPendingCards,
+    reopenCards,
+    confirmBids,
+    undoLastRound,
+  } = useGame();
+  const { t } = useAppSettings();
+  const [showCorrectPreviousConfirm, setShowCorrectPreviousConfirm] = useState(false);
 
   useEffect(() => {
     if (!game) router.replace("/");
@@ -27,12 +38,51 @@ export default function BidsScreen() {
 
   if (!game) return null;
 
+  const correctPreviousRound = () => {
+    setShowCorrectPreviousConfirm(false);
+    undoLastRound();
+    router.replace("/game/scoring");
+  };
+
+  const correctPreviousDialog = (
+    <ConfirmDialog
+      visible={showCorrectPreviousConfirm}
+      title={t("game.correctPreviousTitle")}
+      description={t("game.correctPreviousDescription")}
+      confirmLabel={t("game.correctPreviousConfirm")}
+      cancelLabel={t("common.cancel")}
+      onConfirm={correctPreviousRound}
+      onCancel={() => setShowCorrectPreviousConfirm(false)}
+    />
+  );
+
   if (game.status === "awaiting-cards") {
-    return <CardsStep game={game} previousCardsDealt={previousCardsDealt} onConfirm={setPendingCards} />;
+    return (
+      <>
+        {correctPreviousDialog}
+        <CardsStep
+          game={game}
+          previousCardsDealt={previousCardsDealt}
+          onConfirm={setPendingCards}
+          onCorrectPrevious={game.rounds.length > 0 ? () => setShowCorrectPreviousConfirm(true) : undefined}
+        />
+      </>
+    );
   }
 
   if (game.status === "bidding" && currentRoundInfo) {
-    return <BiddingStep players={game.players} roundInfo={currentRoundInfo} onConfirm={confirmBids} />;
+    return (
+      <>
+        {correctPreviousDialog}
+        <BiddingStep
+          players={game.players}
+          roundInfo={currentRoundInfo}
+          onConfirm={confirmBids}
+          onChangeCards={game.mode === "personalizzata" ? reopenCards : undefined}
+          onCorrectPrevious={game.rounds.length > 0 ? () => setShowCorrectPreviousConfirm(true) : undefined}
+        />
+      </>
+    );
   }
 
   return null;
@@ -42,10 +92,12 @@ function CardsStep({
   game,
   previousCardsDealt,
   onConfirm,
+  onCorrectPrevious,
 }: {
   game: ActiveGame;
   previousCardsDealt: number | null;
   onConfirm: (cardsDealt: number) => void;
+  onCorrectPrevious?: () => void;
 }) {
   const { resolvedLanguage, t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -102,6 +154,11 @@ function CardsStep({
             <Text style={styles.utilityText}>{t("game.fixDealer")}</Text>
           </Pressable>
         )}
+        {onCorrectPrevious && (
+          <Pressable onPress={onCorrectPrevious} style={styles.utilityButton}>
+            <Text style={styles.utilityText}>{t("game.correctPreviousRound")}</Text>
+          </Pressable>
+        )}
       </View>
     </ScreenContainer>
   );
@@ -121,13 +178,17 @@ function MiniStandings() {
           <Text style={styles.miniLink}>{t("game.detail")}</Text>
         </Pressable>
       </View>
-      {ranked.slice(0, 4).map((entry, index) => (
-        <View key={entry.playerId} style={styles.miniRow}>
-          <Text style={styles.miniPosition}>{index + 1}</Text>
-          <Text style={styles.miniName}>{playerById.get(entry.playerId)?.name}</Text>
-          <Text style={styles.miniTotal}>{entry.total}</Text>
-        </View>
-      ))}
+      {ranked.slice(0, 4).map((entry, index) => {
+        const player = playerById.get(entry.playerId);
+        return (
+          <View key={entry.playerId} style={styles.miniRow}>
+            <Text style={styles.miniPosition}>{index + 1}</Text>
+            <PlayerAvatar name={player?.name ?? "?"} photoUri={player?.photoUri} colorKey={entry.playerId} size={24} />
+            <Text style={styles.miniName}>{player?.name}</Text>
+            <Text style={styles.miniTotal}>{entry.total}</Text>
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -136,10 +197,14 @@ function BiddingStep({
   players,
   roundInfo,
   onConfirm,
+  onChangeCards,
+  onCorrectPrevious,
 }: {
   players: Player[];
   roundInfo: RoundInfo;
   onConfirm: (bids: Bid[]) => void;
+  onChangeCards?: () => void;
+  onCorrectPrevious?: () => void;
 }) {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -210,6 +275,16 @@ function BiddingStep({
             <Text style={styles.utilityText}>{t("game.fixDealer")}</Text>
           </Pressable>
         )}
+        {onChangeCards && (
+          <Pressable onPress={onChangeCards} style={styles.utilityButton}>
+            <Text style={styles.utilityText}>{t("game.changeCards")}</Text>
+          </Pressable>
+        )}
+        {onCorrectPrevious && (
+          <Pressable onPress={onCorrectPrevious} style={styles.utilityButton}>
+            <Text style={styles.utilityText} numberOfLines={2}>{t("game.correctPreviousRound")}</Text>
+          </Pressable>
+        )}
       </View>
 
       {dealerHasForbiddenBid && (
@@ -275,12 +350,20 @@ function makeStyles(colors: ThemeColors) {
     utilityButton: {
       flex: 1,
       minHeight: 44,
+      paddingHorizontal: 6,
       borderRadius: 11,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.inkSoft,
     },
-    utilityText: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 11.5 },
+    utilityText: {
+      color: colors.text,
+      fontFamily: theme.font.family.bold,
+      fontSize: 11.5,
+      lineHeight: 15,
+      textAlign: "center",
+      flexShrink: 1,
+    },
     callsList: { gap: 9 },
     callRow: {
       minHeight: 72,

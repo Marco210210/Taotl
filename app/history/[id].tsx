@@ -7,6 +7,7 @@ import { deleteFinishedGame, fetchGameHistoryDetail } from "@/api/games";
 import type { GameHistoryDetailDTO } from "@/api/types";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { LinearBackButton } from "@/components/LinearBackButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
@@ -46,6 +47,7 @@ export default function HistoryDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -74,30 +76,23 @@ export default function HistoryDetailScreen() {
 
   const requestDelete = () => {
     if (!game || !token) return;
-    Alert.alert(
-      t("history.deleteTitle"),
-      t("history.deleteBody"),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("common.delete"),
-          style: "destructive",
-          onPress: async () => {
-            setDeleting(true);
-            try {
-              await deleteFinishedGame(game.id, token);
-              router.dismissTo(backDestination);
-            } catch (reason) {
-              Alert.alert(
-                t("history.deleteFailed"),
-                reason instanceof Error ? reason.message : t("history.retry"),
-              );
-              setDeleting(false);
-            }
-          },
-        },
-      ],
-    );
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!game || !token) return;
+    setShowDeleteConfirm(false);
+    setDeleting(true);
+    try {
+      await deleteFinishedGame(game.id, token);
+      router.dismissTo(backDestination);
+    } catch (reason) {
+      Alert.alert(
+        t("history.deleteFailed"),
+        reason instanceof Error ? reason.message : t("history.retry"),
+      );
+      setDeleting(false);
+    }
   };
 
   if (loading) {
@@ -127,6 +122,16 @@ export default function HistoryDetailScreen() {
   return (
     <>
       <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} /> }} />
+      <ConfirmDialog
+        visible={showDeleteConfirm}
+        title={t("history.deleteTitle")}
+        description={t("history.deleteBody")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        destructive
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
       <ScreenContainer>
       <View>
         <ScreenIntro
@@ -137,17 +142,24 @@ export default function HistoryDetailScreen() {
       </View>
 
       <Card>
-        <Text style={styles.sectionTitle}>{t("history.finalStandings")}</Text>
+        <Text style={styles.sectionTitle}>
+          {game.mode === "manuale" ? t("history.manualParticipants") : t("history.finalStandings")}
+        </Text>
         {game.standings.map((standing, index) => (
           <View key={standing.playerId} style={styles.row}>
-            <Text style={styles.position}>{index + 1}</Text>
+            <Text style={styles.position}>
+              {game.mode === "manuale" && standing.playerId === game.winnerId ? "🏆" : index + 1}
+            </Text>
             <Text style={styles.name}>{standing.name}</Text>
-            <Text style={[styles.score, standing.total < 0 && styles.negative]}>{standing.total}</Text>
+            <Text style={[styles.score, (standing.total ?? 0) < 0 && styles.negative]}>
+              {standing.total ?? "—"}
+            </Text>
           </View>
         ))}
       </Card>
 
-      <Text style={styles.sectionTitle}>{t("history.allRounds")}</Text>
+      {game.mode === "manuale" && <Text style={styles.helper}>{t("history.manualNoRounds")}</Text>}
+      {game.mode !== "manuale" && <Text style={styles.sectionTitle}>{t("history.allRounds")}</Text>}
       {game.rounds.map((round) => (
         <Card key={round.index}>
           <Text style={styles.roundTitle}>

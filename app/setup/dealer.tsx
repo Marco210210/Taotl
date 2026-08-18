@@ -1,6 +1,7 @@
 import { router } from "expo-router";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, PanResponder, Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 import { Button } from "@/components/Button";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -17,24 +18,31 @@ export default function SetupDealerScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { selectedPlayers, dealerId, setDealerId, movePlayer } = useSetup();
   const [dragPreview, setDragPreview] = useState<{ from: number; to: number } | null>(null);
+  const playerCount = selectedPlayers.length;
 
-  const updateDragPreview = (from: number, offsetY: number) => {
+  // Tutte queste callback restano stabili mentre cambia l'anteprima. Il gesto
+  // nativo non viene quindi ricreato a metà trascinamento.
+  const startDrag = useCallback((from: number) => {
+    setDragPreview({ from, to: from });
+  }, []);
+
+  const updateDragPreview = useCallback((from: number, offsetY: number) => {
     const to = Math.max(
       0,
-      Math.min(selectedPlayers.length - 1, from + Math.round(offsetY / ROW_SLOT_HEIGHT)),
+      Math.min(playerCount - 1, from + Math.round(offsetY / ROW_SLOT_HEIGHT)),
     );
     setDragPreview((current) => (
       current?.from === from && current.to === to ? current : { from, to }
     ));
     return to;
-  };
+  }, [playerCount]);
 
-  const finishDrag = (from: number, to: number) => {
+  const finishDrag = useCallback((from: number, to: number) => {
     if (from !== to) movePlayer(from, to);
     setDragPreview(null);
-  };
+  }, [movePlayer]);
 
-  const cancelDrag = () => setDragPreview(null);
+  const cancelDrag = useCallback(() => setDragPreview(null), []);
 
   const previewIndexFor = (index: number) => {
     if (!dragPreview || index === dragPreview.from) return index;
@@ -58,6 +66,7 @@ export default function SetupDealerScreen() {
 
   return (
     <ScreenContainer
+      scrollEnabled={!dragPreview}
       footer={
         <Button
           label={t("dealer.chooseMode")}
@@ -85,7 +94,7 @@ export default function SetupDealerScreen() {
             onSelect={() => setDealerId(player.id)}
             onMove={movePlayer}
             previewIndex={previewIndexFor(index)}
-            onDragStart={() => setDragPreview({ from: index, to: index })}
+            onDragStart={startDrag}
             onDragMove={updateDragPreview}
             onDragEnd={finishDrag}
             onDragCancel={cancelDrag}
@@ -123,7 +132,7 @@ function DealerRow({
   onSelect: () => void;
   onMove: (fromIndex: number, toIndex: number) => void;
   previewIndex: number;
-  onDragStart: () => void;
+  onDragStart: (fromIndex: number) => void;
   onDragMove: (fromIndex: number, offsetY: number) => number;
   onDragEnd: (fromIndex: number, toIndex: number) => void;
   onDragCancel: () => void;
@@ -136,6 +145,7 @@ function DealerRow({
   const dragOffset = useRef(new Animated.Value(0)).current;
   const lift = useRef(new Animated.Value(0)).current;
   const targetIndex = useRef(index);
+  const dragFinished = useRef(false);
 
   useEffect(() => {
     if (dragging) return;
@@ -148,76 +158,89 @@ function DealerRow({
     }).start();
   }, [dragging, position, previewIndex]);
 
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dy) > 4,
-        onPanResponderGrant: () => {
-          targetIndex.current = index;
-          dragOffset.setValue(0);
-          setDragging(true);
-          onDragStart();
-          Animated.spring(lift, {
-            toValue: 1,
-            damping: 16,
-            stiffness: 260,
-            useNativeDriver: true,
-          }).start();
-        },
-        onPanResponderMove: (_, gesture) => {
-          dragOffset.setValue(gesture.dy);
-          targetIndex.current = onDragMove(index, gesture.dy);
-        },
-        onPanResponderRelease: (_, gesture) => {
-          const target = Math.max(0, Math.min(playerCount - 1, targetIndex.current));
-          Animated.parallel([
-            Animated.spring(dragOffset, {
-              toValue: (target - index) * ROW_SLOT_HEIGHT,
-              damping: 18,
-              stiffness: 250,
-              mass: 0.7,
-              useNativeDriver: true,
-            }),
-            Animated.spring(lift, {
-              toValue: 0,
-              damping: 18,
-              stiffness: 250,
-              useNativeDriver: true,
-            }),
-          ]).start(() => {
-            position.setValue(target * ROW_SLOT_HEIGHT);
-            dragOffset.setValue(0);
-            setDragging(false);
-            onDragEnd(index, target);
-          });
-        },
-        onPanResponderTerminate: () => {
-          Animated.parallel([
-            Animated.spring(dragOffset, {
-              toValue: 0,
-              damping: 18,
-              stiffness: 250,
-              useNativeDriver: true,
-            }),
-            Animated.spring(lift, {
-              toValue: 0,
-              damping: 18,
-              stiffness: 250,
-              useNativeDriver: true,
-            }),
-          ]).start(() => {
-            setDragging(false);
-            onDragCancel();
-          });
-        },
+  const finishAnimation = useCallback((target: number) => {
+    Animated.parallel([
+      Animated.spring(dragOffset, {
+        toValue: (target - index) * ROW_SLOT_HEIGHT,
+        damping: 18,
+        stiffness: 250,
+        mass: 0.7,
+        useNativeDriver: true,
+      }),
+      Animated.spring(lift, {
+        toValue: 0,
+        damping: 18,
+        stiffness: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      position.setValue(target * ROW_SLOT_HEIGHT);
+      dragOffset.setValue(0);
+      setDragging(false);
+      onDragEnd(index, target);
+    });
+  }, [dragOffset, index, lift, onDragEnd, position]);
+
+  const cancelAnimation = useCallback(() => {
+    Animated.parallel([
+      Animated.spring(dragOffset, {
+        toValue: 0,
+        damping: 18,
+        stiffness: 250,
+        useNativeDriver: true,
+      }),
+      Animated.spring(lift, {
+        toValue: 0,
+        damping: 18,
+        stiffness: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setDragging(false);
+      onDragCancel();
+    });
+  }, [dragOffset, lift, onDragCancel]);
+
+  const panGesture = useMemo(
+    () => Gesture.Pan()
+      // Il riconoscimento è affidato al gestore nativo: lo ScrollView non può
+      // più sottrarre il tocco alla maniglia durante lo spostamento.
+      .activeOffsetY([-4, 4])
+      .maxPointers(1)
+      .runOnJS(true)
+      .onStart(() => {
+        dragFinished.current = false;
+        targetIndex.current = index;
+        position.stopAnimation();
+        dragOffset.setValue(0);
+        setDragging(true);
+        onDragStart(index);
+        Animated.spring(lift, {
+          toValue: 1,
+          damping: 16,
+          stiffness: 260,
+          useNativeDriver: true,
+        }).start();
+      })
+      .onUpdate((event) => {
+        dragOffset.setValue(event.translationY);
+        targetIndex.current = onDragMove(index, event.translationY);
+      })
+      .onEnd((event) => {
+        targetIndex.current = onDragMove(index, event.translationY);
+        const target = Math.max(0, Math.min(playerCount - 1, targetIndex.current));
+        dragFinished.current = true;
+        finishAnimation(target);
+      })
+      .onFinalize((_event, success) => {
+        if (!success && !dragFinished.current) cancelAnimation();
       }),
     [
+      cancelAnimation,
       dragOffset,
+      finishAnimation,
       index,
       lift,
-      onDragCancel,
-      onDragEnd,
       onDragMove,
       onDragStart,
       playerCount,
@@ -282,9 +305,17 @@ function DealerRow({
             <Text pointerEvents="none" style={styles.arrowText}>▼</Text>
           </Pressable>
         </View>
-        <View {...panResponder.panHandlers} style={styles.dragHandle} accessibilityLabel={`${labels.drag}: ${player.name}`}>
-          <Text pointerEvents="none" style={styles.dragText}>⠿</Text>
-        </View>
+        <GestureDetector gesture={panGesture}>
+          <View
+            accessible
+            accessibilityLabel={`${labels.drag}: ${player.name}`}
+            accessibilityRole="adjustable"
+            collapsable={false}
+            style={styles.dragHandle}
+          >
+            <Text pointerEvents="none" style={styles.dragText}>⠿</Text>
+          </View>
+        </GestureDetector>
       </Pressable>
     </Animated.View>
   );

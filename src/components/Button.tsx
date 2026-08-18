@@ -37,6 +37,7 @@ export function Button({
   // (colors.background), non restare fisso chiaro.
   const hasLightLabel = variant === "primary" || variant === "danger" || variant === "success";
   const isSecondary = variant === "secondary";
+  const isYellow = variant === "yellow";
 
   return (
     <TouchableOpacity
@@ -68,6 +69,7 @@ export function Button({
                 styles.label,
                 hasLightLabel ? styles.lightLabel : null,
                 isSecondary ? styles.secondaryLabel : null,
+                isYellow ? styles.yellowLabel : null,
               ]}
             >
               {label}
@@ -129,6 +131,7 @@ function makeStyles(colors: ThemeColors) {
     lightSubtitle: { color: "rgba(248, 248, 245, 0.78)" },
     secondaryLabel: { color: colors.background },
     secondarySubtitle: { color: colors.backgroundMuted },
+    yellowLabel: { color: "#17181D" },
     disabled: { opacity: 0.42 },
   });
 }

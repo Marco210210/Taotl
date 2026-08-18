@@ -62,8 +62,8 @@ export function confirmPasswordReset(token: string, password: string): Promise<A
   return apiClient.post<AuthSessionDTO>("/taotl/auth/reset-password/", { token, password });
 }
 
-export function fetchMyAccount(token: string): Promise<AccountDTO> {
-  return apiClient.getAuthenticated<AccountDTO>("/taotl/auth/me/", token);
+export function fetchMyAccount(token: string, timeoutMs?: number): Promise<AccountDTO> {
+  return apiClient.getAuthenticated<AccountDTO>("/taotl/auth/me/", token, timeoutMs);
 }
 
 export function logoutAccount(token: string): Promise<void> {
@@ -80,8 +80,8 @@ export function joinGameRoom(token: string, code: string): Promise<GameRoomDTO> 
   });
 }
 
-export function fetchGameRoom(token: string, roomId: string): Promise<GameRoomDTO> {
-  return apiClient.getAuthenticated<GameRoomDTO>(`/taotl/rooms/${roomId}/`, token);
+export function fetchGameRoom(token: string, roomId: string, timeoutMs?: number): Promise<GameRoomDTO> {
+  return apiClient.getAuthenticated<GameRoomDTO>(`/taotl/rooms/${roomId}/`, token, timeoutMs);
 }
 
 export function completeGameRoom(

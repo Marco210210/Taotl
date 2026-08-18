@@ -1,9 +1,10 @@
 import { router } from "expo-router";
-import { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
@@ -14,7 +15,8 @@ import { theme, type ThemeColors } from "@/theme";
 export default function StandingsScreen() {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { game, ranked } = useGame();
+  const { game, ranked, undoLastRound } = useGame();
+  const [showUndoConfirm, setShowUndoConfirm] = useState(false);
 
   if (!game) {
     return (
@@ -40,8 +42,25 @@ export default function StandingsScreen() {
     else if (game.status === "scoring") router.replace("/game/scoring");
     else router.replace("/game/bids");
   };
+  const canUndo = game.rounds.length > 0 && game.status !== "finished";
+  const confirmUndo = () => {
+    setShowUndoConfirm(false);
+    undoLastRound();
+    router.replace("/game/scoring");
+  };
 
   return (
+    <>
+    <ConfirmDialog
+      visible={showUndoConfirm}
+      title={t("standings.undoTitle")}
+      description={t("standings.undoDescription")}
+      confirmLabel={t("standings.undoConfirm")}
+      cancelLabel={t("common.cancel")}
+      destructive
+      onConfirm={confirmUndo}
+      onCancel={() => setShowUndoConfirm(false)}
+    />
     <ScreenContainer
       footer={
         <Button
@@ -110,7 +129,14 @@ export default function StandingsScreen() {
           ))}
         </Card>
       )}
+
+      {canUndo && (
+        <Pressable onPress={() => setShowUndoConfirm(true)} style={styles.undoLink}>
+          <Text style={styles.undoText}>{t("standings.undoLastRound")}</Text>
+        </Pressable>
+      )}
     </ScreenContainer>
+    </>
   );
 }
 
@@ -160,5 +186,7 @@ function makeStyles(colors: ThemeColors) {
     negativeChip: { backgroundColor: colors.negativeSoft },
     chipName: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 10.5 },
     chipScore: { color: colors.success, fontFamily: theme.font.family.extraBold, fontSize: 11.5 },
+    undoLink: { minHeight: 44, alignItems: "center", justifyContent: "center" },
+    undoText: { color: colors.danger, fontFamily: theme.font.family.semibold, fontSize: 12 },
   });
 }

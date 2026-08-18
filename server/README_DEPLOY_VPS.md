@@ -48,6 +48,8 @@ ordine:
 @sql/02_views.sql
 @sql/08_verified_stats_and_legacy_wins.sql
 @sql/09_account_display_names_and_repairs.sql
+@sql/10_manual_game_scores.sql
+@sql/11_tie_break_winner.sql
 @ords/03_identity_package.sql
 @ords/01_api_package.sql
 @ords/02_module.sql
@@ -73,6 +75,21 @@ additiva per percentuale vittorie, vittorie storiche e chiusura delle stanze è:
 @ords/02_module.sql
 @ords/04_identity_module.sql
 ```
+
+Su un'installazione già esistente con `09_account_display_names_and_repairs.sql` già
+applicato, la migrazione additiva per punteggi finali sulle partite manuali e per lo
+spareggio risolto a mano è:
+
+```sql
+@sql/10_manual_game_scores.sql
+@sql/11_tie_break_winner.sql
+@ords/03_identity_package.sql
+@ords/01_api_package.sql
+@ords/04_identity_module.sql
+```
+
+(`02_module.sql` non serve rieseguirlo qui: non è cambiato — solo i package e il modulo
+`04_identity_module.sql`, che ora espone anche `GET /taotl/players/:id/manual-games`.)
 
 ## 3. Verifica rapida da riga di comando
 
