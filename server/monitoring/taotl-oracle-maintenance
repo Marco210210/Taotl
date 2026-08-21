@@ -1,0 +1,25 @@
+#!/bin/bash
+set -euo pipefail
+
+readonly maintenance_flag=/run/taotl-oracle-maintenance
+readonly health_url=https://127.0.0.1:8443/ords/taotl_app/players/
+
+exec 9>/run/lock/taotl-oracle-maintenance.lock
+flock -n 9 || exit 0
+
+touch "$maintenance_flag"
+trap 'rm -f "$maintenance_flag"' EXIT
+
+logger -t taotl-oracle-maintenance "Avvio riavvio controllato Oracle/ORDS"
+systemctl restart container-taotl-oracle.service
+
+for attempt in $(seq 1 90); do
+  if curl --insecure --fail --silent --show-error --max-time 10 "$health_url" >/dev/null; then
+    logger -t taotl-oracle-maintenance "Oracle/ORDS nuovamente operativo"
+    exit 0
+  fi
+  sleep 5
+done
+
+logger -t taotl-oracle-maintenance "Oracle/ORDS non operativo dopo il riavvio controllato"
+exit 1

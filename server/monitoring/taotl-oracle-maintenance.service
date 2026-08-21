@@ -1,0 +1,9 @@
+[Unit]
+Description=Taotl controlled Oracle maintenance restart
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/taotl-oracle-maintenance
+TimeoutStartSec=10min

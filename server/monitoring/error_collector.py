@@ -50,6 +50,9 @@ RATE_LIMIT_PER_MINUTE = 60
 NOTIFICATION_COOLDOWN_SECONDS = 300
 WATCHDOG_INTERVAL_SECONDS = 60
 AUTO_RECOVERY_COOLDOWN_SECONDS = 600
+WATCHDOG_STARTUP_GRACE_SECONDS = 300
+ORACLE_MAINTENANCE_FLAG = Path("/run/taotl-oracle-maintenance")
+watchdog_started_monotonic = time.monotonic()
 
 EMAIL_RE = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.IGNORECASE)
 BEARER_RE = re.compile(r"Bearer\s+[A-Za-z0-9._~-]+", re.IGNORECASE)
@@ -68,6 +71,9 @@ health_state: dict[str, Any] = {
     "ords": "unknown",
     "expoFailures": 0,
     "ordsFailures": 0,
+    "expoDetail": "non ancora verificato",
+    "ordsDetail": "non ancora verificato",
+    "ordsAlerted": False,
     "lastExpoRecovery": 0.0,
 }
 
@@ -211,31 +217,51 @@ def allowed_by_rate_limit(client_ip: str) -> bool:
         return True
 
 
-def check_url(url: str, headers: dict[str, str] | None = None) -> bool:
+def check_url(url: str, headers: dict[str, str] | None = None) -> tuple[bool, str]:
     if not url:
-        return False
+        return False, "URL non configurato"
     try:
         request = urllib.request.Request(url, headers=headers or {}, method="GET")
         with urllib.request.urlopen(request, timeout=15) as response:
-            return 200 <= response.status < 400
-    except Exception:
-        return False
+            # Consuma la risposta: il proxy può così chiudere la richiesta senza
+            # registrare falsi errori "context canceled".
+            response.read()
+            return 200 <= response.status < 400, f"HTTP {response.status}"
+    except urllib.error.HTTPError as error:
+        body = error.read(8_192).decode("utf-8", errors="replace")
+        oracle_codes = sorted(set(re.findall(r"ORA-\d{5}", body)))
+        suffix = f" ({', '.join(oracle_codes)})" if oracle_codes else ""
+        return False, f"HTTP {error.code}{suffix}"
+    except Exception as error:
+        return False, redact_text(f"{type(error).__name__}: {error}", 300)
 
 
 def watchdog_loop() -> None:
     while True:
-        expo_ok = check_url(EXPO_HEALTH_URL, {"Accept": "application/expo+json", "Expo-Platform": "android"})
-        ords_ok = check_url(ORDS_HEALTH_URL)
+        expo_ok, expo_detail = check_url(
+            EXPO_HEALTH_URL,
+            {"Accept": "application/expo+json", "Expo-Platform": "android"},
+        )
+        ords_ok, ords_detail = check_url(ORDS_HEALTH_URL)
+        in_startup_grace = time.monotonic() - watchdog_started_monotonic < WATCHDOG_STARTUP_GRACE_SECONDS
+        oracle_maintenance = ORACLE_MAINTENANCE_FLAG.exists()
         with lock:
             previous_expo = health_state["expo"]
-            previous_ords = health_state["ords"]
+            ords_alerted = health_state["ordsAlerted"]
             health_state["expo"] = "online" if expo_ok else "offline"
             health_state["ords"] = "online" if ords_ok else "offline"
             health_state["expoFailures"] = 0 if expo_ok else health_state["expoFailures"] + 1
             health_state["ordsFailures"] = 0 if ords_ok else health_state["ordsFailures"] + 1
+            health_state["expoDetail"] = expo_detail
+            health_state["ordsDetail"] = ords_detail
             expo_failures = health_state["expoFailures"]
             ords_failures = health_state["ordsFailures"]
             last_recovery = health_state["lastExpoRecovery"]
+
+        if not expo_ok:
+            print(f"Watchdog Expo Go: {expo_detail}", flush=True)
+        if not ords_ok:
+            print(f"Watchdog Oracle/ORDS: {ords_detail}", flush=True)
 
         if expo_failures >= 2 and time.monotonic() - last_recovery >= AUTO_RECOVERY_COOLDOWN_SECONDS:
             with lock:
@@ -249,7 +275,7 @@ def watchdog_loop() -> None:
                     stderr=subprocess.DEVNULL,
                 )
                 time.sleep(5)
-                recovered = check_url(
+                recovered, _ = check_url(
                     EXPO_HEALTH_URL,
                     {"Accept": "application/expo+json", "Expo-Platform": "android"},
                 )
@@ -263,12 +289,25 @@ def watchdog_loop() -> None:
         elif previous_expo == "online" and not expo_ok:
             send_telegram("⚠️ Expo Go Taotl non risponde. Ritento prima del recupero automatico.")
 
-        if previous_ords == "online" and not ords_ok:
-            send_telegram("🛑 Oracle/ORDS Taotl non risponde. Non lo riavvio automaticamente per proteggere i dati.")
-        elif previous_ords == "offline" and ords_ok:
+        should_alert_ords = not in_startup_grace and not oracle_maintenance
+        ords_message = None
+        if should_alert_ords and not ords_ok and not ords_alerted:
+            if "ORA-04036" in ords_detail:
+                ords_message = (
+                    "🛑 Oracle ha raggiunto il limite di memoria PGA (ORA-04036). "
+                    "ORDS può rifiutare temporaneamente le richieste; non riavvio automaticamente il database."
+                )
+            elif ords_failures >= 2:
+                ords_message = f"🛑 Oracle/ORDS non risponde dopo due controlli: {ords_detail}."
+
+        if ords_message:
+            with lock:
+                health_state["ordsAlerted"] = True
+            send_telegram(ords_message)
+        elif ords_ok and ords_alerted:
+            with lock:
+                health_state["ordsAlerted"] = False
             send_telegram("✅ Oracle/ORDS Taotl è tornato online.")
-        elif ords_failures == 2:
-            send_telegram("🛑 Oracle/ORDS Taotl continua a non rispondere. Serve un controllo manuale.")
 
         time.sleep(WATCHDOG_INTERVAL_SECONDS)
 
@@ -289,7 +328,7 @@ def handle_bot_command(text: str) -> str:
             return (
                 "Stato Taotl\n"
                 f"Expo Go: {health_state['expo']}\n"
-                f"Oracle/ORDS: {health_state['ords']}\n"
+                f"Oracle/ORDS: {health_state['ords']} ({health_state['ordsDetail']})\n"
                 f"Errori in memoria: {len(recent_errors)}"
             )
     if command == "/ultimi":

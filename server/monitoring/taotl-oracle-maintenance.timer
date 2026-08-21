@@ -1,0 +1,11 @@
+[Unit]
+Description=Weekly Taotl Oracle maintenance
+
+[Timer]
+OnCalendar=Mon *-*-* 04:30:00 Europe/Rome
+RandomizedDelaySec=10min
+Persistent=true
+Unit=taotl-oracle-maintenance.service
+
+[Install]
+WantedBy=timers.target
