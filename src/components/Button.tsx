@@ -65,6 +65,7 @@ export function Button({
         <>
           <View pointerEvents="none" style={styles.textBlock}>
             <Text
+              maxFontSizeMultiplier={1.15}
               style={[
                 styles.label,
                 hasLightLabel ? styles.lightLabel : null,
@@ -76,6 +77,7 @@ export function Button({
             </Text>
             {!!subtitle && (
               <Text
+                maxFontSizeMultiplier={1.15}
                 style={[
                   styles.subtitle,
                   hasLightLabel ? styles.lightSubtitle : null,
@@ -88,6 +90,7 @@ export function Button({
           </View>
           {!!trailing && (
             <Text
+              allowFontScaling={false}
               pointerEvents="none"
               style={[
                 styles.trailing,

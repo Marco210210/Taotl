@@ -7,8 +7,10 @@ export type GameAction =
   | { type: "START_GAME"; mode: GameMode; players: Player[]; startDealerId: string; verifiedRoomId?: string | null; saveToAlbo: boolean }
   | { type: "SET_PENDING_CARDS"; cardsDealt: number }
   | { type: "REOPEN_CARDS" }
+  | { type: "SET_BID_DRAFT"; playerId: string; bid: number }
   | { type: "CONFIRM_BIDS"; bids: Bid[] }
   | { type: "REOPEN_BIDS" }
+  | { type: "SET_RESULT_DRAFT"; playerId: string; respected: boolean | null; scarto: number }
   | { type: "CONFIRM_ROUND_RESULTS"; results: RoundPlayerResult[] }
   | { type: "UNDO_LAST_ROUND" }
   | { type: "SET_CURRENT_DEALER"; dealerId: string }
@@ -32,6 +34,7 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
         rounds: [],
         pendingCardsDealt: null,
         pendingBids: [],
+        pendingBidDrafts: [],
         pendingResultDrafts: [],
         verifiedRoomId: verifiedRoomId ?? null,
         saveToAlbo,
@@ -49,22 +52,66 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
 
     case "SET_PENDING_CARDS": {
       if (!state) return state;
-      return { ...state, pendingCardsDealt: action.cardsDealt, status: "bidding" };
+      return { ...state, pendingCardsDealt: action.cardsDealt, pendingBidDrafts: [], status: "bidding" };
     }
 
     case "REOPEN_CARDS": {
       if (!state || state.mode !== "personalizzata" || state.status !== "bidding") return state;
-      return { ...state, status: "awaiting-cards" };
+      return { ...state, pendingBidDrafts: [], status: "awaiting-cards" };
+    }
+
+    case "SET_BID_DRAFT": {
+      if (!state || state.status !== "bidding") return state;
+      if (!state.players.some((player) => player.id === action.playerId)) return state;
+      const drafts = state.pendingBidDrafts ?? [];
+      const existingIndex = drafts.findIndex((draft) => draft.playerId === action.playerId);
+      const nextDraft = { playerId: action.playerId, bid: action.bid };
+      const pendingBidDrafts = existingIndex >= 0
+        ? drafts.map((draft, index) => (index === existingIndex ? nextDraft : draft))
+        : [...drafts, nextDraft];
+      return { ...state, pendingBidDrafts };
     }
 
     case "CONFIRM_BIDS": {
       if (!state) return state;
-      return { ...state, pendingBids: action.bids, pendingResultDrafts: [], status: "scoring" };
+      return {
+        ...state,
+        pendingBids: action.bids,
+        pendingBidDrafts: [],
+        pendingResultDrafts: action.bids.map((bid) => ({
+          playerId: bid.playerId,
+          respected: null,
+          scarto: 1,
+        })),
+        status: "scoring",
+      };
     }
 
     case "REOPEN_BIDS": {
       if (!state || state.status !== "scoring") return state;
-      return { ...state, pendingBids: [], pendingResultDrafts: [], status: "bidding" };
+      return {
+        ...state,
+        pendingBidDrafts: [],
+        pendingBids: [],
+        pendingResultDrafts: [],
+        status: "bidding",
+      };
+    }
+
+    case "SET_RESULT_DRAFT": {
+      if (!state || state.status !== "scoring") return state;
+      if (!state.pendingBids.some((bid) => bid.playerId === action.playerId)) return state;
+      const drafts = state.pendingResultDrafts ?? [];
+      const existingIndex = drafts.findIndex((draft) => draft.playerId === action.playerId);
+      const nextDraft = {
+        playerId: action.playerId,
+        respected: action.respected,
+        scarto: action.scarto,
+      };
+      const pendingResultDrafts = existingIndex >= 0
+        ? drafts.map((draft, index) => (index === existingIndex ? nextDraft : draft))
+        : [...drafts, nextDraft];
+      return { ...state, pendingResultDrafts };
     }
 
     case "SET_CURRENT_DEALER": {
@@ -77,7 +124,12 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
       }
       const selectedIndex = state.players.findIndex((player) => player.id === action.dealerId);
       if (selectedIndex < 0) return state;
-      return { ...state, startDealerId: state.players[selectedIndex].id, pendingBids: [] };
+      return {
+        ...state,
+        startDealerId: state.players[selectedIndex].id,
+        pendingBids: [],
+        pendingBidDrafts: [],
+      };
     }
 
     case "CONFIRM_ROUND_RESULTS": {
@@ -97,6 +149,7 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
           ...state,
           rounds,
           pendingBids: [],
+          pendingBidDrafts: [],
           pendingResultDrafts: [],
           pendingCardsDealt: null,
           status: "finished",
@@ -110,6 +163,7 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
           ...state,
           rounds,
           pendingBids: [],
+          pendingBidDrafts: [],
           pendingResultDrafts: [],
           pendingCardsDealt: null,
           status: "awaiting-cards",
@@ -121,6 +175,7 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
         ...state,
         rounds,
         pendingBids: [],
+        pendingBidDrafts: [],
         pendingResultDrafts: [],
         pendingCardsDealt: sequence[rounds.length],
         status: "bidding",
@@ -139,7 +194,12 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
         ...state,
         rounds,
         pendingBids,
-        pendingResultDrafts: lastRound.results,
+        pendingBidDrafts: [],
+        pendingResultDrafts: lastRound.results.map((result) => ({
+          playerId: result.playerId,
+          respected: result.respected,
+          scarto: result.respected ? 1 : result.scarto,
+        })),
         pendingCardsDealt: lastRound.info.cardsDealt,
         status: "scoring",
         finishedAt: null,

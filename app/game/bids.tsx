@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -24,6 +24,7 @@ export default function BidsScreen() {
     previousCardsDealt,
     setPendingCards,
     reopenCards,
+    setBidDraft,
     confirmBids,
     undoLastRound,
   } = useGame();
@@ -77,6 +78,8 @@ export default function BidsScreen() {
         <BiddingStep
           players={game.players}
           roundInfo={currentRoundInfo}
+          bidDrafts={game.pendingBidDrafts ?? []}
+          onChangeBid={setBidDraft}
           onConfirm={confirmBids}
           onChangeCards={game.mode === "personalizzata" ? reopenCards : undefined}
           onCorrectPrevious={game.rounds.length > 0 ? () => setShowCorrectPreviousConfirm(true) : undefined}
@@ -196,20 +199,30 @@ function MiniStandings() {
 function BiddingStep({
   players,
   roundInfo,
+  bidDrafts,
+  onChangeBid,
   onConfirm,
   onChangeCards,
   onCorrectPrevious,
 }: {
   players: Player[];
   roundInfo: RoundInfo;
+  bidDrafts: Bid[];
+  onChangeBid: (playerId: string, bid: number) => void;
   onConfirm: (bids: Bid[]) => void;
   onChangeCards?: () => void;
   onCorrectPrevious?: () => void;
 }) {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const [calls, setCalls] = useState<Record<string, number>>(() =>
-    Object.fromEntries(roundInfo.biddingOrder.map((playerId) => [playerId, 0])),
+  const { width, fontScale } = useWindowDimensions();
+  const useCompactRows = width < 360 || fontScale > 1.2;
+  const calls = useMemo<Record<string, number>>(
+    () => Object.fromEntries([
+      ...roundInfo.biddingOrder.map((playerId) => [playerId, 0] as const),
+      ...bidDrafts.map(({ playerId, bid }) => [playerId, bid] as const),
+    ]),
+    [bidDrafts, roundInfo.biddingOrder],
   );
   const playerById = useMemo(() => new Map(players.map((player) => [player.id, player])), [players]);
   const dealerId = roundInfo.dealerId;
@@ -220,10 +233,6 @@ function BiddingStep({
   const total = roundInfo.biddingOrder.reduce((sum, playerId) => sum + (calls[playerId] ?? 0), 0);
   const dealerHasForbiddenBid = forbiddenBid !== null && calls[dealerId] === forbiddenBid;
   const valid = total !== roundInfo.cardsDealt && !dealerHasForbiddenBid;
-
-  useEffect(() => {
-    setCalls(Object.fromEntries(roundInfo.biddingOrder.map((playerId) => [playerId, 0])));
-  }, [roundInfo.index, roundInfo.biddingOrder]);
 
   const confirm = () => {
     if (!valid) return;
@@ -301,22 +310,27 @@ function BiddingStep({
           const value = calls[playerId] ?? 0;
           const expected = value * roundInfo.presaValue + roundInfo.rispettoValue;
           return (
-            <View key={playerId} style={styles.callRow}>
-              <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={36} />
-              <View style={styles.callInfo}>
-                <Text style={styles.callName}>{player.name}</Text>
-                <Text style={[styles.callMeta, isDealer && styles.dealerMeta]}>
-                  {isDealer
-                    ? `${t("game.dealer")} · ${t("game.cannotBid")} ${forbiddenBid ?? "—"}`
-                    : `${value} ${value === 1 ? t("game.trickSingle") : t("game.trickPlural")} = ${expected} ${t("game.pointsIfRespected")}`}
-                </Text>
+            <View key={playerId} style={[styles.callRow, useCompactRows && styles.callRowCompact]}>
+              <View style={[styles.callIdentity, !useCompactRows && styles.callIdentityRegular]}>
+                <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={36} />
+                <View style={styles.callInfo}>
+                  <Text style={styles.callName}>{player.name}</Text>
+                  <Text style={[styles.callMeta, isDealer && styles.dealerMeta]}>
+                    {isDealer
+                      ? `${t("game.dealer")} · ${t("game.cannotBid")} ${forbiddenBid ?? "—"}`
+                      : `${value} ${value === 1 ? t("game.trickSingle") : t("game.trickPlural")} = ${expected} ${t("game.pointsIfRespected")}`}
+                  </Text>
+                </View>
               </View>
               <NumberStepper
                 value={value}
                 min={0}
                 max={roundInfo.cardsDealt}
-                disabledValues={isDealer && forbiddenBid !== null ? [forbiddenBid] : []}
-                onChange={(next) => setCalls((previous) => ({ ...previous, [playerId]: next }))}
+                // Lo zero resta selezionabile: se è vietato mostriamo l'avviso,
+                // senza spostare automaticamente alcuna chiamata. Da 1 in su,
+                // invece, lo stepper del solo mazziere salta il valore vietato.
+                disabledValues={isDealer && forbiddenBid !== null && forbiddenBid >= 1 ? [forbiddenBid] : []}
+                onChange={(next) => onChangeBid(playerId, next)}
               />
             </View>
           );
@@ -377,7 +391,10 @@ function makeStyles(colors: ThemeColors) {
       borderWidth: 1,
       borderColor: colors.border,
     },
-    callInfo: { flex: 1, minWidth: 90 },
+    callRowCompact: { alignItems: "stretch", flexDirection: "column" },
+    callIdentity: { minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10 },
+    callIdentityRegular: { flex: 1 },
+    callInfo: { flex: 1, minWidth: 0 },
     callName: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 14.5 },
     callMeta: { marginTop: 2, color: colors.textMuted, fontFamily: theme.font.family.semibold, fontSize: 10.5 },
     dealerMeta: { color: colors.terracotta },

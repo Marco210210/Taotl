@@ -1,10 +1,10 @@
 import type { Href } from "expo-router";
 import { router } from "expo-router";
 import { useMemo } from "react";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { useAppSettings } from "@/state/AppSettingsContext";
-import { theme, type ThemeColors } from "@/theme";
+import type { ThemeColors } from "@/theme";
 
 export function LinearBackButton({ destination }: { destination: Href }) {
   const { t, colors } = useAppSettings();
@@ -18,7 +18,7 @@ export function LinearBackButton({ destination }: { destination: Href }) {
       onPress={() => router.dismissTo(destination)}
       style={({ pressed }) => [styles.button, pressed && styles.pressed]}
     >
-      <Text pointerEvents="none" style={styles.icon}>‹</Text>
+      <View pointerEvents="none" style={styles.icon} />
     </Pressable>
   );
 }
@@ -34,11 +34,13 @@ function makeStyles(colors: ThemeColors) {
       borderRadius: 21,
     },
     icon: {
-      marginTop: -2,
-      color: colors.text,
-      fontFamily: theme.font.family.regular,
-      fontSize: 34,
-      lineHeight: 36,
+      width: 13,
+      height: 13,
+      marginLeft: 5,
+      borderLeftWidth: 2.5,
+      borderBottomWidth: 2.5,
+      borderColor: colors.text,
+      transform: [{ rotate: "45deg" }],
     },
     pressed: {
       backgroundColor: colors.inkSoft,

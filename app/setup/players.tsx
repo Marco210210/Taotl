@@ -111,7 +111,7 @@ export default function SetupPlayersScreen() {
           onPress={handleAddPlayer}
           style={({ pressed }) => [styles.addButton, (!newName.trim() || adding) && styles.disabled, pressed && styles.pressed]}
         >
-          <Text pointerEvents="none" style={styles.addButtonText}>{adding ? "…" : "+"}</Text>
+          <Text allowFontScaling={false} pointerEvents="none" style={styles.addButtonText}>{adding ? "…" : "+"}</Text>
         </Pressable>
       </View>
       {!!addError && <Text style={styles.addError}>{addError}</Text>}
@@ -140,8 +140,8 @@ export default function SetupPlayersScreen() {
             >
               <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={38} />
               <View style={styles.playerInfo}>
-                <Text style={styles.playerName}>{player.name}</Text>
-                <Text style={styles.playerMeta}>
+                <Text maxFontSizeMultiplier={1.15} style={styles.playerName}>{player.name}</Text>
+                <Text maxFontSizeMultiplier={1.15} style={styles.playerMeta}>
                   {selected ? `${t("players.position")} ${order + 1}` : t("players.tapSelect")}
                 </Text>
               </View>
@@ -234,7 +234,7 @@ function makeStyles(colors: ThemeColors) {
       backgroundColor: colors.surface,
     },
     playerRowSelected: { borderColor: colors.success },
-    playerInfo: { flex: 1 },
+    playerInfo: { flex: 1, minWidth: 0 },
     playerName: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 14.5 },
     playerMeta: { marginTop: 2, color: colors.textMuted, fontFamily: theme.font.family.medium, fontSize: 11 },
     check: {

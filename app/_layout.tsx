@@ -96,7 +96,15 @@ function AppNavigation() {
                 // di navigazione serve invece uno sfondo sempre opaco.
                 headerStyle: { backgroundColor: colors.background as string },
                 headerTintColor: colors.text as string,
-                headerTitleStyle: { fontFamily: theme.font.family.bold, fontSize: 15 },
+                headerTitle: ({ children, tintColor }) => (
+                  <Text
+                    allowFontScaling={false}
+                    numberOfLines={1}
+                    style={{ color: tintColor ?? colors.text, fontFamily: theme.font.family.bold, fontSize: 15 }}
+                  >
+                    {children}
+                  </Text>
+                ),
                 headerShadowVisible: false,
                 headerBackTitle: t("common.back"),
                 contentStyle: { backgroundColor: colors.background as string },

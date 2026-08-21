@@ -24,8 +24,10 @@ interface GameContextValue {
   ) => void;
   setPendingCards: (cardsDealt: number) => void;
   reopenCards: () => void;
+  setBidDraft: (playerId: string, bid: number) => void;
   confirmBids: (bids: Bid[]) => void;
   reopenBids: () => void;
+  setResultDraft: (playerId: string, respected: boolean | null, scarto: number) => void;
   confirmRoundResults: (results: RoundPlayerResult[]) => void;
   undoLastRound: () => void;
   setCurrentDealer: (dealerId: string) => void;
@@ -79,12 +81,20 @@ export function GameProvider({ children }: PropsWithChildren) {
     dispatch({ type: "REOPEN_CARDS" });
   }, []);
 
+  const setBidDraft = useCallback((playerId: string, bid: number) => {
+    dispatch({ type: "SET_BID_DRAFT", playerId, bid });
+  }, []);
+
   const confirmBids = useCallback((bids: Bid[]) => {
     dispatch({ type: "CONFIRM_BIDS", bids });
   }, []);
 
   const reopenBids = useCallback(() => {
     dispatch({ type: "REOPEN_BIDS" });
+  }, []);
+
+  const setResultDraft = useCallback((playerId: string, respected: boolean | null, scarto: number) => {
+    dispatch({ type: "SET_RESULT_DRAFT", playerId, respected, scarto });
   }, []);
 
   const confirmRoundResults = useCallback((results: RoundPlayerResult[]) => {
@@ -114,16 +124,18 @@ export function GameProvider({ children }: PropsWithChildren) {
       startGame,
       setPendingCards,
       reopenCards,
+      setBidDraft,
       confirmBids,
       reopenBids,
+      setResultDraft,
       confirmRoundResults,
       undoLastRound,
       setCurrentDealer,
       resetGame,
     };
   }, [
-    game, isHydrated, startGame, setPendingCards, reopenCards, confirmBids, reopenBids,
-    confirmRoundResults, undoLastRound, setCurrentDealer, resetGame,
+    game, isHydrated, startGame, setPendingCards, reopenCards, setBidDraft, confirmBids, reopenBids,
+    setResultDraft, confirmRoundResults, undoLastRound, setCurrentDealer, resetGame,
   ]);
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

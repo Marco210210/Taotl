@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 import { Button } from "@/components/Button";
@@ -11,11 +11,18 @@ import { useAppSettings } from "@/state/AppSettingsContext";
 import { useSetup } from "@/state/SetupContext";
 import { theme, type ThemeColors } from "@/theme";
 
-const ROW_SLOT_HEIGHT = 72;
+const REGULAR_ROW_HEIGHT = 64;
+const REGULAR_ROW_SLOT_HEIGHT = 72;
+const COMPACT_ROW_HEIGHT = 84;
+const COMPACT_ROW_SLOT_HEIGHT = 92;
 
 export default function SetupDealerScreen() {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { width, fontScale } = useWindowDimensions();
+  const useAccessibleRows = width < 360 || fontScale > 1.2;
+  const rowHeight = useAccessibleRows ? COMPACT_ROW_HEIGHT : REGULAR_ROW_HEIGHT;
+  const rowSlotHeight = useAccessibleRows ? COMPACT_ROW_SLOT_HEIGHT : REGULAR_ROW_SLOT_HEIGHT;
   const { selectedPlayers, dealerId, setDealerId, movePlayer } = useSetup();
   const [dragPreview, setDragPreview] = useState<{ from: number; to: number } | null>(null);
   const playerCount = selectedPlayers.length;
@@ -29,13 +36,13 @@ export default function SetupDealerScreen() {
   const updateDragPreview = useCallback((from: number, offsetY: number) => {
     const to = Math.max(
       0,
-      Math.min(playerCount - 1, from + Math.round(offsetY / ROW_SLOT_HEIGHT)),
+      Math.min(playerCount - 1, from + Math.round(offsetY / rowSlotHeight)),
     );
     setDragPreview((current) => (
       current?.from === from && current.to === to ? current : { from, to }
     ));
     return to;
-  }, [playerCount]);
+  }, [playerCount, rowSlotHeight]);
 
   const finishDrag = useCallback((from: number, to: number) => {
     if (from !== to) movePlayer(from, to);
@@ -83,13 +90,16 @@ export default function SetupDealerScreen() {
       />
       <Text style={styles.reorderHint}>{t("dealer.reorderHint")}</Text>
 
-      <View style={[styles.list, { height: selectedPlayers.length * ROW_SLOT_HEIGHT }]}>
+      <View style={[styles.list, { height: selectedPlayers.length * rowSlotHeight }]}>
         {selectedPlayers.map((player, index) => (
           <DealerRow
             key={player.id}
             player={player}
             index={index}
             playerCount={selectedPlayers.length}
+            rowHeight={rowHeight}
+            rowSlotHeight={rowSlotHeight}
+            useAccessibleLayout={useAccessibleRows}
             selected={dealerId === player.id}
             onSelect={() => setDealerId(player.id)}
             onMove={movePlayer}
@@ -115,6 +125,9 @@ function DealerRow({
   player,
   index,
   playerCount,
+  rowHeight,
+  rowSlotHeight,
+  useAccessibleLayout,
   selected,
   onSelect,
   onMove,
@@ -128,6 +141,9 @@ function DealerRow({
   player: ReturnType<typeof useSetup>["selectedPlayers"][number];
   index: number;
   playerCount: number;
+  rowHeight: number;
+  rowSlotHeight: number;
+  useAccessibleLayout: boolean;
   selected: boolean;
   onSelect: () => void;
   onMove: (fromIndex: number, toIndex: number) => void;
@@ -141,7 +157,7 @@ function DealerRow({
   const { colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const [dragging, setDragging] = useState(false);
-  const position = useRef(new Animated.Value(index * ROW_SLOT_HEIGHT)).current;
+  const position = useRef(new Animated.Value(index * rowSlotHeight)).current;
   const dragOffset = useRef(new Animated.Value(0)).current;
   const lift = useRef(new Animated.Value(0)).current;
   const targetIndex = useRef(index);
@@ -150,18 +166,18 @@ function DealerRow({
   useEffect(() => {
     if (dragging) return;
     Animated.spring(position, {
-      toValue: previewIndex * ROW_SLOT_HEIGHT,
+      toValue: previewIndex * rowSlotHeight,
       damping: 19,
       stiffness: 230,
       mass: 0.72,
       useNativeDriver: true,
     }).start();
-  }, [dragging, position, previewIndex]);
+  }, [dragging, position, previewIndex, rowSlotHeight]);
 
   const finishAnimation = useCallback((target: number) => {
     Animated.parallel([
       Animated.spring(dragOffset, {
-        toValue: (target - index) * ROW_SLOT_HEIGHT,
+        toValue: (target - index) * rowSlotHeight,
         damping: 18,
         stiffness: 250,
         mass: 0.7,
@@ -174,12 +190,12 @@ function DealerRow({
         useNativeDriver: true,
       }),
     ]).start(() => {
-      position.setValue(target * ROW_SLOT_HEIGHT);
+      position.setValue(target * rowSlotHeight);
       dragOffset.setValue(0);
       setDragging(false);
       onDragEnd(index, target);
     });
-  }, [dragOffset, index, lift, onDragEnd, position]);
+  }, [dragOffset, index, lift, onDragEnd, position, rowSlotHeight]);
 
   const cancelAnimation = useCallback(() => {
     Animated.parallel([
@@ -254,6 +270,7 @@ function DealerRow({
         styles.animatedRow,
         dragging && styles.animatedRowDragging,
         {
+          height: rowHeight,
           transform: [
             { translateY: Animated.add(position, dragOffset) },
             {
@@ -276,16 +293,23 @@ function DealerRow({
         accessibilityState={{ selected }}
         style={({ pressed }) => [
           styles.row,
+          useAccessibleLayout && styles.rowAccessible,
           selected && styles.rowSelected,
           dragging && styles.dragging,
           pressed && !dragging && styles.pressed,
         ]}
       >
-        <Text style={styles.position}>{index + 1}</Text>
+        <Text maxFontSizeMultiplier={1.15} style={styles.position}>{index + 1}</Text>
         <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={36} />
-        <Text style={styles.name}>{player.name}</Text>
+        <Text maxFontSizeMultiplier={1.15} numberOfLines={2} style={styles.name}>{player.name}</Text>
         <View style={[styles.dealerPill, selected && styles.dealerPillSelected]}>
-          <Text style={[styles.dealerText, selected && styles.dealerTextSelected]}>{labels.badge}</Text>
+          <Text
+            maxFontSizeMultiplier={1.1}
+            numberOfLines={1}
+            style={[styles.dealerText, selected && styles.dealerTextSelected]}
+          >
+            {labels.badge}
+          </Text>
         </View>
         <View style={styles.controls}>
           <Pressable
@@ -294,7 +318,7 @@ function DealerRow({
             onPress={() => onMove(index, index - 1)}
             style={[styles.arrow, (index === 0 || dragging) && styles.arrowDisabled]}
           >
-            <Text pointerEvents="none" style={styles.arrowText}>▲</Text>
+            <Text allowFontScaling={false} pointerEvents="none" style={styles.arrowText}>▲</Text>
           </Pressable>
           <Pressable
             accessibilityLabel={`${labels.moveDown}: ${player.name}`}
@@ -302,7 +326,7 @@ function DealerRow({
             onPress={() => onMove(index, index + 1)}
             style={[styles.arrow, (index === playerCount - 1 || dragging) && styles.arrowDisabled]}
           >
-            <Text pointerEvents="none" style={styles.arrowText}>▼</Text>
+            <Text allowFontScaling={false} pointerEvents="none" style={styles.arrowText}>▼</Text>
           </Pressable>
         </View>
         <GestureDetector gesture={panGesture}>
@@ -313,7 +337,7 @@ function DealerRow({
             collapsable={false}
             style={styles.dragHandle}
           >
-            <Text pointerEvents="none" style={styles.dragText}>⠿</Text>
+            <Text allowFontScaling={false} pointerEvents="none" style={styles.dragText}>⠿</Text>
           </View>
         </GestureDetector>
       </Pressable>
@@ -339,7 +363,7 @@ function makeStyles(colors: ThemeColors) {
     },
     animatedRowDragging: { zIndex: 20, elevation: 12 },
     row: {
-      height: 64,
+      height: "100%",
       flexDirection: "row",
       alignItems: "center",
       gap: 9,
@@ -350,10 +374,20 @@ function makeStyles(colors: ThemeColors) {
       borderColor: colors.border,
       backgroundColor: colors.surface,
     },
+    rowAccessible: { gap: 7, paddingHorizontal: 9, paddingVertical: 10 },
     rowSelected: { borderColor: colors.yellow },
     position: { width: 16, color: colors.textFaint, fontFamily: theme.font.family.extraBold, fontSize: 13 },
-    name: { flex: 1, color: colors.text, fontFamily: theme.font.family.bold, fontSize: 14 },
+    name: {
+      flex: 1,
+      minWidth: 0,
+      color: colors.text,
+      fontFamily: theme.font.family.bold,
+      fontSize: 14,
+      lineHeight: 19,
+    },
     dealerPill: {
+      flexShrink: 1,
+      maxWidth: 72,
       paddingHorizontal: 7,
       paddingVertical: 5,
       borderRadius: 99,

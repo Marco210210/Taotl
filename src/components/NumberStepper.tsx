@@ -42,9 +42,9 @@ export function NumberStepper({
         accessibilityState={{ disabled: !canDecrement }}
         style={[styles.btn, !canDecrement && styles.btnDisabled]}
       >
-        <Text style={styles.btnLabel}>−</Text>
+        <Text allowFontScaling={false} pointerEvents="none" style={styles.btnLabel}>−</Text>
       </Pressable>
-      <Text style={styles.value}>{value}</Text>
+      <Text maxFontSizeMultiplier={1.15} style={styles.value}>{value}</Text>
       <Pressable
         onPress={() => canIncrement && nextValue !== null && changeValue(nextValue)}
         disabled={!canIncrement}
@@ -53,7 +53,7 @@ export function NumberStepper({
         accessibilityState={{ disabled: !canIncrement }}
         style={[styles.btn, !canIncrement && styles.btnDisabled]}
       >
-        <Text style={styles.btnLabel}>+</Text>
+        <Text allowFontScaling={false} pointerEvents="none" style={styles.btnLabel}>+</Text>
       </Pressable>
     </View>
   );
@@ -74,7 +74,7 @@ function findAllowedValue(
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    row: { flexDirection: "row", alignItems: "center", gap: theme.spacing(2) },
+    row: { alignSelf: "center", flexDirection: "row", alignItems: "center", gap: theme.spacing(2) },
     btn: {
       width: 44,
       height: 44,
@@ -84,7 +84,14 @@ function makeStyles(colors: ThemeColors) {
       justifyContent: "center",
     },
     btnDisabled: { opacity: 0.35 },
-    btnLabel: { color: colors.text, fontSize: 24, fontFamily: theme.font.family.semibold },
+    btnLabel: {
+      color: colors.text,
+      fontSize: 24,
+      lineHeight: 28,
+      fontFamily: theme.font.family.semibold,
+      textAlign: "center",
+      includeFontPadding: false,
+    },
     value: {
       color: colors.text,
       fontSize: 24,

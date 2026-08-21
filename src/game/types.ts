@@ -20,6 +20,12 @@ export interface Bid {
   bid: number;
 }
 
+export interface PendingResultDraft {
+  playerId: string;
+  respected: boolean | null;
+  scarto: number;
+}
+
 export interface RoundPlayerResult {
   playerId: string;
   bid: number;
@@ -46,9 +52,12 @@ export interface ActiveGame {
   pendingCardsDealt: number | null;
   // Chiamate raccolte per il turno in corso (popolate quando si passa a status "scoring").
   pendingBids: Bid[];
-  // Se l'utente riapre il turno precedente, conserva gli esiti già registrati:
-  // la schermata di correzione li ripropone invece di costringerlo a rifare tutto.
-  pendingResultDrafts?: RoundPlayerResult[];
+  // Chiamate ancora in compilazione. Restano nello stato della partita così
+  // l'apertura della classifica non azzera gli stepper.
+  pendingBidDrafts?: Bid[];
+  // Esiti ancora in compilazione (o riaperti da un turno precedente). Anche
+  // questi restano persistenti durante la navigazione e il riavvio dell'app.
+  pendingResultDrafts?: PendingResultDraft[];
   // Stanza scelta prima dell'inizio: resta legata a questa partita anche se
   // l'utente apre o abbandona altri codici durante il gioco.
   verifiedRoomId?: string | null;

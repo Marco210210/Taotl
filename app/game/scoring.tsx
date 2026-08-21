@@ -11,22 +11,16 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { StatBox } from "@/components/StatBox";
 import { computePlayerScore } from "@/game/scoring";
-import type { RoundPlayerResult } from "@/game/types";
+import type { PendingResultDraft, RoundPlayerResult } from "@/game/types";
 import { validateScarto } from "@/game/validation";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useGame } from "@/state/GameContext";
 import { theme, type ThemeColors } from "@/theme";
 
-interface Draft {
-  respected: boolean | null;
-  scarto: number;
-}
-
 export default function ScoringScreen() {
   const { resolvedLanguage, t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { game, currentRoundInfo, confirmRoundResults, reopenBids } = useGame();
-  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const { game, currentRoundInfo, confirmRoundResults, reopenBids, setResultDraft } = useGame();
   const [showRedealConfirm, setShowRedealConfirm] = useState(false);
   const isSubmitting = useRef(false);
 
@@ -40,51 +34,42 @@ export default function ScoringScreen() {
     }
   }, [game]);
 
-  useEffect(() => {
-    if (game?.status === "scoring") {
-      const initial: Record<string, Draft> = {};
-      const previousByPlayer = new Map(
-        (game.pendingResultDrafts ?? []).map((result) => [result.playerId, result]),
-      );
-      for (const bid of game.pendingBids) {
-        const previous = previousByPlayer.get(bid.playerId);
-        initial[bid.playerId] = previous
-          ? { respected: previous.respected, scarto: previous.respected ? 1 : previous.scarto }
-          : { respected: null, scarto: 1 };
-      }
-      setDrafts(initial);
-    }
-    // Si reinizializza solo quando inizia un nuovo turno di punteggio, non ad ogni render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game?.id, game?.rounds.length]);
-
   if (!game || game.status !== "scoring" || !currentRoundInfo) return null;
 
   const playerById = new Map(game.players.map((p) => [p.id, p]));
+  const draftByPlayer = new Map(
+    (game.pendingResultDrafts ?? []).map((draft) => [draft.playerId, draft]),
+  );
+  const getDraft = (playerId: string): PendingResultDraft => {
+    const stored = draftByPlayer.get(playerId);
+    return stored
+      ? { ...stored, scarto: Math.max(1, stored.scarto) }
+      : { playerId, respected: null, scarto: 1 };
+  };
   const totalBids = game.pendingBids.reduce((sum, bid) => sum + bid.bid, 0);
   const allPlayersDecided = game.pendingBids.every((b) => {
-    const draft = drafts[b.playerId];
-    if (!draft || draft.respected === null) return false;
+    const draft = getDraft(b.playerId);
+    if (draft.respected === null) return false;
     if (draft.respected === false) {
       return validateScarto(draft.scarto, currentRoundInfo.cardsDealt, resolvedLanguage) === null;
     }
     return true;
   });
-  const hasMissedBid = game.pendingBids.some((bid) => drafts[bid.playerId]?.respected === false);
+  const hasMissedBid = game.pendingBids.some((bid) => getDraft(bid.playerId).respected === false);
   const canConfirm = allPlayersDecided && hasMissedBid;
 
   const setRespected = (playerId: string, respected: boolean) => {
-    setDrafts((prev) => ({ ...prev, [playerId]: { respected, scarto: prev[playerId]?.scarto ?? 1 } }));
+    setResultDraft(playerId, respected, getDraft(playerId).scarto);
   };
 
   const setScarto = (playerId: string, scarto: number) => {
-    setDrafts((prev) => ({ ...prev, [playerId]: { respected: prev[playerId]?.respected ?? false, scarto } }));
+    setResultDraft(playerId, getDraft(playerId).respected ?? false, scarto);
   };
 
   const handleConfirm = () => {
     if (!canConfirm) return;
     const results: RoundPlayerResult[] = game.pendingBids.map((b) => {
-      const draft = drafts[b.playerId];
+      const draft = getDraft(b.playerId);
       const respected = draft.respected === true;
       const scarto = respected ? 0 : draft.scarto;
       const score = computePlayerScore({
@@ -154,8 +139,8 @@ export default function ScoringScreen() {
 
       {game.pendingBids.map((bid) => {
         const player = playerById.get(bid.playerId);
-        const draft = drafts[bid.playerId];
-        if (!player || !draft) return null;
+        const draft = getDraft(bid.playerId);
+        if (!player) return null;
         const scartoError =
           draft.respected === false ? validateScarto(draft.scarto, currentRoundInfo.cardsDealt, resolvedLanguage) : null;
         const preview =
@@ -264,7 +249,7 @@ function makeStyles(colors: ThemeColors) {
     redealText: { color: colors.warning },
     playerCard: { padding: 13, gap: 12 },
     playerHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
-    playerInfo: { flex: 1 },
+    playerInfo: { flex: 1, minWidth: 0 },
     playerName: { fontSize: 14.5, fontFamily: theme.font.family.bold, color: colors.text },
     score: {
       minWidth: 46,
