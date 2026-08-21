@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#EDEBE6;font-family:'Manrope',system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:#17181D}
+a{color:#CF3545;text-decoration:none}
+a:hover{color:#17784B}
+</style>
+</helmet>
+
+<section id="t2" style="padding:44px 48px 8px">
+<div style="max-width:1180px;display:flex;flex-direction:column;gap:22px;margin-bottom:30px">
+<div style="display:flex;align-items:baseline;gap:12px">
+<span style="font:600 10px/1 ui-monospace,Menlo,monospace;padding:4px 8px;background:#17181D;color:#F8F8F5;border-radius:4px;letter-spacing:.06em">TURNO 2</span>
+<span style="font:600 13px/1.2 'Manrope',sans-serif">Versione scura · semi definitivi</span>
+</div>
+<div style="font:400 13.5px/1.65 'Manrope',sans-serif;color:rgba(23,24,29,.72);max-width:660px;text-wrap:pretty">Ho sostituito i cinque semi con i tuoi file puliti: proporzioni originali intatte, quindi la lancia resta alta e stretta e la maschera larga — nelle file di icone le altezze sono compensate a occhio perché pesino uguale. La versione scura non è un semplice inverti: la carta avorio diventa pietra <b>#16171B</b>, il rosso si schiarisce a <b>#E8515F</b> e il verde a <b>#2E9E68</b> per restare leggibili, il giallo resta l'accento dei momenti di vittoria.</div>
+</div>
+
+<div style="display:flex;align-items:baseline;gap:10px;margin:0 0 16px">
+<a href="#2a" style="font:600 10.5px/1 ui-monospace,monospace;padding:3px 7px;background:#17181D;border-radius:5px;color:#F8F8F5">2a</a>
+<span style="font:400 12px/1.3 'Manrope',sans-serif;color:rgba(23,24,29,.55)">Tema scuro — le tre schermate che definiscono il sistema.</span>
+</div>
+
+<div id="2a" style="display:flex;gap:22px;flex-wrap:wrap;margin-bottom:44px">
+
+<div style="display:flex;flex-direction:column;gap:9px">
+<div style="font:600 10.5px/1 'Manrope',sans-serif;letter-spacing:.12em;color:rgba(23,24,29,.42)">HOME</div>
+<div style="width:326px;height:600px;border-radius:26px;overflow:hidden;border:1px solid rgba(23,24,29,.25);background:#16171B;display:flex;flex-direction:column;color:#F4F1E8">
+<div style="padding:44px 20px 24px;background:#125C3B;display:flex;align-items:center;gap:13px">
+<div style="width:50px;height:50px;border-radius:14px;background:#F4F1E8;display:grid;place-items:center;flex:none"><img src="assets/suit-mask.svg" alt="" style="height:30px"></div>
+<div style="display:flex;flex-direction:column;gap:2px">
+<div style="font:400 31px/1 'Instrument Serif',Georgia,serif;letter-spacing:.14em">TAOTL</div>
+<div style="font:600 9px/1 'Manrope',sans-serif;letter-spacing:.22em;opacity:.7">SEGNAPUNTI</div>
+</div>
+</div>
+<div style="padding:16px;display:flex;flex-direction:column;gap:12px;flex:1">
+<div style="border-radius:14px;background:rgba(244,241,232,.06);border:1px solid rgba(244,241,232,.10);padding:14px;display:flex;flex-direction:column;gap:11px">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div style="font:700 9.5px/1 'Manrope',sans-serif;letter-spacing:.15em;color:#E8515F">PARTITA IN CORSO</div>
+<div style="font:600 10.5px/1 'Manrope',sans-serif;color:rgba(244,241,232,.45)">Turno 4/6</div>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:flex-end">
+<div style="font:700 14px/1.2 'Manrope',sans-serif">Sara in testa</div>
+<div style="font:800 21px/1 'Manrope',sans-serif;font-variant-numeric:tabular-nums">185</div>
+</div>
+<div style="height:5px;border-radius:99px;background:rgba(244,241,232,.12);overflow:hidden"><div style="height:100%;width:50%;background:#2E9E68"></div></div>
+</div>
+<div style="border-radius:14px;background:#E8515F;color:#16171B;padding:18px 16px;display:flex;align-items:center;justify-content:space-between">
+<div style="display:flex;flex-direction:column;gap:3px">
+<div style="font:800 17px/1.1 'Manrope',sans-serif">Nuova partita</div>
+<div style="font:500 11.5px/1.1 'Manrope',sans-serif;opacity:.72">Da 2 a 12 giocatori</div>
+</div>
+<div style="font:400 24px/1 'Manrope',sans-serif;opacity:.8">→</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px">
+<div style="border-radius:14px;background:rgba(244,241,232,.06);border:1px solid rgba(244,241,232,.10);padding:14px;display:flex;flex-direction:column;gap:20px;min-height:100px">
+<img src="assets/suit-spear.svg" alt="" style="height:28px">
+<div style="font:700 13px/1.2 'Manrope',sans-serif">Storico<br>partite</div>
+</div>
+<div style="border-radius:14px;background:rgba(244,241,232,.06);border:1px solid rgba(244,241,232,.10);padding:14px;display:flex;flex-direction:column;gap:20px;min-height:100px">
+<img src="assets/suit-diamond.svg" alt="" style="height:22px">
+<div style="font:700 13px/1.2 'Manrope',sans-serif">Profili e<br>statistiche</div>
+</div>
+<div style="border-radius:14px;background:rgba(244,241,232,.06);border:1px solid rgba(244,241,232,.10);padding:14px;display:flex;flex-direction:column;gap:20px;min-height:100px">
+<img src="assets/suit-club.svg" alt="" style="height:20px">
+<div style="font:700 13px/1.2 'Manrope',sans-serif">Regole e<br>punteggi</div>
+</div>
+<div style="border-radius:14px;background:rgba(244,241,232,.06);border:1px solid rgba(244,241,232,.10);padding:14px;display:flex;flex-direction:column;gap:20px;min-height:100px">
+<img src="assets/suit-heart.svg" alt="" style="height:23px">
+<div style="font:700 13px/1.2 'Manrope',sans-serif">Impostazioni</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:9px">
+<div style="font:600 10.5px/1 'Manrope',sans-serif;letter-spacing:.12em;color:rgba(23,24,29,.42)">CHIAMATE</div>
+<div style="width:326px;height:600px;border-radius:26px;overflow:hidden;border:1px solid rgba(23,24,29,.25);background:#16171B;display:flex;flex-direction:column;color:#F4F1E8">
+<div style="padding:40px 16px 12px;display:flex;align-items:center;gap:11px;border-bottom:1px solid rgba(244,241,232,.10)">
+<div style="width:34px;height:34px;border-radius:11px;background:rgba(244,241,232,.08);display:grid;place-items:center;font:400 21px/1 'Manrope',sans-serif;flex:none;padding-bottom:3px">‹</div>
+<div style="display:flex;flex-direction:column;gap:2px">
+<div style="font:700 14.5px/1.15 'Manrope',sans-serif">Chiamate</div>
+<div style="font:500 10.5px/1.15 'Manrope',sans-serif;color:rgba(244,241,232,.5)">Turno 3 di 6 · 4 carte</div>
+</div>
+</div>
+<div style="padding:12px 16px 0;display:flex;gap:8px">
+<div style="flex:1;border-radius:12px;background:rgba(244,241,232,.06);border:1px solid rgba(244,241,232,.10);padding:9px 11px"><div style="font:700 9px/1.6 'Manrope',sans-serif;letter-spacing:.1em;color:rgba(244,241,232,.45)">CARTE</div><div style="font:800 18px/1.2 'Manrope',sans-serif;font-variant-numeric:tabular-nums">4</div></div>
+<div style="flex:1;border-radius:12px;background:rgba(244,241,232,.06);border:1px solid rgba(244,241,232,.10);padding:9px 11px"><div style="font:700 9px/1.6 'Manrope',sans-serif;letter-spacing:.1em;color:rgba(244,241,232,.45)">PRESA</div><div style="font:800 18px/1.2 'Manrope',sans-serif;font-variant-numeric:tabular-nums">15</div></div>
+<div style="flex:1;border-radius:12px;background:rgba(244,241,232,.06);border:1px solid rgba(244,241,232,.10);padding:9px 11px"><div style="font:700 9px/1.6 'Manrope',sans-serif;letter-spacing:.1em;color:rgba(244,241,232,.45)">BONUS</div><div style="font:800 18px/1.2 'Manrope',sans-serif;font-variant-numeric:tabular-nums">30</div></div>
+</div>
+<div style="padding:12px 16px;display:flex;flex-direction:column;gap:9px;flex:1">
+<div style="border-radius:14px;background:rgba(244,241,232,.06);border:1px solid rgba(244,241,232,.10);padding:11px 12px;display:flex;align-items:center;gap:10px">
+<div style="width:34px;height:34px;border-radius:50%;background:#E8515F;color:#16171B;display:grid;place-items:center;font:800 11.5px/1 'Manrope',sans-serif;flex:none">LU</div>
+<div style="flex:1;min-width:0"><div style="font:700 13.5px/1.2 'Manrope',sans-serif">Luca</div><div style="font:600 10px/1.5 'Manrope',sans-serif;color:rgba(244,241,232,.45)">2 prese = 60 punti</div></div>
+<div style="width:38px;height:38px;border-radius:12px;background:rgba(244,241,232,.09);display:grid;place-items:center;font:400 21px/1 'Manrope',sans-serif;flex:none">−</div>
+<div style="font:800 22px/1 'Manrope',sans-serif;min-width:26px;text-align:center;font-variant-numeric:tabular-nums">2</div>
+<div style="width:38px;height:38px;border-radius:12px;background:rgba(244,241,232,.09);display:grid;place-items:center;font:400 21px/1 'Manrope',sans-serif;flex:none">+</div>
+</div>
+<div style="border-radius:14px;background:rgba(244,241,232,.06);border:1px solid rgba(244,241,232,.10);padding:11px 12px;display:flex;align-items:center;gap:10px">
+<div style="width:34px;height:34px;border-radius:50%;background:#2E9E68;color:#16171B;display:grid;place-items:center;font:800 11.5px/1 'Manrope',sans-serif;flex:none">SA</div>
+<div style="flex:1;min-width:0"><div style="font:700 13.5px/1.2 'Manrope',sans-serif">Sara</div><div style="font:600 10px/1.5 'Manrope',sans-serif;color:rgba(244,241,232,.45)">1 presa = 45 punti</div></div>
+<div style="width:38px;height:38px;border-radius:12px;background:rgba(244,241,232,.09);display:grid;place-items:center;font:400 21px/1 'Manrope',sans-serif;flex:none">−</div>
+<div style="font:800 22px/1 'Manrope',sans-serif;min-width:26px;text-align:center;font-variant-numeric:tabular-nums">1</div>
+<div style="width:38px;height:38px;border-radius:12px;background:rgba(244,241,232,.09);display:grid;place-items:center;font:400 21px/1 'Manrope',sans-serif;flex:none">+</div>
+</div>
+<div style="border-radius:14px;background:rgba(229,197,28,.12);border:1.5px solid rgba(229,197,28,.55);padding:11px 12px;display:flex;align-items:center;gap:10px">
+<div style="width:34px;height:34px;border-radius:50%;background:#D98249;color:#16171B;display:grid;place-items:center;font:800 11.5px/1 'Manrope',sans-serif;flex:none">MA</div>
+<div style="flex:1;min-width:0"><div style="font:700 13.5px/1.2 'Manrope',sans-serif">Marta</div><div style="font:600 10px/1.5 'Manrope',sans-serif;color:#E5C51C">mazziere · non può chiamare 1</div></div>
+<div style="width:38px;height:38px;border-radius:12px;background:rgba(244,241,232,.09);display:grid;place-items:center;font:400 21px/1 'Manrope',sans-serif;flex:none">−</div>
+<div style="font:800 22px/1 'Manrope',sans-serif;min-width:26px;text-align:center;font-variant-numeric:tabular-nums">2</div>
+<div style="width:38px;height:38px;border-radius:12px;background:rgba(244,241,232,.09);display:grid;place-items:center;font:400 21px/1 'Manrope',sans-serif;flex:none">+</div>
+</div>
+<div style="border-radius:14px;background:rgba(244,241,232,.06);border:1px solid rgba(244,241,232,.10);padding:11px 12px;display:flex;align-items:center;gap:10px">
+<div style="width:34px;height:34px;border-radius:50%;background:#54A3B5;color:#16171B;display:grid;place-items:center;font:800 11.5px/1 'Manrope',sans-serif;flex:none">DA</div>
+<div style="flex:1;min-width:0"><div style="font:700 13.5px/1.2 'Manrope',sans-serif">Dario</div><div style="font:600 10px/1.5 'Manrope',sans-serif;color:rgba(244,241,232,.45)">zero prese = 30 punti</div></div>
+<div style="width:38px;height:38px;border-radius:12px;background:rgba(244,241,232,.09);display:grid;place-items:center;font:400 21px/1 'Manrope',sans-serif;color:rgba(244,241,232,.25);flex:none">−</div>
+<div style="font:800 22px/1 'Manrope',sans-serif;min-width:26px;text-align:center;font-variant-numeric:tabular-nums">0</div>
+<div style="width:38px;height:38px;border-radius:12px;background:rgba(244,241,232,.09);display:grid;place-items:center;font:400 21px/1 'Manrope',sans-serif;flex:none">+</div>
+</div>
+</div>
+<div style="padding:10px 16px 20px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:0 3px">
+<div style="font:600 11.5px/1 'Manrope',sans-serif;color:rgba(244,241,232,.5)">Somma delle chiamate</div>
+<div style="font:800 13px/1 'Manrope',sans-serif;color:#2E9E68;font-variant-numeric:tabular-nums">5 / 4 carte</div>
+</div>
+<div style="border-radius:14px;padding:17px;text-align:center;background:#F4F1E8;color:#16171B;font:800 15px/1 'Manrope',sans-serif">Registra gli esiti</div>
+</div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:9px">
+<div style="font:600 10.5px/1 'Manrope',sans-serif;letter-spacing:.12em;color:rgba(23,24,29,.42)">CLASSIFICA</div>
+<div style="width:326px;height:600px;border-radius:26px;overflow:hidden;border:1px solid rgba(23,24,29,.25);background:#16171B;display:flex;flex-direction:column;color:#F4F1E8">
+<div style="padding:40px 16px 12px;display:flex;align-items:center;gap:11px;border-bottom:1px solid rgba(244,241,232,.10)">
+<div style="width:34px;height:34px;border-radius:11px;background:rgba(244,241,232,.08);display:grid;place-items:center;font:400 21px/1 'Manrope',sans-serif;flex:none;padding-bottom:3px">‹</div>
+<div style="display:flex;flex-direction:column;gap:2px">
+<div style="font:700 14.5px/1.15 'Manrope',sans-serif">Classifica</div>
+<div style="font:500 10.5px/1.15 'Manrope',sans-serif;color:rgba(244,241,232,.5)">Dopo il turno 3 di 6</div>
+</div>
+</div>
+<div style="padding:14px 16px 0;display:flex;flex-direction:column;gap:8px;flex:1;overflow:hidden">
+<div style="border-radius:14px;background:rgba(229,197,28,.14);border:1px solid rgba(229,197,28,.35);padding:12px;display:flex;align-items:center;gap:11px">
+<div style="width:18px;font:800 14px/1 'Manrope',sans-serif;text-align:center;color:#E5C51C;flex:none">1</div>
+<div style="width:32px;height:32px;border-radius:50%;background:#2E9E68;color:#16171B;display:grid;place-items:center;font:800 11px/1 'Manrope',sans-serif;flex:none">SA</div>
+<div style="flex:1;min-width:0"><div style="font:700 14px/1.2 'Manrope',sans-serif">Sara</div><div style="font:600 10.5px/1.5 'Manrope',sans-serif;color:#2E9E68">ultimo turno +45</div></div>
+<div style="font:800 22px/1 'Manrope',sans-serif;font-variant-numeric:tabular-nums">120</div>
+</div>
+<div style="border-radius:14px;background:rgba(244,241,232,.06);border:1px solid rgba(244,241,232,.10);padding:12px;display:flex;align-items:center;gap:11px">
+<div style="width:18px;font:800 14px/1 'Manrope',sans-serif;text-align:center;color:rgba(244,241,232,.35);flex:none">2</div>
+<div style="width:32px;height:32px;border-radius:50%;background:#E8515F;color:#16171B;display:grid;place-items:center;font:800 11px/1 'Manrope',sans-serif;flex:none">LU</div>
+<div style="flex:1;min-width:0"><div style="font:700 14px/1.2 'Manrope',sans-serif">Luca</div><div style="font:600 10.5px/1.5 'Manrope',sans-serif;color:#2E9E68">ultimo turno +60</div></div>
+<div style="font:800 22px/1 'Manrope',sans-serif;font-variant-numeric:tabular-nums">95</div>
+</div>
+<div style="border-radius:14px;background:rgba(244,241,232,.06);border:1px solid rgba(244,241,232,.10);padding:12px;display:flex;align-items:center;gap:11px">
+<div style="width:18px;font:800 14px/1 'Manrope',sans-serif;text-align:center;color:rgba(244,241,232,.35);flex:none">3</div>
+<div style="width:32px;height:32px;border-radius:50%;background:#D98249;color:#16171B;display:grid;place-items:center;font:800 11px/1 'Manrope',sans-serif;flex:none">MA</div>
+<div style="flex:1;min-width:0"><div style="font:700 14px/1.2 'Manrope',sans-serif">Marta</div><div style="font:600 10.5px/1.5 'Manrope',sans-serif;color:#E8515F">ultimo turno −15</div></div>
+<div style="font:800 22px/1 'Manrope',sans-serif;font-variant-numeric:tabular-nums">40</div>
+</div>
+<div style="border-radius:14px;background:rgba(244,241,232,.06);border:1px solid rgba(244,241,232,.10);padding:12px;display:flex;align-items:center;gap:11px">
+<div style="width:18px;font:800 14px/1 'Manrope',sans-serif;text-align:center;color:rgba(244,241,232,.35);flex:none">4</div>
+<div style="width:32px;height:32px;border-radius:50%;background:#54A3B5;color:#16171B;display:grid;place-items:center;font:800 11px/1 'Manrope',sans-serif;flex:none">DA</div>
+<div style="flex:1;min-width:0"><div style="font:700 14px/1.2 'Manrope',sans-serif">Dario</div><div style="font:600 10.5px/1.5 'Manrope',sans-serif;color:#E8515F">ultimo turno −30</div></div>
+<div style="font:800 22px/1 'Manrope',sans-serif;font-variant-numeric:tabular-nums">15</div>
+</div>
+<div style="margin-top:6px;border-radius:14px;background:rgba(244,241,232,.04);border:1px solid rgba(244,241,232,.10);overflow:hidden">
+<div style="padding:12px 13px;font:700 10px/1 'Manrope',sans-serif;letter-spacing:.13em;color:rgba(244,241,232,.42);border-bottom:1px solid rgba(244,241,232,.08)">TURNO PER TURNO</div>
+<div style="padding:11px 13px;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;gap:8px;align-items:baseline"><div style="font:800 11.5px/1 'Manrope',sans-serif">Turno 3</div><div style="font:600 10px/1 'Manrope',sans-serif;color:rgba(244,241,232,.42)">4 carte · presa 15 · bonus 30</div></div>
+<div style="display:flex;gap:6px;flex-wrap:wrap">
+<div style="padding:6px 8px;border-radius:8px;background:rgba(46,158,104,.16);display:flex;gap:6px"><span style="font:700 10px/1 'Manrope',sans-serif;color:rgba(244,241,232,.55)">Luca</span><span style="font:800 11px/1 'Manrope',sans-serif;color:#2E9E68">+60</span></div>
+<div style="padding:6px 8px;border-radius:8px;background:rgba(46,158,104,.16);display:flex;gap:6px"><span style="font:700 10px/1 'Manrope',sans-serif;color:rgba(244,241,232,.55)">Sara</span><span style="font:800 11px/1 'Manrope',sans-serif;color:#2E9E68">+45</span></div>
+<div style="padding:6px 8px;border-radius:8px;background:rgba(232,81,95,.16);display:flex;gap:6px"><span style="font:700 10px/1 'Manrope',sans-serif;color:rgba(244,241,232,.55)">Marta</span><span style="font:800 11px/1 'Manrope',sans-serif;color:#E8515F">−15</span></div>
+<div style="padding:6px 8px;border-radius:8px;background:rgba(232,81,95,.16);display:flex;gap:6px"><span style="font:700 10px/1 'Manrope',sans-serif;color:rgba(244,241,232,.55)">Dario</span><span style="font:800 11px/1 'Manrope',sans-serif;color:#E8515F">−30</span></div>
+</div>
+</div>
+</div>
+</div>
+<div style="padding:10px 16px 20px">
+<div style="border-radius:14px;padding:17px;text-align:center;background:#2E9E68;color:#0E1A13;font:800 15px/1 'Manrope',sans-serif">Turno 4 · 3 carte</div>
+</div>
+</div>
+</div>
+</div>
+
+<div style="display:flex;gap:26px;flex-wrap:wrap;margin-bottom:20px">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:700 10.5px/1 'Manrope',sans-serif;letter-spacing:.13em;color:rgba(23,24,29,.45)">PALETTE SCURA</div>
+<div style="display:flex;gap:10px">
+<div style="display:flex;flex-direction:column;gap:6px"><div style="width:60px;height:60px;border-radius:8px;background:#16171B"></div><div style="font:500 10px/1 ui-monospace,monospace;color:rgba(23,24,29,.5)">#16171B</div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><div style="width:60px;height:60px;border-radius:8px;background:#E8515F"></div><div style="font:500 10px/1 ui-monospace,monospace;color:rgba(23,24,29,.5)">#E8515F</div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><div style="width:60px;height:60px;border-radius:8px;background:#2E9E68"></div><div style="font:500 10px/1 ui-monospace,monospace;color:rgba(23,24,29,.5)">#2E9E68</div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><div style="width:60px;height:60px;border-radius:8px;background:#E5C51C"></div><div style="font:500 10px/1 ui-monospace,monospace;color:rgba(23,24,29,.5)">#E5C51C</div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><div style="width:60px;height:60px;border-radius:8px;background:#F4F1E8"></div><div style="font:500 10px/1 ui-monospace,monospace;color:rgba(23,24,29,.5)">#F4F1E8</div></div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:700 10.5px/1 'Manrope',sans-serif;letter-spacing:.13em;color:rgba(23,24,29,.45)">LOGO SU FONDO SCURO</div>
+<div style="display:flex;gap:16px;align-items:center;background:#16171B;border-radius:10px;padding:16px 20px">
+<div style="width:64px;height:64px;border-radius:16px;background:#125C3B;display:grid;place-items:center;flex:none"><img src="assets/suit-mask.svg" alt="" style="height:38px"></div>
+<div style="display:flex;flex-direction:column;gap:2px;color:#F4F1E8">
+<div style="font:400 28px/1 'Instrument Serif',Georgia,serif;letter-spacing:.16em">TAOTL</div>
+<div style="font:600 9px/1 'Manrope',sans-serif;letter-spacing:.28em;color:rgba(244,241,232,.5)">SEGNAPUNTI</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<section id="t1" style="padding:16px 48px 40px">
+
+<div style="max-width:1180px;display:flex;flex-direction:column;gap:26px;margin-bottom:44px">
+<div style="display:flex;align-items:baseline;gap:12px">
+<span style="font:600 10px/1 ui-monospace,Menlo,monospace;padding:4px 8px;background:#17181D;color:#F8F8F5;border-radius:4px;letter-spacing:.06em">TURNO 1</span>
+<span style="font:600 13px/1.2 'Manrope',sans-serif">Taotl · segnapunti · contesto, logo e prototipo</span>
+</div>
+
+<div style="display:grid;grid-template-columns:1.15fr 1fr;gap:34px;background:#F8F8F5;border:1px solid rgba(23,24,29,.10);border-radius:12px;padding:30px 32px">
+<div style="display:flex;flex-direction:column;gap:18px">
+<div style="font:400 30px/1.15 'Instrument Serif',Georgia,serif;text-wrap:pretty">Da dove parto</div>
+<div style="font:400 13.5px/1.65 'Manrope',sans-serif;color:rgba(23,24,29,.72);text-wrap:pretty">Ho vettorizzato le 27 carte che mi hai mandato e ne ho ricavato la palette e i cinque semi. Il mazzo ha un tratto piatto e spesso, tre colori pieni su carta avorio e nessuna sfumatura: l'app usa lo stesso vocabolario, ma in chiave moderna — fondo avorio, un solo accento per stato, cifre grandi. Le figure originali restano protagoniste solo nei momenti "rituali" (home, fine partita).</div>
+<div style="font:400 13.5px/1.65 'Manrope',sans-serif;color:rgba(23,24,29,.72);text-wrap:pretty">Il conteggio è l'unica cosa che l'app deve fare bene: al turno <b>N</b> ogni presa vale <b>5·N</b> e il bonus rispetto <b>10·N</b>. Chi rispetta la chiamata prende <b>chiamata × 5N + 10N</b>; chi sbaglia perde <b>5N × prese di scarto</b>. Il mazziere non può chiamare il valore che porterebbe la somma esattamente al numero di carte distribuite: quel numero è bloccato nello stepper.</div>
+<div style="display:flex;flex-direction:column;gap:9px;padding-top:4px">
+<div style="font:700 10.5px/1 'Manrope',sans-serif;letter-spacing:.13em;color:rgba(23,24,29,.45)">ASSUNZIONI DA CONFERMARE</div>
+<div style="font:400 13px/1.6 'Manrope',sans-serif;color:rgba(23,24,29,.72)">1. Classica = turni 1→6. Breve = 6→1. Completa = da max carte per giocatore fino a 1, calcolato su un mazzo di 55 carte (modificabile nelle impostazioni). Personalizzata = da un massimo scelto fino a 1, minimo 6 turni.<br>2. Chi sbaglia non prende il bonus e va in negativo solo per le prese di scarto.<br>3. "Turno N" nel calcolo è l'ordine del turno, non il numero di carte.</div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:700 10.5px/1 'Manrope',sans-serif;letter-spacing:.13em;color:rgba(23,24,29,.45)">PALETTE DAL MAZZO</div>
+<div style="display:flex;gap:10px">
+<div style="display:flex;flex-direction:column;gap:6px"><div style="width:64px;height:64px;border-radius:8px;background:#CF3545"></div><div style="font:500 10px/1 ui-monospace,monospace;color:rgba(23,24,29,.5)">#CF3545</div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><div style="width:64px;height:64px;border-radius:8px;background:#17784B"></div><div style="font:500 10px/1 ui-monospace,monospace;color:rgba(23,24,29,.5)">#17784B</div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><div style="width:64px;height:64px;border-radius:8px;background:#E5C51C"></div><div style="font:500 10px/1 ui-monospace,monospace;color:rgba(23,24,29,.5)">#E5C51C</div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><div style="width:64px;height:64px;border-radius:8px;background:#17181D"></div><div style="font:500 10px/1 ui-monospace,monospace;color:rgba(23,24,29,.5)">#17181D</div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><div style="width:64px;height:64px;border-radius:8px;background:#F8F8F5;border:1px solid rgba(23,24,29,.12)"></div><div style="font:500 10px/1 ui-monospace,monospace;color:rgba(23,24,29,.5)">#F8F8F5</div></div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:700 10.5px/1 'Manrope',sans-serif;letter-spacing:.13em;color:rgba(23,24,29,.45)">I CINQUE SEMI, RITAGLIATI DALLE TUE CARTE</div>
+<div style="display:flex;gap:22px;align-items:flex-end;background:#fff;border:1px solid rgba(23,24,29,.10);border-radius:10px;padding:18px 22px">
+<img src="assets/suit-heart.svg" alt="cuori" style="height:60px">
+<img src="assets/suit-diamond.svg" alt="quadri" style="height:56px">
+<img src="assets/suit-club.svg" alt="fiori" style="height:52px">
+<img src="assets/suit-spear.svg" alt="lance" style="height:74px">
+<img src="assets/suit-mask.svg" alt="maschere" style="height:51px">
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div style="display:flex;align-items:baseline;gap:10px;margin:0 0 16px">
+<span style="font:600 10.5px/1 ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(23,24,29,.08);border-radius:5px">1a</span>
+<span style="font:400 12px/1.3 'Manrope',sans-serif;color:rgba(23,24,29,.55)">Prototipo interattivo — flusso completo, punteggi veri. Prova ad aggiungere giocatori, chiamare e registrare i turni.</span>
+</div>
+
+<div id="1a" style="display:flex;gap:34px;align-items:flex-start;flex-wrap:wrap;margin-bottom:52px">
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" width="402" height="874" hint-size="402px,874px">
+<div style="height:100%;display:flex;flex-direction:column;background:#F8F8F5;font-family:'Manrope',system-ui,sans-serif;color:#17181D">
+
+<sc-if value="{{ showHeader }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;align-items:center;gap:12px;padding:58px 18px 13px;background:#F8F8F5;border-bottom:1px solid rgba(23,24,29,.08);flex:none">
+<div onClick="{{ back }}" style="width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:rgba(23,24,29,.06);font:400 22px/1 'Manrope',sans-serif;cursor:pointer;flex:none;padding-bottom:3px">‹</div>
+<div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+<div style="font:700 15px/1.15 'Manrope',sans-serif">{{ headTitle }}</div>
+<div style="font:500 11px/1.15 'Manrope',sans-serif;color:rgba(23,24,29,.5)">{{ headSub }}</div>
+</div>
+</div>
+</sc-if>
+
+<div style="flex:1;overflow:auto;position:relative">
+
+<sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;min-height:100%">
+<div style="padding:70px 22px 26px;background:#17784B;color:#F8F8F5;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;gap:14px">
+<div style="width:52px;height:52px;border-radius:14px;background:#F8F8F5;display:grid;place-items:center;flex:none"><img src="assets/suit-mask.svg" alt="" style="height:34px"></div>
+<div style="display:flex;flex-direction:column;gap:1px">
+<div style="font:400 34px/1 'Instrument Serif',Georgia,serif;letter-spacing:.14em">TAOTL</div>
+<div style="font:600 10px/1 'Manrope',sans-serif;letter-spacing:.22em;opacity:.72">SEGNAPUNTI</div>
+</div>
+</div>
+</div>
+<div style="padding:20px 18px 30px;display:flex;flex-direction:column;gap:14px">
+
+<sc-if value="{{ hasGame }}" hint-placeholder-val="{{ true }}">
+<div onClick="{{ goResume }}" style="border:1px solid rgba(23,24,29,.12);border-radius:14px;padding:16px 16px 14px;background:#fff;display:flex;flex-direction:column;gap:12px;cursor:pointer">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div style="font:700 10px/1 'Manrope',sans-serif;letter-spacing:.15em;color:#CF3545">PARTITA IN CORSO</div>
+<div style="font:600 11px/1 'Manrope',sans-serif;color:rgba(23,24,29,.5)">{{ resumeRound }}</div>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px">
+<div style="font:700 15px/1.2 'Manrope',sans-serif">{{ resumeLeader }}</div>
+<div style="font:800 22px/1 'Manrope',sans-serif;font-variant-numeric:tabular-nums">{{ resumeLeaderPts }}</div>
+</div>
+<div style="height:5px;border-radius:99px;background:rgba(23,24,29,.08);overflow:hidden"><div style="height:100%;background:#17784B;width:{{ resumeProgress }}"></div></div>
+</div>
+</sc-if>
+
+<div onClick="{{ goNew }}" style="border-radius:14px;padding:20px 18px;background:#CF3545;color:#F8F8F5;display:flex;align-items:center;justify-content:space-between;cursor:pointer;min-height:64px">
+<div style="display:flex;flex-direction:column;gap:3px">
+<div style="font:800 18px/1.1 'Manrope',sans-serif">Nuova partita</div>
+<div style="font:500 12px/1.1 'Manrope',sans-serif;opacity:.8">Da 2 a 12 giocatori</div>
+</div>
+<div style="font:400 26px/1 'Manrope',sans-serif;opacity:.85">→</div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+<div onClick="{{ goHistory }}" style="border:1px solid rgba(23,24,29,.12);border-radius:14px;padding:15px;background:#fff;display:flex;flex-direction:column;gap:22px;cursor:pointer;min-height:104px">
+<img src="assets/suit-spear.svg" alt="" style="height:30px;opacity:.9">
+<div style="font:700 13.5px/1.2 'Manrope',sans-serif">Storico<br>partite</div>
+</div>
+<div onClick="{{ goStats }}" style="border:1px solid rgba(23,24,29,.12);border-radius:14px;padding:15px;background:#fff;display:flex;flex-direction:column;gap:22px;cursor:pointer;min-height:104px">
+<img src="assets/suit-diamond.svg" alt="" style="height:23px">
+<div style="font:700 13.5px/1.2 'Manrope',sans-serif">Profili e<br>statistiche</div>
+</div>
+<div onClick="{{ goRules }}" style="border:1px solid rgba(23,24,29,.12);border-radius:14px;padding:15px;background:#fff;display:flex;flex-direction:column;gap:22px;cursor:pointer;min-height:104px">
+<img src="assets/suit-club.svg" alt="" style="height:21px">
+<div style="font:700 13.5px/1.2 'Manrope',sans-serif">Regole e<br>punteggi</div>
+</div>
+<div onClick="{{ goSettings }}" style="border:1px solid rgba(23,24,29,.12);border-radius:14px;padding:15px;background:#fff;display:flex;flex-direction:column;gap:22px;cursor:pointer;min-height:104px">
+<img src="assets/suit-heart.svg" alt="" style="height:24px">
+<div style="font:700 13.5px/1.2 'Manrope',sans-serif">Impostazioni</div>
+</div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isPlayers }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;min-height:100%">
+<div style="padding:18px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;gap:9px">
+<input value="{{ newName }}" onChange="{{ onNewName }}" placeholder="Aggiungi un giocatore" style="flex:1;min-width:0;border:1px solid rgba(23,24,29,.14);border-radius:12px;padding:14px 14px;font:600 14px/1 'Manrope',sans-serif;background:#fff;color:#17181D;outline:none">
+<div onClick="{{ addPlayer }}" style="width:52px;border-radius:12px;background:#17181D;color:#F8F8F5;display:grid;place-items:center;font:400 24px/1 'Manrope',sans-serif;cursor:pointer;flex:none">+</div>
+</div>
+<sc-for list="{{ rosterRows }}" as="row" hint-placeholder-count="5">
+<div onClick="{{ row.onToggle }}" style="display:flex;align-items:center;gap:13px;padding:12px 14px;border-radius:13px;background:#fff;border:1.5px solid {{ row.border }};cursor:pointer">
+<div style="width:38px;height:38px;border-radius:50%;display:grid;place-items:center;flex:none;background:{{ row.tint }};color:#F8F8F5;font:800 13px/1 'Manrope',sans-serif">{{ row.initials }}</div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+<div style="font:700 14.5px/1.2 'Manrope',sans-serif">{{ row.name }}</div>
+<div style="font:500 11px/1.2 'Manrope',sans-serif;color:rgba(23,24,29,.48)">{{ row.meta }}</div>
+</div>
+<div style="width:24px;height:24px;border-radius:50%;flex:none;display:grid;place-items:center;background:{{ row.checkBg }};color:#F8F8F5;font:700 12px/1 'Manrope',sans-serif">{{ row.check }}</div>
+</div>
+</sc-for>
+</div>
+<div style="position:sticky;bottom:0;margin-top:auto;padding:14px 18px 44px;background:linear-gradient(to top,#F8F8F5 62%,rgba(248,248,245,0))">
+<div onClick="{{ goOrder }}" style="border-radius:14px;padding:18px;text-align:center;background:{{ selCtaBg }};color:#F8F8F5;font:800 16px/1 'Manrope',sans-serif;cursor:pointer">{{ selCta }}</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isOrder }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;min-height:100%">
+<div style="padding:18px;display:flex;flex-direction:column;gap:9px">
+<div style="font:500 12px/1.5 'Manrope',sans-serif;color:rgba(23,24,29,.55);padding:0 2px 4px">L'ordine è quello di gioco. Tocca la pastiglia per assegnare il primo mazziere: ruota di un posto a ogni turno.</div>
+<sc-for list="{{ orderRows }}" as="row" hint-placeholder-count="4">
+<div style="display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:13px;background:#fff;border:1px solid rgba(23,24,29,.10)">
+<div style="width:22px;font:800 13px/1 'Manrope',sans-serif;color:rgba(23,24,29,.35);text-align:center;flex:none">{{ row.pos }}</div>
+<div style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;background:{{ row.tint }};color:#F8F8F5;font:800 12px/1 'Manrope',sans-serif">{{ row.initials }}</div>
+<div style="flex:1;min-width:0;font:700 14px/1.2 'Manrope',sans-serif">{{ row.name }}</div>
+<div onClick="{{ row.onDealer }}" style="padding:7px 10px;border-radius:9px;font:700 10px/1 'Manrope',sans-serif;letter-spacing:.08em;cursor:pointer;flex:none;background:{{ row.dealerBg }};color:{{ row.dealerFg }}">MAZZIERE</div>
+<div style="display:flex;flex-direction:column;gap:3px;flex:none">
+<div onClick="{{ row.onUp }}" style="width:30px;height:20px;border-radius:6px;background:rgba(23,24,29,.06);display:grid;place-items:center;font:400 13px/1 'Manrope',sans-serif;cursor:pointer">▲</div>
+<div onClick="{{ row.onDown }}" style="width:30px;height:20px;border-radius:6px;background:rgba(23,24,29,.06);display:grid;place-items:center;font:400 13px/1 'Manrope',sans-serif;cursor:pointer">▼</div>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="position:sticky;bottom:0;margin-top:auto;padding:14px 18px 44px;background:linear-gradient(to top,#F8F8F5 62%,rgba(248,248,245,0))">
+<div onClick="{{ goMode }}" style="border-radius:14px;padding:18px;text-align:center;background:#17181D;color:#F8F8F5;font:800 16px/1 'Manrope',sans-serif;cursor:pointer">Scegli la modalità</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isMode }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;min-height:100%">
+<div style="padding:18px;display:flex;flex-direction:column;gap:11px">
+<sc-for list="{{ modeRows }}" as="row" hint-placeholder-count="4">
+<div onClick="{{ row.onPick }}" style="border-radius:14px;padding:16px;background:#fff;border:1.5px solid {{ row.border }};cursor:pointer;display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+<div style="font:800 15.5px/1.1 'Manrope',sans-serif">{{ row.name }}</div>
+<div style="font:700 11px/1 'Manrope',sans-serif;color:rgba(23,24,29,.45)">{{ row.turns }}</div>
+</div>
+<div style="font:500 12.5px/1.45 'Manrope',sans-serif;color:rgba(23,24,29,.6)">{{ row.desc }}</div>
+<div style="display:flex;gap:5px;flex-wrap:wrap;padding-top:2px">
+<sc-for list="{{ row.chips }}" as="chip" hint-placeholder-count="6">
+<div style="min-width:26px;padding:5px 7px;border-radius:7px;background:rgba(23,24,29,.06);font:700 11px/1 'Manrope',sans-serif;text-align:center;font-variant-numeric:tabular-nums">{{ chip.v }}</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+<sc-if value="{{ isCustom }}" hint-placeholder-val="{{ false }}">
+<div style="border-radius:14px;padding:16px;background:#17181D;color:#F8F8F5;display:flex;align-items:center;justify-content:space-between;gap:14px">
+<div style="font:700 13px/1.3 'Manrope',sans-serif">Carte al primo turno<br><span style="font:500 11px/1.3 'Manrope',sans-serif;opacity:.6">minimo 6 turni, si chiude con 3·2·1</span></div>
+<div style="display:flex;align-items:center;gap:12px;flex:none">
+<div onClick="{{ customDown }}" style="width:40px;height:40px;border-radius:12px;background:rgba(248,248,245,.14);display:grid;place-items:center;font:400 22px/1 'Manrope',sans-serif;cursor:pointer">−</div>
+<div style="font:800 22px/1 'Manrope',sans-serif;min-width:28px;text-align:center;font-variant-numeric:tabular-nums">{{ customTop }}</div>
+<div onClick="{{ customUp }}" style="width:40px;height:40px;border-radius:12px;background:rgba(248,248,245,.14);display:grid;place-items:center;font:400 22px/1 'Manrope',sans-serif;cursor:pointer">+</div>
+</div>
+</div>
+</sc-if>
+</div>
+<div style="position:sticky;bottom:0;margin-top:auto;padding:14px 18px 44px;background:linear-gradient(to top,#F8F8F5 62%,rgba(248,248,245,0))">
+<div onClick="{{ startGame }}" style="border-radius:14px;padding:18px;text-align:center;background:#CF3545;color:#F8F8F5;font:800 16px/1 'Manrope',sans-serif;cursor:pointer">Inizia la partita</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isCalls }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;min-height:100%">
+<div style="padding:14px 18px 0;display:flex;gap:9px">
+<div style="flex:1;border-radius:12px;background:#fff;border:1px solid rgba(23,24,29,.10);padding:11px 13px;display:flex;flex-direction:column;gap:3px">
+<div style="font:700 9.5px/1 'Manrope',sans-serif;letter-spacing:.12em;color:rgba(23,24,29,.45)">CARTE A TESTA</div>
+<div style="font:800 20px/1 'Manrope',sans-serif;font-variant-numeric:tabular-nums">{{ cards }}</div>
+</div>
+<div style="flex:1;border-radius:12px;background:#fff;border:1px solid rgba(23,24,29,.10);padding:11px 13px;display:flex;flex-direction:column;gap:3px">
+<div style="font:700 9.5px/1 'Manrope',sans-serif;letter-spacing:.12em;color:rgba(23,24,29,.45)">VALE UNA PRESA</div>
+<div style="font:800 20px/1 'Manrope',sans-serif;font-variant-numeric:tabular-nums">{{ takeVal }}</div>
+</div>
+<div style="flex:1;border-radius:12px;background:#fff;border:1px solid rgba(23,24,29,.10);padding:11px 13px;display:flex;flex-direction:column;gap:3px">
+<div style="font:700 9.5px/1 'Manrope',sans-serif;letter-spacing:.12em;color:rgba(23,24,29,.45)">BONUS</div>
+<div style="font:800 20px/1 'Manrope',sans-serif;font-variant-numeric:tabular-nums">{{ bonusVal }}</div>
+</div>
+</div>
+<div style="padding:14px 18px 0;display:flex;flex-direction:column;gap:9px">
+<sc-for list="{{ callRows }}" as="row" hint-placeholder-count="4">
+<div style="border-radius:14px;background:#fff;border:1px solid rgba(23,24,29,.10);padding:12px 13px;display:flex;align-items:center;gap:11px">
+<div style="width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex:none;background:{{ row.tint }};color:#F8F8F5;font:800 12px/1 'Manrope',sans-serif">{{ row.initials }}</div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+<div style="font:700 14.5px/1.15 'Manrope',sans-serif">{{ row.name }}</div>
+<div style="font:600 10.5px/1.15 'Manrope',sans-serif;color:{{ row.noteColor }}">{{ row.note }}</div>
+</div>
+<div style="display:flex;align-items:center;gap:10px;flex:none">
+<div onClick="{{ row.onDec }}" style="width:44px;height:44px;border-radius:13px;background:rgba(23,24,29,.06);display:grid;place-items:center;font:400 24px/1 'Manrope',sans-serif;cursor:pointer;color:{{ row.decColor }}">−</div>
+<div style="font:800 24px/1 'Manrope',sans-serif;min-width:30px;text-align:center;font-variant-numeric:tabular-nums">{{ row.call }}</div>
+<div onClick="{{ row.onInc }}" style="width:44px;height:44px;border-radius:13px;background:rgba(23,24,29,.06);display:grid;place-items:center;font:400 24px/1 'Manrope',sans-serif;cursor:pointer;color:{{ row.incColor }}">+</div>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="position:sticky;bottom:0;margin-top:auto;padding:12px 18px 44px;background:linear-gradient(to top,#F8F8F5 68%,rgba(248,248,245,0));display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 4px">
+<div style="font:600 12px/1 'Manrope',sans-serif;color:rgba(23,24,29,.55)">Somma delle chiamate</div>
+<div style="font:800 14px/1 'Manrope',sans-serif;font-variant-numeric:tabular-nums;color:{{ sumColor }}">{{ sumLabel }}</div>
+</div>
+<div onClick="{{ goResults }}" style="border-radius:14px;padding:18px;text-align:center;background:{{ callsCtaBg }};color:#F8F8F5;font:800 16px/1 'Manrope',sans-serif;cursor:pointer">{{ callsCta }}</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isResults }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;min-height:100%">
+<div style="padding:16px 18px 0;display:flex;flex-direction:column;gap:9px">
+<sc-for list="{{ resRows }}" as="row" hint-placeholder-count="4">
+<div style="border-radius:14px;background:#fff;border:1px solid rgba(23,24,29,.10);padding:13px;display:flex;flex-direction:column;gap:11px">
+<div style="display:flex;align-items:center;gap:11px">
+<div style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;background:{{ row.tint }};color:#F8F8F5;font:800 12px/1 'Manrope',sans-serif">{{ row.initials }}</div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+<div style="font:700 14.5px/1.15 'Manrope',sans-serif">{{ row.name }}</div>
+<div style="font:600 11px/1.15 'Manrope',sans-serif;color:rgba(23,24,29,.5)">{{ row.callLabel }}</div>
+</div>
+<div style="font:800 19px/1 'Manrope',sans-serif;font-variant-numeric:tabular-nums;color:{{ row.ptsColor }}">{{ row.ptsLabel }}</div>
+</div>
+<div style="display:flex;gap:8px">
+<div onClick="{{ row.onOk }}" style="flex:1;padding:13px 8px;border-radius:11px;text-align:center;font:700 13px/1 'Manrope',sans-serif;cursor:pointer;background:{{ row.okBg }};color:{{ row.okFg }}">Rispettata</div>
+<div onClick="{{ row.onFail }}" style="flex:1;padding:13px 8px;border-radius:11px;text-align:center;font:700 13px/1 'Manrope',sans-serif;cursor:pointer;background:{{ row.failBg }};color:{{ row.failFg }}">Sbagliata</div>
+</div>
+<sc-if value="{{ row.showMiss }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 4px 2px;border-top:1px solid rgba(23,24,29,.08)">
+<div style="font:600 12px/1.3 'Manrope',sans-serif;color:rgba(23,24,29,.6)">Prese di scarto</div>
+<div style="display:flex;align-items:center;gap:10px;flex:none">
+<div onClick="{{ row.onMissDown }}" style="width:40px;height:40px;border-radius:12px;background:rgba(207,53,69,.10);display:grid;place-items:center;font:400 22px/1 'Manrope',sans-serif;color:#CF3545;cursor:pointer">−</div>
+<div style="font:800 20px/1 'Manrope',sans-serif;min-width:24px;text-align:center;font-variant-numeric:tabular-nums">{{ row.miss }}</div>
+<div onClick="{{ row.onMissUp }}" style="width:40px;height:40px;border-radius:12px;background:rgba(207,53,69,.10);display:grid;place-items:center;font:400 22px/1 'Manrope',sans-serif;color:#CF3545;cursor:pointer">+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+<div style="position:sticky;bottom:0;margin-top:auto;padding:12px 18px 44px;background:linear-gradient(to top,#F8F8F5 68%,rgba(248,248,245,0))">
+<div onClick="{{ confirmRound }}" style="border-radius:14px;padding:18px;text-align:center;background:{{ resCtaBg }};color:#F8F8F5;font:800 16px/1 'Manrope',sans-serif;cursor:pointer">{{ resCta }}</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isStand }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;min-height:100%">
+<div style="padding:16px 18px 0;display:flex;flex-direction:column;gap:8px">
+<sc-for list="{{ standRows }}" as="row" hint-placeholder-count="4">
+<div style="border-radius:14px;background:{{ row.bg }};border:1px solid rgba(23,24,29,.10);padding:13px;display:flex;align-items:center;gap:12px">
+<div style="width:20px;font:800 15px/1 'Manrope',sans-serif;text-align:center;flex:none;color:{{ row.posColor }}">{{ row.pos }}</div>
+<div style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;background:{{ row.tint }};color:#F8F8F5;font:800 12px/1 'Manrope',sans-serif">{{ row.initials }}</div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+<div style="font:700 14.5px/1.15 'Manrope',sans-serif;color:{{ row.fg }}">{{ row.name }}</div>
+<div style="font:600 11px/1.15 'Manrope',sans-serif;color:{{ row.deltaColor }}">{{ row.deltaLabel }}</div>
+</div>
+<div style="font:800 24px/1 'Manrope',sans-serif;font-variant-numeric:tabular-nums;color:{{ row.fg }}">{{ row.total }}</div>
+</div>
+</sc-for>
+
+<div style="margin-top:12px;border-radius:14px;background:#fff;border:1px solid rgba(23,24,29,.10);overflow:hidden">
+<div style="padding:13px 14px;font:700 10.5px/1 'Manrope',sans-serif;letter-spacing:.13em;color:rgba(23,24,29,.45);border-bottom:1px solid rgba(23,24,29,.08)">TURNO PER TURNO</div>
+<sc-for list="{{ logRows }}" as="lr" hint-placeholder-count="3">
+<div style="padding:11px 14px;border-bottom:1px solid rgba(23,24,29,.06);display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;gap:8px;align-items:baseline">
+<div style="font:800 12px/1 'Manrope',sans-serif">{{ lr.title }}</div>
+<div style="font:600 10.5px/1 'Manrope',sans-serif;color:rgba(23,24,29,.45)">{{ lr.meta }}</div>
+</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap">
+<sc-for list="{{ lr.cells }}" as="c" hint-placeholder-count="4">
+<div style="padding:6px 8px;border-radius:8px;background:{{ c.bg }};display:flex;gap:6px;align-items:baseline">
+<span style="font:700 10.5px/1 'Manrope',sans-serif;color:rgba(23,24,29,.55)">{{ c.name }}</span>
+<span style="font:800 11.5px/1 'Manrope',sans-serif;font-variant-numeric:tabular-nums;color:{{ c.fg }}">{{ c.pts }}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="position:sticky;bottom:0;margin-top:auto;padding:12px 18px 44px;background:linear-gradient(to top,#F8F8F5 68%,rgba(248,248,245,0))">
+<div onClick="{{ nextRound }}" style="border-radius:14px;padding:18px;text-align:center;background:#17784B;color:#F8F8F5;font:800 16px/1 'Manrope',sans-serif;cursor:pointer">{{ nextLabel }}</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isFinal }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;min-height:100%;background:#17181D">
+<div style="padding:70px 22px 26px;display:flex;flex-direction:column;gap:8px;color:#F8F8F5">
+<div style="width:46px;height:46px;border-radius:13px;background:#17784B;display:grid;place-items:center;margin-bottom:6px"><img src="assets/suit-mask.svg" alt="" style="height:28px"></div>
+<div style="font:700 10px/1 'Manrope',sans-serif;letter-spacing:.22em;color:#E5C51C">PARTITA CHIUSA</div>
+<div style="font:400 40px/1 'Instrument Serif',Georgia,serif">{{ winnerName }}</div>
+<div style="font:600 13px/1 'Manrope',sans-serif;opacity:.6">{{ winnerLine }}</div>
+</div>
+<div style="padding:0 18px;display:flex;flex-direction:column;gap:8px">
+<sc-for list="{{ finalRows }}" as="row" hint-placeholder-count="4">
+<div style="border-radius:13px;background:rgba(248,248,245,.06);padding:12px 13px;display:flex;align-items:center;gap:12px;color:#F8F8F5">
+<div style="width:20px;font:800 14px/1 'Manrope',sans-serif;text-align:center;flex:none;color:{{ row.posColor }}">{{ row.pos }}</div>
+<div style="width:32px;height:32px;border-radius:50%;display:grid;place-items:center;flex:none;background:{{ row.tint }};font:800 11px/1 'Manrope',sans-serif">{{ row.initials }}</div>
+<div style="flex:1;min-width:0;font:700 14px/1.15 'Manrope',sans-serif">{{ row.name }}</div>
+<div style="font:800 20px/1 'Manrope',sans-serif;font-variant-numeric:tabular-nums">{{ row.total }}</div>
+</div>
+</sc-for>
+</div>
+<div style="padding:20px 18px 44px;margin-top:auto;display:flex;flex-direction:column;gap:10px">
+<div onClick="{{ goStand }}" style="border-radius:14px;padding:16px;text-align:center;background:rgba(248,248,245,.10);color:#F8F8F5;font:700 14px/1 'Manrope',sans-serif;cursor:pointer">Rivedi i turni</div>
+<div onClick="{{ closeGame }}" style="border-radius:14px;padding:18px;text-align:center;background:#E5C51C;color:#17181D;font:800 16px/1 'Manrope',sans-serif;cursor:pointer">Salva e torna alla home</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isHistory }}" hint-placeholder-val="{{ true }}">
+<div style="padding:16px 18px 44px;display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ gameRows }}" as="row" hint-placeholder-count="3">
+<div style="border-radius:14px;background:#fff;border:1px solid rgba(23,24,29,.10);padding:14px;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;justify-content:space-between;align-items:baseline">
+<div style="font:700 10px/1 'Manrope',sans-serif;letter-spacing:.13em;color:rgba(23,24,29,.42)">{{ row.date }}</div>
+<div style="font:600 10.5px/1 'Manrope',sans-serif;color:rgba(23,24,29,.42)">{{ row.meta }}</div>
+</div>
+<div style="display:flex;align-items:center;gap:11px">
+<img src="assets/suit-mask.svg" alt="" style="height:26px;flex:none">
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+<div style="font:800 15px/1.15 'Manrope',sans-serif">{{ row.winner }}</div>
+<div style="font:500 11.5px/1.15 'Manrope',sans-serif;color:rgba(23,24,29,.5)">{{ row.players }}</div>
+</div>
+<div style="font:800 19px/1 'Manrope',sans-serif;font-variant-numeric:tabular-nums">{{ row.pts }}</div>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isStats }}" hint-placeholder-val="{{ true }}">
+<div style="padding:16px 18px 44px;display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ statRows }}" as="row" hint-placeholder-count="4">
+<div style="border-radius:14px;background:#fff;border:1px solid rgba(23,24,29,.10);padding:14px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:center;gap:11px">
+<div style="width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex:none;background:{{ row.tint }};color:#F8F8F5;font:800 12px/1 'Manrope',sans-serif">{{ row.initials }}</div>
+<div style="flex:1;min-width:0;font:800 15px/1.15 'Manrope',sans-serif">{{ row.name }}</div>
+<div style="font:600 11px/1 'Manrope',sans-serif;color:rgba(23,24,29,.45)">{{ row.games }}</div>
+</div>
+<div style="display:flex;gap:8px">
+<div style="flex:1;border-radius:10px;background:rgba(23,24,29,.04);padding:10px;display:flex;flex-direction:column;gap:3px">
+<div style="font:800 18px/1 'Manrope',sans-serif;font-variant-numeric:tabular-nums">{{ row.respect }}</div>
+<div style="font:600 9.5px/1.1 'Manrope',sans-serif;letter-spacing:.08em;color:rgba(23,24,29,.45)">CHIAMATE OK</div>
+</div>
+<div style="flex:1;border-radius:10px;background:rgba(23,24,29,.04);padding:10px;display:flex;flex-direction:column;gap:3px">
+<div style="font:800 18px/1 'Manrope',sans-serif;font-variant-numeric:tabular-nums">{{ row.avg }}</div>
+<div style="font:600 9.5px/1.1 'Manrope',sans-serif;letter-spacing:.08em;color:rgba(23,24,29,.45)">PUNTI / TURNO</div>
+</div>
+<div style="flex:1;border-radius:10px;background:rgba(23,24,29,.04);padding:10px;display:flex;flex-direction:column;gap:3px">
+<div style="font:800 18px/1 'Manrope',sans-serif;font-variant-numeric:tabular-nums">{{ row.best }}</div>
+<div style="font:600 9.5px/1.1 'Manrope',sans-serif;letter-spacing:.08em;color:rgba(23,24,29,.45)">MIGLIOR TURNO</div>
+</div>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isRules }}" hint-placeholder-val="{{ true }}">
+<div style="padding:18px 18px 44px;display:flex;flex-direction:column;gap:14px">
+<div style="border-radius:14px;background:#17784B;color:#F8F8F5;padding:18px;display:flex;flex-direction:column;gap:10px">
+<div style="font:700 10px/1 'Manrope',sans-serif;letter-spacing:.18em;opacity:.7">LA FORMULA</div>
+<div style="font:400 22px/1.25 'Instrument Serif',Georgia,serif">chiamata × 5N + 10N<br>se rispetti</div>
+<div style="font:400 22px/1.25 'Instrument Serif',Georgia,serif;color:#E5C51C">− 5N × scarto<br>se sbagli</div>
+<div style="font:500 12px/1.5 'Manrope',sans-serif;opacity:.75">N è il numero del turno. Al terzo turno una presa vale 15 e il bonus rispetto 30.</div>
+</div>
+<div style="border-radius:14px;background:#fff;border:1px solid rgba(23,24,29,.10);padding:16px;display:flex;flex-direction:column;gap:12px">
+<div style="font:800 14px/1 'Manrope',sans-serif">Il vincolo del mazziere</div>
+<div style="font:500 12.5px/1.6 'Manrope',sans-serif;color:rgba(23,24,29,.65)">Il mazziere chiama per ultimo e non può portare la somma delle chiamate esattamente al numero di carte distribuite. L'app blocca quel valore nello stepper e te lo scrive sotto il nome.</div>
+</div>
+<div style="border-radius:14px;background:#fff;border:1px solid rgba(23,24,29,.10);padding:16px;display:flex;flex-direction:column;gap:12px">
+<div style="font:800 14px/1 'Manrope',sans-serif">Le modalità</div>
+<div style="font:500 12.5px/1.6 'Manrope',sans-serif;color:rgba(23,24,29,.65)">Classica 1→6 · Breve 6→1 · Completa dal massimo di carte per giocatore fino a 1 · Personalizzata almeno 6 turni, chiusura 3·2·1. A ogni turno il mazziere ruota di un posto.</div>
+</div>
+<div style="display:flex;gap:16px;align-items:flex-end;justify-content:center;padding:6px 0 0;opacity:.9">
+<img src="assets/suit-heart.svg" alt="" style="height:31px">
+<img src="assets/suit-diamond.svg" alt="" style="height:29px">
+<img src="assets/suit-club.svg" alt="" style="height:27px">
+<img src="assets/suit-spear.svg" alt="" style="height:38px">
+<img src="assets/suit-mask.svg" alt="" style="height:26px">
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isSettings }}" hint-placeholder-val="{{ true }}">
+<div style="padding:18px 18px 44px;display:flex;flex-direction:column;gap:11px">
+<div style="border-radius:14px;background:#fff;border:1px solid rgba(23,24,29,.10);padding:15px;display:flex;align-items:center;justify-content:space-between;gap:14px">
+<div style="font:700 13.5px/1.3 'Manrope',sans-serif">Carte nel mazzo<br><span style="font:500 11px/1.3 'Manrope',sans-serif;color:rgba(23,24,29,.5)">serve per la modalità Completa</span></div>
+<div style="display:flex;align-items:center;gap:10px;flex:none">
+<div onClick="{{ deckDown }}" style="width:40px;height:40px;border-radius:12px;background:rgba(23,24,29,.06);display:grid;place-items:center;font:400 22px/1 'Manrope',sans-serif;cursor:pointer">−</div>
+<div style="font:800 20px/1 'Manrope',sans-serif;min-width:36px;text-align:center;font-variant-numeric:tabular-nums">{{ deckSize }}</div>
+<div onClick="{{ deckUp }}" style="width:40px;height:40px;border-radius:12px;background:rgba(23,24,29,.06);display:grid;place-items:center;font:400 22px/1 'Manrope',sans-serif;cursor:pointer">+</div>
+</div>
+</div>
+<sc-for list="{{ settingRows }}" as="row" hint-placeholder-count="3">
+<div onClick="{{ row.onToggle }}" style="border-radius:14px;background:#fff;border:1px solid rgba(23,24,29,.10);padding:15px;display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer">
+<div style="font:700 13.5px/1.3 'Manrope',sans-serif;min-width:0">{{ row.name }}<br><span style="font:500 11px/1.3 'Manrope',sans-serif;color:rgba(23,24,29,.5)">{{ row.desc }}</span></div>
+<div style="width:50px;height:30px;border-radius:99px;flex:none;padding:3px;display:flex;background:{{ row.trackBg }};justify-content:{{ row.knobPos }}">
+<div style="width:24px;height:24px;border-radius:50%;background:#fff"></div>
+</div>
+</div>
+</sc-for>
+<div style="border-radius:14px;background:rgba(23,24,29,.04);padding:15px;font:500 11.5px/1.6 'Manrope',sans-serif;color:rgba(23,24,29,.55)">Account, sincronizzazione e password amministratore per le eliminazioni arrivano con la versione online: per ora tutto resta sul telefono.</div>
+</div>
+</sc-if>
+
+</div>
+</div>
+</x-import>
+
+<div style="width:300px;display:flex;flex-direction:column;gap:16px;padding-top:6px">
+<div style="font:700 10.5px/1 'Manrope',sans-serif;letter-spacing:.13em;color:rgba(23,24,29,.45)">COME LEGGERLO</div>
+<div style="font:400 13px/1.65 'Manrope',sans-serif;color:rgba(23,24,29,.7);text-wrap:pretty">Il flusso è quello che hai descritto: <b>home → giocatori → ordine e mazziere → modalità → chiamate → esiti → classifica</b>, e si ripete fino all'ultimo turno. Tutti i punti sono calcolati davvero, la classifica e il riepilogo turno-per-turno si aggiornano da soli.</div>
+<div style="font:400 13px/1.65 'Manrope',sans-serif;color:rgba(23,24,29,.7);text-wrap:pretty">Sullo schermo delle chiamate i comandi stanno tutti nella metà bassa: stepper da 44px, somma sempre visibile in fondo e il valore vietato al mazziere spento con la nota sotto il nome.</div>
+<div style="font:400 13px/1.65 'Manrope',sans-serif;color:rgba(23,24,29,.7);text-wrap:pretty">Storico, statistiche e regole sono popolati con dati di esempio per far vedere la forma delle schermate.</div>
+</div>
+</div>
+
+<div style="display:flex;gap:26px;flex-wrap:wrap;margin-bottom:52px">
+
+<div id="1b" style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 'Manrope',sans-serif;color:rgba(23,24,29,.55)"><a href="#1b" style="font:600 10.5px/1 ui-monospace,monospace;padding:3px 7px;background:#17784B;border-radius:5px;color:#F8F8F5">1b</a><span style="font:700 9.5px/1 'Manrope',sans-serif;letter-spacing:.14em;color:#17784B">SCELTO</span>Logo definitivo — sigillo con la maschera del mazzo su verde retro-carta. Icona app 128px + lockup orizzontale.</div>
+<div style="width:340px;background:#F8F8F5;border:1px solid rgba(23,24,29,.10);border-radius:10px;padding:26px;display:flex;flex-direction:column;gap:24px;align-items:center">
+<div style="width:128px;height:128px;border-radius:30px;background:#17784B;display:grid;place-items:center"><img src="assets/suit-mask.svg" alt="" style="height:72px"></div>
+<div style="display:flex;align-items:center;gap:14px">
+<div style="width:44px;height:44px;border-radius:12px;background:#17784B;display:grid;place-items:center;flex:none"><img src="assets/suit-mask.svg" alt="" style="height:26px"></div>
+<div style="display:flex;flex-direction:column;gap:2px">
+<div style="font:400 30px/1 'Instrument Serif',Georgia,serif;letter-spacing:.16em">TAOTL</div>
+<div style="font:600 9px/1 'Manrope',sans-serif;letter-spacing:.28em;color:rgba(23,24,29,.45)">SEGNAPUNTI</div>
+</div>
+</div>
+</div>
+</div>
+
+<p style="margin:34px 0 0;font:400 12.5px/1.6 'Manrope',sans-serif;color:rgba(23,24,29,.5);max-width:760px">Prova a scrivermi: "aggiungi la schermata di modifica di un turno già registrato" · "fammi vedere la classifica generale fra più partite" · "esporta l'icona app in PNG".</p>
+
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:1000}}">
+class Component extends DCLogic {
+  state = {
+    screen: 'home',
+    roster: [
+      { id: 1, name: 'Luca', games: 12, ok: 41, turns: 62, best: 90 },
+      { id: 2, name: 'Sara', games: 12, ok: 47, turns: 62, best: 105 },
+      { id: 3, name: 'Marta', games: 9, ok: 30, turns: 48, best: 75 },
+      { id: 4, name: 'Dario', games: 7, ok: 19, turns: 38, best: 60 },
+      { id: 5, name: 'Elena', games: 4, ok: 11, turns: 22, best: 45 }
+    ],
+    sel: [1, 2, 3, 4],
+    dealer: 2,
+    mode: 'classica',
+    customTop: 8,
+    deck: 55,
+    rIdx: 0,
+    calls: {},
+    results: {},
+    log: [],
+    started: false,
+    nextId: 6,
+    newName: '',
+    stack: [],
+    lockDealer: true,
+    livePts: true,
+    haptics: true,
+    games: [
+      { date: '18 LUGLIO', meta: 'Completa · 5 giocatori', winner: 'Sara', players: 'Luca, Marta, Dario, Elena', pts: 415 },
+      { date: '11 LUGLIO', meta: 'Classica · 4 giocatori', winner: 'Luca', players: 'Sara, Marta, Dario', pts: 260 },
+      { date: '4 LUGLIO', meta: 'Breve · 6 giocatori', winner: 'Marta', players: 'Luca, Sara, Dario, Elena, Nico', pts: 190 }
+    ]
+  };
+  T = ['#CF3545', '#17784B', '#B85C2B', '#2E6E7E', '#17181D', '#A88A12'];
+  RED = '#CF3545'; GREEN = '#17784B'; YEL = '#E5C51C'; INK = '#17181D';
+
+  p(id) { return this.state.roster.find(r => r.id === id) || { id, name: '?' }; }
+  ini(n) { const w = String(n).trim().split(/\s+/); return (w.length > 1 ? w[0][0] + w[1][0] : String(n).slice(0, 2)).toUpperCase(); }
+  tint(id) { const i = this.state.roster.findIndex(r => r.id === id); return this.T[(i < 0 ? 0 : i) % this.T.length]; }
+
+  rounds(st) {
+    const S = st || this.state, n = Math.max(1, S.sel.length), out = [];
+    if (S.mode === 'classica') return [1, 2, 3, 4, 5, 6];
+    if (S.mode === 'breve') return [6, 5, 4, 3, 2, 1];
+    const top = S.mode === 'completa' ? Math.max(1, Math.floor(S.deck / n)) : S.customTop;
+    for (let c = top; c >= 1; c--) out.push(c);
+    return out;
+  }
+  cards(st) { const S = st || this.state; const r = this.rounds(S); return r[Math.min(S.rIdx, r.length - 1)] || 1; }
+  score(n, call, ok, miss) { return ok ? call * 5 * n + 10 * n : -(5 * n * miss); }
+  totals() {
+    const t = {};
+    this.state.sel.forEach(id => { t[id] = 0; });
+    this.state.log.forEach(L => L.rows.forEach(r => { t[r.id] = (t[r.id] || 0) + r.pts; }));
+    return t;
+  }
+  go(s) { this.setState(p => ({ screen: s, stack: [...p.stack, p.screen] })); }
+  back = () => this.setState(p => { const st = [...p.stack]; const prev = st.pop() || 'home'; return { screen: prev, stack: st }; });
+
+  startRound(rIdx) {
+    const calls = {}; this.state.sel.forEach(id => { calls[id] = 0; });
+    this.setState({ rIdx, calls, results: {}, screen: 'calls', stack: ['home'] });
+  }
+
+  renderVals() {
+    const S = this.state, C = this;
+    const rounds = this.rounds(), cards = this.cards(), n = S.rIdx + 1;
+    const takeVal = 5 * n, bonusVal = 10 * n;
+    const sel = S.sel.map(id => this.p(id));
+    const dealerId = S.sel[Math.min(S.dealer, S.sel.length - 1)];
+    const sum = sel.reduce((a, p) => a + (S.calls[p.id] || 0), 0);
+    const others = sel.reduce((a, p) => a + (p.id === dealerId ? 0 : (S.calls[p.id] || 0)), 0);
+    const forbidden = cards - others;
+    const sumOk = sum !== cards;
+    const totals = this.totals();
+    const order = [...sel].sort((a, b) => (totals[b.id] || 0) - (totals[a.id] || 0));
+    const titles = { home: '', players: 'Giocatori', order: 'Ordine e mazziere', mode: 'Modalità', calls: 'Chiamate', results: 'Esiti del turno', stand: 'Classifica', final: '', history: 'Storico partite', stats: 'Profili e statistiche', rules: 'Regole e punteggi', settings: 'Impostazioni' };
+    const subs = {
+      players: S.sel.length + ' selezionati su ' + S.roster.length,
+      order: 'Mazziere: ' + this.p(dealerId).name,
+      mode: S.sel.length + ' giocatori · ' + rounds.length + ' turni',
+      calls: 'Turno ' + n + ' di ' + rounds.length + ' · ' + cards + (cards === 1 ? ' carta' : ' carte'),
+      results: 'Turno ' + n + ' · presa ' + takeVal + ' · bonus ' + bonusVal,
+      stand: 'Dopo il turno ' + Math.min(S.log.length, rounds.length) + ' di ' + rounds.length,
+      history: S.games.length + ' partite salvate',
+      stats: 'Dati di esempio',
+      rules: 'Taotl · conteggio',
+      settings: 'Locale su questo telefono'
+    };
+    const last = S.log[S.log.length - 1];
+
+    return {
+      showHeader: S.screen !== 'home' && S.screen !== 'final',
+      headTitle: titles[S.screen] || '',
+      headSub: subs[S.screen] || '',
+      back: this.back,
+      isHome: S.screen === 'home', isPlayers: S.screen === 'players', isOrder: S.screen === 'order',
+      isMode: S.screen === 'mode', isCalls: S.screen === 'calls', isResults: S.screen === 'results',
+      isStand: S.screen === 'stand', isFinal: S.screen === 'final', isHistory: S.screen === 'history',
+      isStats: S.screen === 'stats', isRules: S.screen === 'rules', isSettings: S.screen === 'settings',
+
+      hasGame: S.started && S.log.length < rounds.length,
+      resumeRound: 'Turno ' + Math.min(S.log.length + 1, rounds.length) + '/' + rounds.length,
+      resumeLeader: order.length ? order[0].name + ' in testa' : '',
+      resumeLeaderPts: order.length ? (totals[order[0].id] || 0) : 0,
+      resumeProgress: Math.round(100 * S.log.length / rounds.length) + '%',
+      goResume: () => this.setState({ screen: S.log.length && !Object.keys(S.results).length && Object.keys(S.calls).length ? 'calls' : 'calls', stack: ['home'] }),
+      goNew: () => { this.setState({ started: false, log: [], rIdx: 0, calls: {}, results: {} }); this.go('players'); },
+      goHistory: () => this.go('history'), goStats: () => this.go('stats'),
+      goRules: () => this.go('rules'), goSettings: () => this.go('settings'),
+
+      newName: S.newName,
+      onNewName: e => this.setState({ newName: e.target.value }),
+      addPlayer: () => {
+        const nm = S.newName.trim(); if (!nm) return;
+        this.setState(p => ({ roster: [...p.roster, { id: p.nextId, name: nm, games: 0, ok: 0, turns: 0, best: 0 }], sel: p.sel.length < 12 ? [...p.sel, p.nextId] : p.sel, nextId: p.nextId + 1, newName: '' }));
+      },
+      rosterRows: S.roster.map(r => {
+        const on = S.sel.includes(r.id);
+        return {
+          id: r.id, name: r.name, initials: this.ini(r.name), tint: this.tint(r.id),
+          meta: on ? 'posizione ' + (S.sel.indexOf(r.id) + 1) : r.games + ' partite giocate',
+          border: on ? this.GREEN : 'rgba(23,24,29,.10)',
+          checkBg: on ? this.GREEN : 'rgba(23,24,29,.12)', check: on ? '✓' : '',
+          onToggle: () => this.setState(p => ({ sel: p.sel.includes(r.id) ? p.sel.filter(x => x !== r.id) : (p.sel.length < 12 ? [...p.sel, r.id] : p.sel) }))
+        };
+      }),
+      selCta: S.sel.length < 2 ? 'Servono almeno 2 giocatori' : 'Ordine e mazziere · ' + S.sel.length,
+      selCtaBg: S.sel.length < 2 ? 'rgba(23,24,29,.25)' : this.INK,
+      goOrder: () => { if (S.sel.length >= 2) this.go('order'); },
+
+      orderRows: S.sel.map((id, i) => ({
+        id, pos: i + 1, name: this.p(id).name, initials: this.ini(this.p(id).name), tint: this.tint(id),
+        dealerBg: i === S.dealer ? this.YEL : 'rgba(23,24,29,.06)',
+        dealerFg: i === S.dealer ? this.INK : 'rgba(23,24,29,.4)',
+        onDealer: () => this.setState({ dealer: i }),
+        onUp: () => this.setState(p => { if (i === 0) return {}; const a = [...p.sel]; [a[i - 1], a[i]] = [a[i], a[i - 1]]; return { sel: a }; }),
+        onDown: () => this.setState(p => { if (i === p.sel.length - 1) return {}; const a = [...p.sel]; [a[i + 1], a[i]] = [a[i], a[i + 1]]; return { sel: a }; })
+      })),
+      goMode: () => this.go('mode'),
+
+      isCustom: S.mode === 'custom', customTop: S.customTop,
+      customUp: () => this.setState(p => ({ customTop: Math.min(20, p.customTop + 1) })),
+      customDown: () => this.setState(p => ({ customTop: Math.max(6, p.customTop - 1) })),
+      modeRows: [
+        { k: 'classica', name: 'Classica', desc: 'Sei turni prestabiliti, in salita.', seq: [1, 2, 3, 4, 5, 6] },
+        { k: 'completa', name: 'Completa', desc: 'Dal massimo di carte per giocatore fino a una.', seq: this.rounds({ ...S, mode: 'completa' }) },
+        { k: 'breve', name: 'Breve', desc: 'Sei turni in discesa, partita rapida.', seq: [6, 5, 4, 3, 2, 1] },
+        { k: 'custom', name: 'Personalizzata', desc: 'Scegli il primo turno: minimo sei turni, chiusura 3·2·1.', seq: this.rounds({ ...S, mode: 'custom' }) }
+      ].map(m => ({
+        name: m.name, desc: m.desc, turns: m.seq.length + ' turni',
+        border: S.mode === m.k ? this.RED : 'rgba(23,24,29,.10)',
+        chips: m.seq.slice(0, 12).map(v => ({ v })),
+        onPick: () => this.setState({ mode: m.k })
+      })),
+      startGame: () => { this.setState({ started: true, log: [] }); this.startRound(0); },
+
+      cards, takeVal, bonusVal,
+      callRows: sel.map(p => {
+        const isD = p.id === dealerId, v = S.calls[p.id] || 0;
+        const blocked = k => this.state.lockDealer && isD && k === forbidden;
+        const note = isD
+          ? (forbidden >= 0 && forbidden <= cards ? 'mazziere · non può chiamare ' + forbidden : 'mazziere')
+          : (S.livePts ? (v ? v + (v === 1 ? ' presa = ' : ' prese = ') + (v * takeVal + bonusVal) + ' punti' : 'zero prese = ' + bonusVal + ' punti') : '');
+        return {
+          id: p.id, name: p.name, initials: this.ini(p.name), tint: this.tint(p.id), call: v,
+          note, noteColor: isD ? '#B85C2B' : 'rgba(23,24,29,.45)',
+          incColor: v >= cards ? 'rgba(23,24,29,.25)' : this.INK,
+          decColor: v <= 0 ? 'rgba(23,24,29,.25)' : this.INK,
+          onInc: () => this.setState(pr => { let k = (pr.calls[p.id] || 0) + 1; if (blocked(k)) k++; if (k > cards) return {}; return { calls: { ...pr.calls, [p.id]: k } }; }),
+          onDec: () => this.setState(pr => { let k = (pr.calls[p.id] || 0) - 1; if (blocked(k)) k--; if (k < 0) return {}; return { calls: { ...pr.calls, [p.id]: k } }; })
+        };
+      }),
+      sumLabel: sum + ' / ' + cards + (cards === 1 ? ' carta' : ' carte'),
+      sumColor: sumOk ? this.GREEN : this.RED,
+      callsCta: sumOk ? 'Registra gli esiti' : 'La somma non può fare ' + cards,
+      callsCtaBg: sumOk ? this.INK : 'rgba(23,24,29,.25)',
+      goResults: () => { if (sumOk) this.go('results'); },
+
+      resRows: sel.map(p => {
+        const r = S.results[p.id] || {}, call = S.calls[p.id] || 0;
+        const has = r.ok === true || r.ok === false;
+        const pts = has ? this.score(n, call, r.ok, r.miss || 1) : 0;
+        return {
+          id: p.id, name: p.name, initials: this.ini(p.name), tint: this.tint(p.id),
+          callLabel: 'ha chiamato ' + call + (call === 1 ? ' presa' : ' prese'),
+          ptsLabel: has ? (pts > 0 ? '+' + pts : String(pts)) : '—',
+          ptsColor: !has ? 'rgba(23,24,29,.25)' : (pts >= 0 ? this.GREEN : this.RED),
+          okBg: r.ok === true ? this.GREEN : 'rgba(23,24,29,.06)', okFg: r.ok === true ? '#F8F8F5' : 'rgba(23,24,29,.55)',
+          failBg: r.ok === false ? this.RED : 'rgba(23,24,29,.06)', failFg: r.ok === false ? '#F8F8F5' : 'rgba(23,24,29,.55)',
+          showMiss: r.ok === false, miss: r.miss || 1,
+          onOk: () => this.setState(pr => ({ results: { ...pr.results, [p.id]: { ok: true, miss: 0 } } })),
+          onFail: () => this.setState(pr => ({ results: { ...pr.results, [p.id]: { ok: false, miss: (pr.results[p.id] || {}).miss || 1 } } })),
+          onMissUp: () => this.setState(pr => ({ results: { ...pr.results, [p.id]: { ok: false, miss: Math.min(cards, ((pr.results[p.id] || {}).miss || 1) + 1) } } })),
+          onMissDown: () => this.setState(pr => ({ results: { ...pr.results, [p.id]: { ok: false, miss: Math.max(1, ((pr.results[p.id] || {}).miss || 1) - 1) } } }))
+        };
+      }),
+      resCta: sel.every(p => { const r = S.results[p.id]; return r && (r.ok === true || r.ok === false); }) ? 'Chiudi il turno' : 'Segna tutti gli esiti',
+      resCtaBg: sel.every(p => { const r = S.results[p.id]; return r && (r.ok === true || r.ok === false); }) ? this.GREEN : 'rgba(23,24,29,.25)',
+      confirmRound: () => {
+        const done = sel.every(p => { const r = S.results[p.id]; return r && (r.ok === true || r.ok === false); });
+        if (!done) return;
+        const rows = sel.map(p => {
+          const r = S.results[p.id], call = S.calls[p.id] || 0;
+          return { id: p.id, name: p.name, call, ok: r.ok, miss: r.miss || 0, pts: this.score(n, call, r.ok, r.miss || 1) };
+        });
+        this.setState(pr => ({ log: [...pr.log, { n, cards, rows }], screen: 'stand', stack: ['home'] }));
+      },
+
+      standRows: order.map((p, i) => {
+        const d = last ? (last.rows.find(r => r.id === p.id) || {}).pts : null;
+        return {
+          pos: i + 1, name: p.name, initials: this.ini(p.name), tint: this.tint(p.id),
+          total: totals[p.id] || 0,
+          bg: i === 0 ? '#FBF6DC' : '#fff', fg: this.INK,
+          posColor: i === 0 ? '#A88A12' : 'rgba(23,24,29,.35)',
+          deltaLabel: d === null || d === undefined ? '—' : (d >= 0 ? 'ultimo turno +' + d : 'ultimo turno ' + d),
+          deltaColor: d === null || d === undefined ? 'rgba(23,24,29,.4)' : (d >= 0 ? this.GREEN : this.RED)
+        };
+      }),
+      logRows: [...S.log].reverse().map(L => ({
+        title: 'Turno ' + L.n,
+        meta: L.cards + (L.cards === 1 ? ' carta · presa ' : ' carte · presa ') + (5 * L.n) + ' · bonus ' + (10 * L.n),
+        cells: L.rows.map(r => ({
+          name: r.name, pts: r.pts >= 0 ? '+' + r.pts : String(r.pts),
+          bg: r.pts >= 0 ? 'rgba(23,120,75,.10)' : 'rgba(207,53,69,.10)',
+          fg: r.pts >= 0 ? this.GREEN : this.RED
+        }))
+      })),
+      nextLabel: S.log.length >= rounds.length ? 'Vedi il risultato finale' : 'Turno ' + (S.log.length + 1) + ' · ' + rounds[S.log.length] + (rounds[S.log.length] === 1 ? ' carta' : ' carte'),
+      nextRound: () => {
+        if (S.log.length >= rounds.length) { this.setState({ screen: 'final', stack: ['home'] }); return; }
+        this.setState(p => ({ dealer: (p.dealer + 1) % p.sel.length }));
+        this.startRound(S.log.length);
+      },
+
+      winnerName: order.length ? order[0].name : '',
+      winnerLine: order.length ? (totals[order[0].id] || 0) + ' punti in ' + rounds.length + ' turni · ' + S.sel.length + ' giocatori' : '',
+      finalRows: order.map((p, i) => ({
+        pos: i + 1, name: p.name, initials: this.ini(p.name), tint: this.tint(p.id),
+        total: totals[p.id] || 0, posColor: i === 0 ? this.YEL : 'rgba(248,248,245,.4)'
+      })),
+      goStand: () => this.setState({ screen: 'stand', stack: ['home'] }),
+      closeGame: () => this.setState(p => ({
+        screen: 'home', stack: [], started: false,
+        games: [{ date: 'OGGI', meta: (p.mode === 'custom' ? 'Personalizzata' : p.mode[0].toUpperCase() + p.mode.slice(1)) + ' · ' + p.sel.length + ' giocatori', winner: order.length ? order[0].name : '', players: order.slice(1).map(x => x.name).join(', '), pts: order.length ? (totals[order[0].id] || 0) : 0 }, ...p.games]
+      })),
+
+      gameRows: S.games,
+      statRows: S.roster.map(r => ({
+        name: r.name, initials: this.ini(r.name), tint: this.tint(r.id),
+        games: r.games + ' partite',
+        respect: r.turns ? Math.round(100 * r.ok / r.turns) + '%' : '—',
+        avg: r.turns ? Math.round(r.ok * 45 / r.turns) : 0,
+        best: r.best
+      })),
+
+      deckSize: S.deck,
+      deckUp: () => this.setState(p => ({ deck: Math.min(120, p.deck + 1) })),
+      deckDown: () => this.setState(p => ({ deck: Math.max(20, p.deck - 1) })),
+      settingRows: [
+        { k: 'lockDealer', name: 'Blocca la chiamata vietata', desc: 'Il mazziere non può chiudere la somma' },
+        { k: 'livePts', name: 'Punti attesi in tempo reale', desc: 'Mostra quanto vale la chiamata mentre la imposti' },
+        { k: 'haptics', name: 'Vibrazione sugli stepper', desc: 'Feedback a ogni tocco' }
+      ].map(s => ({
+        name: s.name, desc: s.desc,
+        trackBg: S[s.k] ? this.GREEN : 'rgba(23,24,29,.18)',
+        knobPos: S[s.k] ? 'flex-end' : 'flex-start',
+        onToggle: () => this.setState(p => ({ [s.k]: !p[s.k] }))
+      }))
+    };
+  }
+}
+
+</script>
+</body>
+</html>
