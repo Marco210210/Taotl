@@ -13,6 +13,16 @@ Comandi del bot disponibili soltanto nella chat configurata:
 Il watchdog può riavviare soltanto il servizio Expo Go dopo due controlli falliti.
 Non riavvia e non modifica mai Oracle automaticamente.
 
+Il servizio Expo Go deve restare in modalità watch: non impostare `CI=1`, perché
+disabilita il rilevamento delle modifiche e lascia ai telefoni il vecchio bundle
+Metro. La configurazione canonica è `taotl-expo-go.service`; per installarla:
+
+```sh
+cp server/monitoring/taotl-expo-go.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user restart taotl-expo-go.service
+```
+
 Le credenziali Telegram vanno salvate fuori dalla cartella dell'app, nel file
 `~/.config/taotl-monitor.env`, così Metro non può includerle nel bundle mobile:
 

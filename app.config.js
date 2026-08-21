@@ -11,6 +11,10 @@ module.exports = ({ config }) => {
 
   return {
     ...expoGoConfig,
+    // Nell'elenco di Expo Go può comparire anche il progetto EAS, che usa un
+    // runtime nativo e non è avviabile dentro Expo Go. Un nome distinto evita
+    // di aprire per errore quella voce invece del tunnel sempre aggiornato.
+    name: "Taotl Live",
     extra,
   };
 };

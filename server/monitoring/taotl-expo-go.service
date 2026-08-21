@@ -1,0 +1,17 @@
+[Unit]
+Description=Taotl Expo Go tunnel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ubuntu/progetti/Taotl
+EnvironmentFile=/home/ubuntu/progetti/Taotl/.env
+Environment=TAOTL_EXPO_GO=1
+Environment=EXPO_PACKAGER_PROXY_URL=https://expo-taotl.130.110.16.97.sslip.io
+ExecStart=/usr/bin/npx expo start --clear --localhost --go --port 8082
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target
