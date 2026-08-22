@@ -11,40 +11,62 @@ import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { StatBox } from "@/components/StatBox";
 import { computePlayerScore } from "@/game/scoring";
-import type { PendingResultDraft, RoundPlayerResult } from "@/game/types";
+import type { ActiveGame, PendingResultDraft, RoundPlayerResult } from "@/game/types";
 import { validateScarto } from "@/game/validation";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useGame } from "@/state/GameContext";
 import { theme, type ThemeColors } from "@/theme";
 
+function buildDrafts(game: ActiveGame | null): Record<string, PendingResultDraft> {
+  if (!game || game.status !== "scoring") return {};
+
+  const storedByPlayer = new Map(
+    (game.pendingResultDrafts ?? []).map((draft) => [draft.playerId, draft]),
+  );
+  return Object.fromEntries(
+    game.pendingBids.map((bid) => {
+      const stored = storedByPlayer.get(bid.playerId);
+      return [
+        bid.playerId,
+        stored
+          ? { ...stored, scarto: Math.max(1, stored.scarto) }
+          : { playerId: bid.playerId, respected: null, scarto: 1 },
+      ];
+    }),
+  );
+}
+
 export default function ScoringScreen() {
   const { resolvedLanguage, t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { game, currentRoundInfo, confirmRoundResults, reopenBids, setResultDraft } = useGame();
+  const [drafts, setDrafts] = useState<Record<string, PendingResultDraft>>(() => buildDrafts(game));
   const [showRedealConfirm, setShowRedealConfirm] = useState(false);
   const isSubmitting = useRef(false);
+  const gameStatus = game?.status;
 
   useEffect(() => {
-    if (!game) {
+    if (!gameStatus) {
       router.replace("/");
       return;
     }
-    if (game.status !== "scoring" && !isSubmitting.current) {
+    if (gameStatus !== "scoring" && !isSubmitting.current) {
       router.replace("/game/bids");
     }
-  }, [game]);
+  }, [gameStatus]);
+
+  useEffect(() => {
+    setDrafts(buildDrafts(game));
+    // Le modifiche locali non devono reinizializzare la lista. Si ricaricano i
+    // draft soltanto quando cambia davvero la partita o il turno.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.id, game?.rounds.length, gameStatus]);
 
   if (!game || game.status !== "scoring" || !currentRoundInfo) return null;
 
   const playerById = new Map(game.players.map((p) => [p.id, p]));
-  const draftByPlayer = new Map(
-    (game.pendingResultDrafts ?? []).map((draft) => [draft.playerId, draft]),
-  );
   const getDraft = (playerId: string): PendingResultDraft => {
-    const stored = draftByPlayer.get(playerId);
-    return stored
-      ? { ...stored, scarto: Math.max(1, stored.scarto) }
-      : { playerId, respected: null, scarto: 1 };
+    return drafts[playerId] ?? { playerId, respected: null, scarto: 1 };
   };
   const totalBids = game.pendingBids.reduce((sum, bid) => sum + bid.bid, 0);
   const allPlayersDecided = game.pendingBids.every((b) => {
@@ -59,11 +81,34 @@ export default function ScoringScreen() {
   const canConfirm = allPlayersDecided && hasMissedBid;
 
   const setRespected = (playerId: string, respected: boolean) => {
-    setResultDraft(playerId, respected, getDraft(playerId).scarto);
+    setDrafts((current) => ({
+      ...current,
+      [playerId]: {
+        ...(current[playerId] ?? { playerId, respected: null, scarto: 1 }),
+        respected,
+      },
+    }));
   };
 
   const setScarto = (playerId: string, scarto: number) => {
-    setResultDraft(playerId, getDraft(playerId).respected ?? false, scarto);
+    setDrafts((current) => {
+      const draft = current[playerId] ?? { playerId, respected: null, scarto: 1 };
+      return {
+        ...current,
+        [playerId]: { ...draft, respected: draft.respected ?? false, scarto },
+      };
+    });
+  };
+
+  const openStandings = () => {
+    // La classifica deve conservare gli esiti già inseriti, ma aggiorniamo lo
+    // stato globale una sola volta quando si lascia la schermata: farlo a ogni
+    // tap rimontava l'intera navigazione e riportava la lista in cima.
+    for (const bid of game.pendingBids) {
+      const draft = getDraft(bid.playerId);
+      setResultDraft(bid.playerId, draft.respected, draft.scarto);
+    }
+    router.push("/game/standings");
   };
 
   const handleConfirm = () => {
@@ -129,7 +174,7 @@ export default function ScoringScreen() {
       </View>
 
       <View style={styles.utilityRow}>
-        <Pressable onPress={() => router.push("/game/standings")} style={styles.utilityButton}>
+        <Pressable onPress={openStandings} style={styles.utilityButton}>
           <Text style={styles.utilityText}>{t("game.viewStandings")}</Text>
         </Pressable>
         <Pressable onPress={handleRedeal} style={[styles.utilityButton, styles.redealButton]}>
@@ -161,7 +206,9 @@ export default function ScoringScreen() {
               <View style={styles.playerInfo}>
                 <Text style={styles.playerName}>{player.name}</Text>
                 <Text style={styles.helper}>
-                  {t("game.called")} {bid.bid} {bid.bid === 1 ? t("game.trickSingle") : t("game.trickPlural")}
+                  {t("game.called")}{" "}
+                  <Text style={styles.calledValue}>{bid.bid}</Text>{" "}
+                  {bid.bid === 1 ? t("game.trickSingle") : t("game.trickPlural")}
                 </Text>
               </View>
               <Text style={[styles.score, preview === null && styles.scorePending, (preview ?? 0) < 0 && styles.scoreNegative]}>
@@ -222,7 +269,20 @@ export default function ScoringScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     statsRow: { flexDirection: "row", gap: 7 },
-    helper: { fontSize: 11, color: colors.textMuted, fontFamily: theme.font.family.semibold, marginTop: 2 },
+    helper: {
+      fontSize: 11,
+      lineHeight: 23,
+      color: colors.textMuted,
+      fontFamily: theme.font.family.semibold,
+      marginTop: 1,
+    },
+    calledValue: {
+      color: colors.text,
+      fontSize: 19,
+      lineHeight: 23,
+      fontFamily: theme.font.family.extraBold,
+      fontVariant: ["tabular-nums"],
+    },
     error: { color: colors.danger, fontSize: theme.font.small, fontFamily: theme.font.family.semibold },
     constraintError: {
       color: colors.danger,
