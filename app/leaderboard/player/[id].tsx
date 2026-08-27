@@ -50,7 +50,7 @@ export default function LeaderboardPlayerScreen() {
       : Promise.resolve({ accounts: [] as AdminAccountDTO[], failed: false });
 
     Promise.all([
-      fetchRoster(token),
+      fetchRoster(token, leaderboardId ?? account?.defaultLeaderboardId),
       fetchHistory(token),
       token ? fetchLeaderboard(token, leaderboardId ?? account?.defaultLeaderboardId ?? "lb_general") : Promise.resolve([]),
       accountLookup,

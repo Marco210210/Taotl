@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -6,6 +6,7 @@ import { fetchHistory } from "@/api/games";
 import type { GameHistorySummaryDTO } from "@/api/types";
 import { Card } from "@/components/Card";
 import { LinearBackButton } from "@/components/LinearBackButton";
+import { LeaderboardSelector } from "@/components/LeaderboardSelector";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAppSettings } from "@/state/AppSettingsContext";
@@ -17,11 +18,27 @@ export default function HistoryScreen() {
   const { from } = useLocalSearchParams<{ from?: string }>();
   const backDestination = from === "admin" ? "/admin" : "/";
   const { t, colors } = useAppSettings();
-  const { token } = useAccount();
+  const { account, token } = useAccount();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const [games, setGames] = useState<GameHistorySummaryDTO[]>([]);
   const [fromCache, setFromCache] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [selectedLeaderboardId, setSelectedLeaderboardId] = useState<string | null>(null);
+  const leaderboards = account?.leaderboards ?? [];
+
+  useEffect(() => {
+    if (!account || selectedLeaderboardId) return;
+    const preferred = leaderboards.find((item) => item.id === account.defaultLeaderboardId) ?? leaderboards[0];
+    setSelectedLeaderboardId(preferred?.id ?? null);
+  }, [account, leaderboards, selectedLeaderboardId]);
+
+  const visibleGames = useMemo(
+    () => selectedLeaderboardId
+      ? games.filter((game) => game.leaderboardId === selectedLeaderboardId)
+      : games,
+    [games, selectedLeaderboardId],
+  );
+  const selectedLeaderboard = leaderboards.find((item) => item.id === selectedLeaderboardId);
 
   useFocusEffect(
     useCallback(() => {
@@ -43,16 +60,26 @@ export default function HistoryScreen() {
     <>
     <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} /> }} />
     <ScreenContainer>
-      <ScreenIntro title={t("history.title")} description={t("history.description")} />
+      <ScreenIntro
+        title={selectedLeaderboard ? `${t("history.title")} · ${selectedLeaderboard.name}` : t("history.title")}
+        description={t("history.description")}
+      />
+      {leaderboards.length > 1 && (
+        <LeaderboardSelector
+          leaderboards={leaderboards}
+          selectedIds={selectedLeaderboardId ? [selectedLeaderboardId] : []}
+          onChange={(ids) => setSelectedLeaderboardId(ids[0] ?? null)}
+        />
+      )}
       {fromCache && (
         <Text style={styles.helper}>
           {t("history.offline")}
         </Text>
       )}
       {loading && <Text style={styles.helper}>{t("history.loading")}</Text>}
-      {!loading && games.length === 0 && <Text style={styles.helper}>{t("history.empty")}</Text>}
+      {!loading && visibleGames.length === 0 && <Text style={styles.helper}>{t("history.empty")}</Text>}
 
-      {games.map((g) => {
+      {visibleGames.map((g) => {
         const winner = g.winnerId
           ? g.standings.find((standing) => standing.playerId === g.winnerId)
           : g.standings[0];

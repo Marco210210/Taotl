@@ -1033,6 +1033,28 @@ BEGIN
   );
   ORDS.DEFINE_PARAMETER('taotl.api','leaderboards/:id/','PUT','Authorization','p_authorization','HEADER','STRING','IN');
 
+  ORDS.DEFINE_TEMPLATE(p_module_name => 'taotl.api', p_pattern => 'leaderboards/:id/players/');
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.api', p_pattern => 'leaderboards/:id/players/', p_method => 'GET',
+    p_source_type => ORDS.source_type_plsql,
+    p_source => q'~DECLARE v_json CLOB; v_code PLS_INTEGER; v_message VARCHAR2(4000); BEGIN BEGIN v_json:=taotl_api.list_leaderboard_players(:p_authorization,:id); EXCEPTION WHEN OTHERS THEN v_code:=SQLCODE; ROLLBACK; OWA_UTIL.status_line(CASE v_code WHEN -20401 THEN 401 WHEN -20403 THEN 403 WHEN -20404 THEN 404 ELSE 500 END,'Error',FALSE); v_message:=CASE WHEN v_code IN (-20401,-20403,-20404) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Giocatori non disponibili.' END; SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB) INTO v_json FROM dual; END; OWA_UTIL.mime_header('application/json',FALSE); HTP.p('Cache-Control: no-store'); OWA_UTIL.http_header_close; taotl_api.print_clob(v_json); END;~'
+  );
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.api', p_pattern => 'leaderboards/:id/players/', p_method => 'PUT',
+    p_source_type => ORDS.source_type_plsql, p_mimes_allowed => 'application/json',
+    p_source => q'~DECLARE v_json CLOB:='{}'; v_code PLS_INTEGER; v_message VARCHAR2(4000); BEGIN BEGIN taotl_collaboration_api.add_player(:p_authorization,:id,:body); EXCEPTION WHEN OTHERS THEN v_code:=SQLCODE; ROLLBACK; OWA_UTIL.status_line(CASE v_code WHEN -20401 THEN 401 WHEN -20403 THEN 403 WHEN -20404 THEN 404 ELSE 500 END,'Error',FALSE); v_message:=CASE WHEN v_code IN (-20401,-20403,-20404) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Giocatore non aggiunto.' END; SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB) INTO v_json FROM dual; END; OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(v_json); END;~'
+  );
+  ORDS.DEFINE_PARAMETER('taotl.api','leaderboards/:id/players/','GET','Authorization','p_authorization','HEADER','STRING','IN');
+  ORDS.DEFINE_PARAMETER('taotl.api','leaderboards/:id/players/','PUT','Authorization','p_authorization','HEADER','STRING','IN');
+
+  ORDS.DEFINE_TEMPLATE(p_module_name => 'taotl.api', p_pattern => 'leaderboards/:id/players/:playerId');
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.api', p_pattern => 'leaderboards/:id/players/:playerId', p_method => 'DELETE',
+    p_source_type => ORDS.source_type_plsql,
+    p_source => q'~DECLARE v_json CLOB:='{}'; v_code PLS_INTEGER; v_message VARCHAR2(4000); BEGIN BEGIN taotl_collaboration_api.remove_player(:p_authorization,:id,:playerId); EXCEPTION WHEN OTHERS THEN v_code:=SQLCODE; ROLLBACK; OWA_UTIL.status_line(CASE v_code WHEN -20401 THEN 401 WHEN -20403 THEN 403 WHEN -20404 THEN 404 ELSE 500 END,'Error',FALSE); v_message:=CASE WHEN v_code IN (-20401,-20403,-20404) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Giocatore non rimosso.' END; SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB) INTO v_json FROM dual; END; OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(v_json); END;~'
+  );
+  ORDS.DEFINE_PARAMETER('taotl.api','leaderboards/:id/players/:playerId','DELETE','Authorization','p_authorization','HEADER','STRING','IN');
+
   ORDS.DEFINE_TEMPLATE(p_module_name => 'taotl.api', p_pattern => 'leaderboards/join/');
   ORDS.DEFINE_HANDLER(p_module_name => 'taotl.api', p_pattern => 'leaderboards/join/', p_method => 'POST', p_source_type => ORDS.source_type_plsql, p_mimes_allowed => 'application/json',
     p_source => q'~DECLARE v_json CLOB; BEGIN v_json := taotl_collaboration_api.join_leaderboard(:p_authorization,:body); OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(v_json); EXCEPTION WHEN OTHERS THEN OWA_UTIL.status_line(CASE SQLCODE WHEN -20401 THEN 401 WHEN -20404 THEN 404 ELSE 500 END,'Error',FALSE); OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(JSON_OBJECT('message' VALUE CASE WHEN SQLCODE IN (-20401,-20404) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Invito non utilizzabile.' END)); END;~');

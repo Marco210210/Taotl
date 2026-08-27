@@ -11,11 +11,11 @@ import { useRoster } from "@/state/useRoster";
 import { theme, type ThemeColors } from "@/theme";
 
 export default function RosterScreen() {
-  const { from } = useLocalSearchParams<{ from?: string }>();
+  const { from, leaderboardId } = useLocalSearchParams<{ from?: string; leaderboardId?: string }>();
   const backDestination = from === "setup" ? "/setup/players" : from === "admin" ? "/admin" : "/";
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { players, loading, fromCache, reload } = useRoster();
+  const { players, loading, fromCache, reload } = useRoster(leaderboardId);
 
   useFocusEffect(
     useCallback(() => {
@@ -42,7 +42,7 @@ export default function RosterScreen() {
           label={t("roster.add")}
           onPress={() => router.push({
             pathname: "/roster/edit",
-            params: from ? { from } : {},
+            params: { ...(from ? { from } : {}), ...(leaderboardId ? { leaderboardId } : {}) },
           })}
         />
 
@@ -53,7 +53,7 @@ export default function RosterScreen() {
               style={styles.row}
               onPress={() => router.push({
                 pathname: "/roster/edit",
-                params: from ? { id: player.id, from } : { id: player.id },
+                params: { id: player.id, ...(from ? { from } : {}), ...(leaderboardId ? { leaderboardId } : {}) },
               })}
             >
               <PlayerAvatar name={player.name} photoUri={player.photoUri} size={44} />

@@ -7,6 +7,8 @@ CREATE OR REPLACE PACKAGE taotl_collaboration_api AS
   FUNCTION rename_leaderboard(p_authorization IN VARCHAR2, p_leaderboard_id IN VARCHAR2, p_body IN BLOB) RETURN CLOB;
   FUNCTION leaderboard_entries(p_authorization IN VARCHAR2, p_leaderboard_id IN VARCHAR2) RETURN CLOB;
   FUNCTION join_leaderboard(p_authorization IN VARCHAR2, p_body IN BLOB) RETURN CLOB;
+  PROCEDURE add_player(p_authorization IN VARCHAR2, p_leaderboard_id IN VARCHAR2, p_body IN BLOB);
+  PROCEDURE remove_player(p_authorization IN VARCHAR2, p_leaderboard_id IN VARCHAR2, p_player_id IN VARCHAR2);
   FUNCTION create_invite(p_authorization IN VARCHAR2, p_leaderboard_id IN VARCHAR2, p_body IN BLOB) RETURN CLOB;
   FUNCTION list_members(p_authorization IN VARCHAR2, p_leaderboard_id IN VARCHAR2) RETURN CLOB;
   PROCEDURE update_member_role(p_authorization IN VARCHAR2, p_leaderboard_id IN VARCHAR2, p_body IN BLOB);
@@ -153,6 +155,10 @@ CREATE OR REPLACE PACKAGE BODY taotl_collaboration_api AS
     VALUES (v_id, v_name, v_account_id, 'private');
     INSERT INTO taotl_account_leaderboards(account_id, leaderboard_id, is_default, role)
     VALUES (v_account_id, v_id, CASE WHEN v_count = 0 THEN 'Y' ELSE 'N' END, 'owner');
+    INSERT INTO taotl_leaderboard_players(leaderboard_id, player_id, added_by)
+    SELECT v_id, ap.player_id, v_account_id
+      FROM taotl_account_players ap
+     WHERE ap.account_id = v_account_id;
     v_json := board_json(v_id, v_account_id);
     COMMIT;
     RETURN v_json;
@@ -250,6 +256,12 @@ CREATE OR REPLACE PACKAGE BODY taotl_collaboration_api AS
       UPDATE taotl_leaderboard_invites SET used_count = used_count + 1
        WHERE token_hash = taotl_identity_api.sha256(v_code);
     END IF;
+    MERGE INTO taotl_leaderboard_players lp
+    USING (SELECT v_board_id leaderboard_id, ap.player_id
+             FROM taotl_account_players ap WHERE ap.account_id = v_account_id) src
+       ON (lp.leaderboard_id = src.leaderboard_id AND lp.player_id = src.player_id)
+     WHEN NOT MATCHED THEN INSERT (leaderboard_id, player_id, added_by)
+       VALUES (src.leaderboard_id, src.player_id, v_account_id);
     v_json := board_json(v_board_id, v_account_id);
     COMMIT;
     RETURN v_json;
@@ -258,6 +270,41 @@ CREATE OR REPLACE PACKAGE BODY taotl_collaboration_api AS
       ROLLBACK;
       RAISE_APPLICATION_ERROR(-20404, 'Invito non valido, scaduto o esaurito.');
   END join_leaderboard;
+
+  PROCEDURE add_player(p_authorization IN VARCHAR2, p_leaderboard_id IN VARCHAR2, p_body IN BLOB) IS
+    v_account_id VARCHAR2(60);
+    v_player_id VARCHAR2(60);
+    v_allowed NUMBER;
+  BEGIN
+    v_account_id := require_role(p_authorization, p_leaderboard_id, 3);
+    SELECT JSON_VALUE(p_body, '$.playerId' RETURNING VARCHAR2(60)) INTO v_player_id FROM dual;
+    SELECT COUNT(*) INTO v_allowed
+      FROM players p
+      JOIN taotl_accounts a ON a.id = v_account_id
+     WHERE p.id = v_player_id AND p.is_active = 'Y'
+       AND (a.is_admin = 'Y' OR p.owner_account_id = v_account_id OR EXISTS (
+         SELECT 1 FROM taotl_leaderboard_players lp
+         JOIN taotl_account_leaderboards al ON al.leaderboard_id = lp.leaderboard_id
+          WHERE lp.player_id = p.id AND al.account_id = v_account_id
+       ));
+    IF v_allowed = 0 THEN RAISE_APPLICATION_ERROR(-20404, 'Giocatore non trovato.'); END IF;
+    MERGE INTO taotl_leaderboard_players lp
+    USING (SELECT p_leaderboard_id leaderboard_id, v_player_id player_id FROM dual) src
+       ON (lp.leaderboard_id = src.leaderboard_id AND lp.player_id = src.player_id)
+     WHEN NOT MATCHED THEN INSERT (leaderboard_id, player_id, added_by)
+       VALUES (src.leaderboard_id, src.player_id, v_account_id);
+    COMMIT;
+  END add_player;
+
+  PROCEDURE remove_player(p_authorization IN VARCHAR2, p_leaderboard_id IN VARCHAR2, p_player_id IN VARCHAR2) IS
+    v_account_id VARCHAR2(60);
+  BEGIN
+    v_account_id := require_role(p_authorization, p_leaderboard_id, 3);
+    DELETE FROM taotl_leaderboard_players
+     WHERE leaderboard_id = p_leaderboard_id AND player_id = p_player_id;
+    IF SQL%ROWCOUNT = 0 THEN RAISE_APPLICATION_ERROR(-20404, 'Giocatore non presente nella classifica.'); END IF;
+    COMMIT;
+  END remove_player;
 
   FUNCTION create_invite(p_authorization IN VARCHAR2, p_leaderboard_id IN VARCHAR2, p_body IN BLOB) RETURN CLOB IS
     v_account_id VARCHAR2(60);

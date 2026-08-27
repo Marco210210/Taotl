@@ -16,9 +16,9 @@ import { theme, type ThemeColors } from "@/theme";
 export default function SetupModeScreen() {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { mode, setMode, selectedPlayers, dealerId, reset } = useSetup();
+  const { mode, setMode, selectedPlayers, dealerId, leaderboardId, leaderboardName, reset } = useSetup();
   const { startGame } = useGame();
-  const { room } = useAccount();
+  const { room, token } = useAccount();
 
   if (selectedPlayers.length === 0 || !dealerId) {
     return (
@@ -36,9 +36,9 @@ export default function SetupModeScreen() {
       selectedPlayers,
       dealerId,
       room?.id ?? null,
-      false,
-      "",
-      "",
+      !!token && !!leaderboardId,
+      leaderboardId ?? "",
+      leaderboardName,
     );
     reset();
     router.replace("/game/bids");

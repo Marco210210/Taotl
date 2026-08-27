@@ -40,9 +40,7 @@ export default function LeaderboardScreen() {
         .then(async (allLeaderboards) => {
           if (!active) return;
           const accountIds = account?.leaderboards?.map((item) => item.id) ?? [];
-          const visible = accountIds.length > 0
-            ? allLeaderboards.filter((item) => accountIds.includes(item.id))
-            : allLeaderboards.filter((item) => item.id === "lb_general");
+          const visible = allLeaderboards.filter((item) => accountIds.includes(item.id));
           const fallbackVisible = visible.length > 0 ? visible : allLeaderboards.slice(0, 1);
           const requestedId = selectedLeaderboardId ?? leaderboardId;
           const nextId = requestedId && fallbackVisible.some((item) => item.id === requestedId)

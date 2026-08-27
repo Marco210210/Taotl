@@ -4,22 +4,26 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import {
   createLeaderboard,
+  addLeaderboardPlayer,
   createLeaderboardInvite,
   createProfileLinkRequest,
   fetchLeaderboardMembers,
   fetchProfileLinkRequests,
   removeLeaderboardMember,
+  removeLeaderboardPlayer,
   renameLeaderboard,
   respondProfileLinkRequest,
   updateLeaderboardMember,
   type LeaderboardMemberDTO,
   type ProfileLinkRequestDTO,
 } from "@/api/leaderboard";
+import { fetchRoster } from "@/api/players";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { LinearBackButton } from "@/components/LinearBackButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
+import type { Player } from "@/game/types";
 import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme, type ThemeColors } from "@/theme";
@@ -44,15 +48,23 @@ export default function ManageLeaderboardScreen() {
   const [linkPlayerId, setLinkPlayerId] = useState(params.playerId ?? "");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [boardPlayers, setBoardPlayers] = useState<Player[]>([]);
+  const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]);
+  const [playerSearch, setPlayerSearch] = useState("");
 
   const reload = useCallback(async () => {
     if (!token) return;
-    const [nextMembers, nextRequests] = await Promise.all([
+    const [nextMembers, nextRequests, boardRoster, accessibleRoster] = await Promise.all([
       leaderboardId ? fetchLeaderboardMembers(token, leaderboardId) : Promise.resolve([]),
       fetchProfileLinkRequests(token).catch(() => []),
+      leaderboardId ? fetchRoster(token, leaderboardId) : Promise.resolve({ players: [], fromCache: false }),
+      leaderboardId ? fetchRoster(token) : Promise.resolve({ players: [], fromCache: false }),
     ]);
     setMembers(nextMembers);
     setRequests(nextRequests.filter((request) => !leaderboardId || request.leaderboardId === leaderboardId));
+    setBoardPlayers(boardRoster.players);
+    const boardIds = new Set(boardRoster.players.map((player) => player.id));
+    setAvailablePlayers(accessibleRoster.players.filter((player) => !boardIds.has(player.id)));
   }, [leaderboardId, token]);
 
   useFocusEffect(useCallback(() => { void reload().catch((error) => setMessage(error instanceof Error ? error.message : "Dati non disponibili.")); }, [reload]));
@@ -126,6 +138,29 @@ export default function ManageLeaderboardScreen() {
                 </>}
               </View>)}
             </Card>
+
+            <Card>
+              <Text style={styles.title}>Giocatori della classifica</Text>
+              <Text style={styles.help}>Questi sono gli unici giocatori disponibili quando si crea una partita in questa classifica.</Text>
+              {boardPlayers.map((player) => <View key={player.id} style={styles.member}>
+                <Text style={[styles.memberName, styles.flex]}>{player.name}</Text>
+                <Pressable onPress={() => void run(() => removeLeaderboardPlayer(token, leaderboardId, player.id))}><Text style={styles.remove}>Rimuovi dalla rosa</Text></Pressable>
+              </View>)}
+              {boardPlayers.length === 0 && <Text style={styles.help}>La rosa è vuota.</Text>}
+              <Button label="Crea un nuovo giocatore" variant="secondary" onPress={() => router.push({ pathname: "/roster/edit", params: { leaderboardId, leaderboardName, from: "manage" } })} />
+            </Card>
+
+            {availablePlayers.length > 0 && <Card>
+              <Text style={styles.title}>Importa un giocatore esistente</Text>
+              <TextInput value={playerSearch} onChangeText={setPlayerSearch} placeholder="Cerca per nome" placeholderTextColor={colors.textMuted as string} style={styles.input} />
+              {availablePlayers
+                .filter((player) => player.name.toLocaleLowerCase().includes(playerSearch.trim().toLocaleLowerCase()))
+                .slice(0, 20)
+                .map((player) => <View key={player.id} style={styles.member}>
+                  <Text style={[styles.memberName, styles.flex]}>{player.name}</Text>
+                  <Pressable onPress={() => void run(() => addLeaderboardPlayer(token, leaderboardId, player.id))}><Text style={styles.action}>Aggiungi</Text></Pressable>
+                </View>)}
+            </Card>}
 
             <Card>
               <Text style={styles.title}>Collega un profilo esistente</Text>

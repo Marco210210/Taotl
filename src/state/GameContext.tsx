@@ -70,9 +70,9 @@ export function GameProvider({ children }: PropsWithChildren) {
     players: Player[],
     startDealerId: string,
     verifiedRoomId?: string | null,
-    saveToAlbo: boolean = true,
-    leaderboardId: string = "lb_general",
-    leaderboardName: string = "Generale",
+    saveToAlbo: boolean = false,
+    leaderboardId: string = "",
+    leaderboardName: string = "",
   ) => {
     dispatch({
       type: "START_GAME",

@@ -32,8 +32,8 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
       if (!action.game) return null;
       return {
         ...action.game,
-        leaderboardId: action.game.leaderboardId ?? "lb_general",
-        leaderboardName: action.game.leaderboardName ?? "Generale",
+        leaderboardId: action.game.leaderboardId ?? "",
+        leaderboardName: action.game.leaderboardName ?? "",
       };
     }
 

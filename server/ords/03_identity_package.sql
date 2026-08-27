@@ -816,6 +816,13 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
         FROM JSON_TABLE(p_body, '$.players[*]' COLUMNS (player_id VARCHAR2(60) PATH '$')) jp;
     END IF;
 
+    MERGE INTO taotl_leaderboard_players lp
+    USING (SELECT v_leaderboard_id leaderboard_id, gp.player_id
+             FROM game_players gp WHERE gp.game_id = v_game_id) src
+       ON (lp.leaderboard_id = src.leaderboard_id AND lp.player_id = src.player_id)
+     WHEN NOT MATCHED THEN INSERT (leaderboard_id, player_id, added_by)
+       VALUES (src.leaderboard_id, src.player_id, v_admin_id);
+
     SELECT JSON_OBJECT('id' VALUE v_game_id RETURNING CLOB) INTO v_json FROM dual;
     COMMIT;
     RETURN v_json;

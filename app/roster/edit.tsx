@@ -21,14 +21,16 @@ export default function EditPlayerScreen() {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { account, token } = useAccount();
-  const { id, from } = useLocalSearchParams<{ id?: string; from?: string }>();
+  const { id, from, leaderboardId, leaderboardName } = useLocalSearchParams<{ id?: string; from?: string; leaderboardId?: string; leaderboardName?: string }>();
   const rosterDestination: Href =
-    from === "admin"
-      ? { pathname: "/roster", params: { from: "admin" } }
+    from === "manage" && leaderboardId
+      ? { pathname: "/leaderboard/manage", params: { leaderboardId, ...(leaderboardName ? { name: leaderboardName } : {}) } }
+      : from === "admin"
+      ? { pathname: "/roster", params: { from: "admin", ...(leaderboardId ? { leaderboardId } : {}) } }
       : from === "setup"
-        ? { pathname: "/roster", params: { from: "setup" } }
+        ? { pathname: "/roster", params: { from: "setup", ...(leaderboardId ? { leaderboardId } : {}) } }
         : "/roster";
-  const { players, loading, addPlayer, renamePlayer, setPlayerPhoto, removePlayer } = useRoster();
+  const { players, loading, addPlayer, renamePlayer, setPlayerPhoto, removePlayer } = useRoster(leaderboardId);
   const existing = id ? players.find((p) => p.id === id) : undefined;
 
   const [name, setName] = useState("");

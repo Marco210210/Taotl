@@ -11,13 +11,17 @@ import { apiClient } from "./client";
 import { FALLBACK_REQUEST_TIMEOUT_MS, getApiBaseUrl } from "./config";
 import type { PlayerDTO } from "./types";
 
-async function readCache(): Promise<Player[]> {
-  const raw = await AsyncStorage.getItem(STORAGE_KEYS.rosterCache);
+function cacheKey(leaderboardId?: string | null): string {
+  return leaderboardId ? `${STORAGE_KEYS.rosterCache}:${leaderboardId}` : STORAGE_KEYS.rosterCache;
+}
+
+async function readCache(leaderboardId?: string | null): Promise<Player[]> {
+  const raw = await AsyncStorage.getItem(cacheKey(leaderboardId));
   return raw ? (JSON.parse(raw) as Player[]) : [];
 }
 
-async function writeCache(players: Player[]): Promise<void> {
-  await AsyncStorage.setItem(STORAGE_KEYS.rosterCache, JSON.stringify(players));
+async function writeCache(players: Player[], leaderboardId?: string | null): Promise<void> {
+  await AsyncStorage.setItem(cacheKey(leaderboardId), JSON.stringify(players));
 }
 
 function fromDTO(dto: PlayerDTO, photoUri: string | null): Player {
@@ -49,34 +53,37 @@ async function fetchProtectedPhoto(id: string, token: string): Promise<string | 
 
 // Prova il backend; se non è raggiungibile usa/aggiorna la cache locale, così la rubrica
 // resta sempre utilizzabile anche prima che il server Oracle sia online.
-export async function fetchRoster(token?: string | null): Promise<{ players: Player[]; fromCache: boolean }> {
+export async function fetchRoster(token?: string | null, leaderboardId?: string | null): Promise<{ players: Player[]; fromCache: boolean }> {
   try {
     if (!token) throw new Error("Rubrica locale");
-    const dtos = await apiClient.getAuthenticated<PlayerDTO[]>("/players/", token, FALLBACK_REQUEST_TIMEOUT_MS);
+    const path = leaderboardId
+      ? `/taotl/leaderboards/${encodeURIComponent(leaderboardId)}/players/`
+      : "/players/";
+    const dtos = await apiClient.getAuthenticated<PlayerDTO[]>(path, token, FALLBACK_REQUEST_TIMEOUT_MS);
     const players = await Promise.all(dtos.map(async (dto) => fromDTO(dto, dto.hasPhoto ? await fetchProtectedPhoto(dto.id, token) : null)));
-    await writeCache(players);
+    await writeCache(players, leaderboardId);
     return { players, fromCache: false };
   } catch {
-    return { players: await readCache(), fromCache: true };
+    return { players: await readCache(leaderboardId), fromCache: true };
   }
 }
 
-export async function createPlayer(name: string, token?: string | null): Promise<Player> {
+export async function createPlayer(name: string, token?: string | null, leaderboardId?: string | null): Promise<Player> {
   const player: Player = { id: generateId("player"), name: name.trim(), photoUri: null };
   if (getApiBaseUrl() && token) {
-    await apiClient.postAuthenticated<PlayerDTO>("/players/", token, { id: player.id, name: player.name });
+    await apiClient.postAuthenticated<PlayerDTO>("/players/", token, { id: player.id, name: player.name, leaderboardId });
   }
-  const cache = await readCache();
-  await writeCache([...cache, player]);
+  const cache = await readCache(leaderboardId);
+  await writeCache([...cache, player], leaderboardId);
   return player;
 }
 
-export async function updatePlayerName(id: string, name: string, token?: string | null): Promise<void> {
+export async function updatePlayerName(id: string, name: string, token?: string | null, leaderboardId?: string | null): Promise<void> {
   if (getApiBaseUrl() && token) {
     await apiClient.putAuthenticated<void>(`/players/${id}`, token, { name: name.trim() });
   }
-  const cache = await readCache();
-  await writeCache(cache.map((p) => (p.id === id ? { ...p, name: name.trim() } : p)));
+  const cache = await readCache(leaderboardId);
+  await writeCache(cache.map((p) => (p.id === id ? { ...p, name: name.trim() } : p)), leaderboardId);
 }
 
 // Riservata all'admin: il backend verifica il token di sessione (vedi require_admin
@@ -94,11 +101,12 @@ export async function uploadPlayerPhoto(
   localUri: string,
   contentType = "image/jpeg",
   token?: string | null,
+  leaderboardId?: string | null,
 ): Promise<string | null> {
   const baseUrl = getApiBaseUrl();
   if (!baseUrl || !token) {
-    const cache = await readCache();
-    await writeCache(cache.map((p) => (p.id === id ? { ...p, photoUri: localUri } : p)));
+    const cache = await readCache(leaderboardId);
+    await writeCache(cache.map((p) => (p.id === id ? { ...p, photoUri: localUri } : p)), leaderboardId);
     return localUri;
   }
 
@@ -128,7 +136,7 @@ export async function uploadPlayerPhoto(
   }
 
   const url = localUri;
-  const cache = await readCache();
-  await writeCache(cache.map((p) => (p.id === id ? { ...p, photoUri: url } : p)));
+  const cache = await readCache(leaderboardId);
+  await writeCache(cache.map((p) => (p.id === id ? { ...p, photoUri: url } : p)), leaderboardId);
   return url;
 }

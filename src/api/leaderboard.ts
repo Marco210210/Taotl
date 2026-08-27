@@ -45,6 +45,14 @@ export function fetchLeaderboard(token: string, leaderboardId: string): Promise<
   return apiClient.getAuthenticated<LeaderboardEntryDTO[]>(`/taotl/leaderboards/${encodeURIComponent(leaderboardId)}/`, token);
 }
 
+export function addLeaderboardPlayer(token: string, id: string, playerId: string): Promise<void> {
+  return apiClient.putAuthenticated<void>(`/taotl/leaderboards/${encodeURIComponent(id)}/players/`, token, { playerId });
+}
+
+export function removeLeaderboardPlayer(token: string, id: string, playerId: string): Promise<void> {
+  return apiClient.deleteAuthenticated<void>(`/taotl/leaderboards/${encodeURIComponent(id)}/players/${encodeURIComponent(playerId)}`, token);
+}
+
 export interface LeaderboardInviteDTO { code: string; role: "manager" | "member" | "viewer"; expiresAt: string }
 export interface LeaderboardMemberDTO { accountId: string; handle: string; displayName: string; role: "owner" | "manager" | "member" | "viewer"; playerId: string | null }
 export interface ProfileLinkRequestDTO { id: string; leaderboardId: string; leaderboardName: string; playerId: string; playerName: string; targetAccountId: string; targetHandle: string; status: string; createdAt: string }

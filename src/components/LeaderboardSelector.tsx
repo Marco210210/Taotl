@@ -1,12 +1,11 @@
 import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import type { LeaderboardDTO } from "@/api/leaderboard";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme, type ThemeColors } from "@/theme";
 
 interface LeaderboardSelectorProps {
-  leaderboards: LeaderboardDTO[];
+  leaderboards: ReadonlyArray<{ id: string; name: string }>;
   selectedIds: string[];
   onChange: (ids: string[]) => void;
   multiple?: boolean;

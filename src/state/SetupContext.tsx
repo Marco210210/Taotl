@@ -4,9 +4,12 @@ import type { PropsWithChildren } from "react";
 import type { GameMode, Player } from "@/game/types";
 
 interface SetupContextValue {
+  leaderboardId: string | null;
+  leaderboardName: string;
   selectedPlayers: Player[];
   mode: GameMode | null;
   dealerId: string | null;
+  setLeaderboard: (id: string | null, name?: string) => void;
   togglePlayer: (player: Player) => void;
   movePlayer: (fromIndex: number, toIndex: number) => void;
   setMode: (mode: GameMode) => void;
@@ -17,6 +20,8 @@ interface SetupContextValue {
 const SetupContext = createContext<SetupContextValue | null>(null);
 
 export function SetupProvider({ children }: PropsWithChildren) {
+  const [leaderboardId, setLeaderboardId] = useState<string | null>(null);
+  const [leaderboardName, setLeaderboardName] = useState("");
   const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
   const [mode, setModeState] = useState<GameMode | null>(null);
   const [dealerId, setDealerIdState] = useState<string | null>(null);
@@ -31,6 +36,13 @@ export function SetupProvider({ children }: PropsWithChildren) {
 
   const setMode = useCallback((next: GameMode) => setModeState(next), []);
   const setDealerId = useCallback((playerId: string) => setDealerIdState(playerId), []);
+  const setLeaderboard = useCallback((id: string | null, name = "") => {
+    setLeaderboardId(id);
+    setLeaderboardName(name);
+    setSelectedPlayers([]);
+    setModeState(null);
+    setDealerIdState(null);
+  }, []);
 
   const movePlayer = useCallback((fromIndex: number, toIndex: number) => {
     setSelectedPlayers((previous) => {
@@ -51,14 +63,16 @@ export function SetupProvider({ children }: PropsWithChildren) {
   }, []);
 
   const reset = useCallback(() => {
+    setLeaderboardId(null);
+    setLeaderboardName("");
     setSelectedPlayers([]);
     setModeState(null);
     setDealerIdState(null);
   }, []);
 
   const value = useMemo<SetupContextValue>(
-    () => ({ selectedPlayers, mode, dealerId, togglePlayer, movePlayer, setMode, setDealerId, reset }),
-    [selectedPlayers, mode, dealerId, togglePlayer, movePlayer, setMode, setDealerId, reset]
+    () => ({ leaderboardId, leaderboardName, selectedPlayers, mode, dealerId, setLeaderboard, togglePlayer, movePlayer, setMode, setDealerId, reset }),
+    [leaderboardId, leaderboardName, selectedPlayers, mode, dealerId, setLeaderboard, togglePlayer, movePlayer, setMode, setDealerId, reset]
   );
 
   return <SetupContext.Provider value={value}>{children}</SetupContext.Provider>;

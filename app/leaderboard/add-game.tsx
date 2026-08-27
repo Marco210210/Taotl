@@ -21,7 +21,7 @@ export default function AddManualGameScreen() {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { token } = useAccount();
-  const { players, loading: rosterLoading } = useRoster();
+  const { players, loading: rosterLoading } = useRoster(leaderboardId);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [winnerId, setWinnerId] = useState<string | null>(null);
   const [winnerOnly, setWinnerOnly] = useState(false);
@@ -73,7 +73,7 @@ export default function AddManualGameScreen() {
         winnerOnly,
         playedAt: playedAtIso,
         scores: scoresPayload && scoresPayload.length > 0 ? scoresPayload : undefined,
-        leaderboardId: leaderboardId ?? "lb_general",
+        leaderboardId: leaderboardId ?? "",
       });
       router.dismissTo(backDestination);
     } catch (reason) {

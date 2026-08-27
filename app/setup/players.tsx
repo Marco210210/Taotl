@@ -1,9 +1,10 @@
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { LeaderboardSelector } from "@/components/LeaderboardSelector";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
@@ -18,11 +19,19 @@ export default function SetupPlayersScreen() {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { account, room } = useAccount();
-  const { players, loading, addPlayer } = useRoster();
-  const { selectedPlayers, togglePlayer } = useSetup();
+  const writableBoards = useMemo(() => account?.leaderboards.filter((item) => item.canSubmit) ?? [], [account?.leaderboards]);
+  const { leaderboardId, setLeaderboard, selectedPlayers, togglePlayer } = useSetup();
+  const selectedBoard = writableBoards.find((item) => item.id === leaderboardId) ?? null;
+  const { players, loading, addPlayer } = useRoster(account ? leaderboardId : null, !account || !!leaderboardId);
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!account || leaderboardId || writableBoards.length === 0) return;
+    const preferred = writableBoards.find((item) => item.id === account.defaultLeaderboardId) ?? writableBoards[0];
+    setLeaderboard(preferred.id, preferred.name);
+  }, [account, leaderboardId, setLeaderboard, writableBoards]);
 
   const selectedIds = new Set(selectedPlayers.map((player) => player.id));
   const canAddMore = selectedPlayers.length < MAX_PLAYERS;
@@ -65,6 +74,29 @@ export default function SetupPlayersScreen() {
         description={t("players.description")}
       />
 
+      {account && writableBoards.length > 0 && (
+        <Card style={styles.boardCard}>
+          <Text style={styles.boardTitle}>CLASSIFICA DELLA PARTITA</Text>
+          <LeaderboardSelector
+            leaderboards={writableBoards}
+            selectedIds={leaderboardId ? [leaderboardId] : []}
+            onChange={(ids) => {
+              const board = writableBoards.find((item) => item.id === ids[0]);
+              if (board) setLeaderboard(board.id, board.name);
+            }}
+          />
+          <Text style={styles.verifiedBody}>Vedrai e userai soltanto i giocatori di questa classifica.</Text>
+        </Card>
+      )}
+
+      {account && writableBoards.length === 0 && (
+        <Card style={styles.boardCard}>
+          <Text style={styles.boardTitle}>NESSUNA CLASSIFICA DISPONIBILE</Text>
+          <Text style={styles.verifiedBody}>Crea una classifica o entra con un invito prima di iniziare una partita.</Text>
+          <Button label="Gestisci classifiche" variant="secondary" onPress={() => router.push("/leaderboard/manage")} />
+        </Card>
+      )}
+
       <Card style={styles.verifiedCard}>
         <View style={styles.verifiedHeader}>
           <View style={[styles.verifiedDot, account && room && styles.verifiedDotActive]} />
@@ -91,7 +123,7 @@ export default function SetupPlayersScreen() {
         </Pressable>
       </Card>
 
-      <View style={styles.addRow}>
+      {(!account || selectedBoard?.canManage) && <View style={styles.addRow}>
         <TextInput
           value={newName}
           onChangeText={(value) => {
@@ -113,7 +145,7 @@ export default function SetupPlayersScreen() {
         >
           <Text allowFontScaling={false} pointerEvents="none" style={styles.addButtonText}>{adding ? "…" : "+"}</Text>
         </Pressable>
-      </View>
+      </View>}
       {!!addError && <Text style={styles.addError}>{addError}</Text>}
 
       <View style={styles.list}>
@@ -155,13 +187,13 @@ export default function SetupPlayersScreen() {
         })}
       </View>
 
-      <Pressable
-        onPress={() => router.push({ pathname: "/roster", params: { from: "setup" } })}
+      {(!account || selectedBoard?.canManage) && <Pressable
+        onPress={() => router.push({ pathname: "/roster", params: { from: "setup", leaderboardId: leaderboardId ?? undefined } })}
         style={styles.manageLink}
       >
         <Text style={styles.manageText}>{t("players.manage")}</Text>
         <Text style={styles.manageArrow}>›</Text>
-      </Pressable>
+      </Pressable>}
     </ScreenContainer>
   );
 }
@@ -169,6 +201,8 @@ export default function SetupPlayersScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     verifiedCard: { gap: 8 },
+    boardCard: { gap: 10 },
+    boardTitle: { color: colors.textMuted, fontFamily: theme.font.family.extraBold, fontSize: 10, letterSpacing: 1.1 },
     verifiedHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
     verifiedDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.textFaint },
     verifiedDotActive: { backgroundColor: colors.success },

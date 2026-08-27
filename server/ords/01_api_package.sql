@@ -36,6 +36,7 @@ CREATE OR REPLACE PACKAGE taotl_api AS
   );
 
   FUNCTION list_players(p_authorization IN VARCHAR2) RETURN CLOB;
+  FUNCTION list_leaderboard_players(p_authorization IN VARCHAR2, p_leaderboard_id IN VARCHAR2) RETURN CLOB;
   FUNCTION get_player(p_authorization IN VARCHAR2, p_id IN VARCHAR2) RETURN CLOB;
   FUNCTION can_read_player(p_account_id IN VARCHAR2, p_id IN VARCHAR2) RETURN NUMBER;
   PROCEDURE serve_player_photo(p_authorization IN VARCHAR2, p_id IN VARCHAR2);
@@ -99,16 +100,32 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
     v_name players.name%TYPE;
     v_exists NUMBER;
     v_account_id VARCHAR2(60);
+    v_leaderboard_id VARCHAR2(60);
+    v_allowed NUMBER;
   BEGIN
     v_account_id := taotl_identity_api.require_account(p_authorization);
 
     SELECT JSON_VALUE(p_body, '$.id' RETURNING VARCHAR2(60)),
-           JSON_VALUE(p_body, '$.name' RETURNING VARCHAR2(120))
-      INTO v_id, v_name
+           JSON_VALUE(p_body, '$.name' RETURNING VARCHAR2(120)),
+           JSON_VALUE(p_body, '$.leaderboardId' RETURNING VARCHAR2(60))
+      INTO v_id, v_name, v_leaderboard_id
       FROM dual;
 
     IF v_id IS NULL OR TRIM(v_name) IS NULL THEN
       RAISE_APPLICATION_ERROR(-20400, 'Id e nome del giocatore sono obbligatori.');
+    END IF;
+
+    IF v_leaderboard_id IS NOT NULL THEN
+      SELECT COUNT(*) INTO v_allowed
+        FROM taotl_leaderboards l
+        JOIN taotl_accounts a ON a.id = v_account_id
+        LEFT JOIN taotl_account_leaderboards al
+          ON al.leaderboard_id = l.id AND al.account_id = v_account_id
+       WHERE l.id = v_leaderboard_id AND l.is_active = 'Y'
+         AND (a.is_admin = 'Y' OR al.role IN ('owner', 'manager'));
+      IF v_allowed = 0 THEN
+        RAISE_APPLICATION_ERROR(-20403, 'Non puoi aggiungere giocatori a questa classifica.');
+      END IF;
     END IF;
 
     SELECT COUNT(*)
@@ -122,6 +139,10 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
 
     INSERT INTO players (id, name, owner_account_id)
     VALUES (v_id, TRIM(v_name), v_account_id);
+    IF v_leaderboard_id IS NOT NULL THEN
+      INSERT INTO taotl_leaderboard_players(leaderboard_id, player_id, added_by)
+      VALUES (v_leaderboard_id, v_id, v_account_id);
+    END IF;
     COMMIT;
   END create_player;
 
@@ -229,6 +250,35 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
     COMMIT;
     RETURN v_json;
   END list_players;
+
+  FUNCTION list_leaderboard_players(p_authorization IN VARCHAR2, p_leaderboard_id IN VARCHAR2) RETURN CLOB IS
+    v_account_id VARCHAR2(60);
+    v_allowed NUMBER;
+    v_json CLOB;
+  BEGIN
+    v_account_id := taotl_identity_api.require_account(p_authorization);
+    SELECT COUNT(*) INTO v_allowed
+      FROM taotl_leaderboards l
+      JOIN taotl_accounts a ON a.id = v_account_id
+      LEFT JOIN taotl_account_leaderboards al
+        ON al.leaderboard_id = l.id AND al.account_id = v_account_id
+     WHERE l.id = p_leaderboard_id AND l.is_active = 'Y'
+       AND (a.is_admin = 'Y' OR al.account_id IS NOT NULL);
+    IF v_allowed = 0 THEN
+      RAISE_APPLICATION_ERROR(-20403, 'Non puoi vedere i giocatori di questa classifica.');
+    END IF;
+
+    SELECT COALESCE(JSON_ARRAYAGG(JSON_OBJECT(
+      'id' VALUE d.id, 'name' VALUE d.player_name,
+      'hasPhoto' VALUE CASE WHEN d.photo IS NULL THEN 'false' ELSE 'true' END FORMAT JSON
+      RETURNING CLOB) ORDER BY d.created_at, d.player_name RETURNING CLOB), TO_CLOB('[]'))
+      INTO v_json
+      FROM taotl_leaderboard_players lp
+      JOIN player_display_names_v d ON d.id = lp.player_id
+     WHERE lp.leaderboard_id = p_leaderboard_id
+       AND d.is_active = 'Y';
+    RETURN v_json;
+  END list_leaderboard_players;
 
   FUNCTION can_read_player(p_account_id IN VARCHAR2, p_id IN VARCHAR2) RETURN NUMBER IS
     v_allowed NUMBER;
@@ -451,15 +501,17 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
              ));
 
     IF v_leaderboard_id IS NOT NULL THEN
-      MERGE INTO taotl_leaderboard_players lp
-      USING (
-        SELECT v_leaderboard_id AS leaderboard_id, gp.player_id
-          FROM game_players gp WHERE gp.game_id = v_game_id
-      ) src
-      ON (lp.leaderboard_id = src.leaderboard_id AND lp.player_id = src.player_id)
-      WHEN NOT MATCHED THEN
-        INSERT (leaderboard_id, player_id, added_by)
-        VALUES (src.leaderboard_id, src.player_id, v_account_id);
+      SELECT COUNT(*) INTO v_leaderboard_valid
+        FROM game_players gp
+       WHERE gp.game_id = v_game_id
+         AND NOT EXISTS (
+           SELECT 1 FROM taotl_leaderboard_players lp
+            WHERE lp.leaderboard_id = v_leaderboard_id
+              AND lp.player_id = gp.player_id
+         );
+      IF v_leaderboard_valid > 0 THEN
+        RAISE_APPLICATION_ERROR(-20400, 'Uno o più giocatori non appartengono alla rosa della classifica.');
+      END IF;
     END IF;
 
     FOR r IN (
