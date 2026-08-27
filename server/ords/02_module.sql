@@ -219,6 +219,50 @@ BEGIN
     p_access_method      => 'IN'
   );
 
+  -- Ridefinizioni autenticate: ogni account vede i profili propri e quelli
+  -- condivisi dalle sue classifiche; la vecchia chiave comune non concede più accesso.
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.players', p_pattern => '.', p_method => 'GET',
+    p_source_type => ORDS.source_type_plsql,
+    p_source => q'~DECLARE v_json CLOB; v_message VARCHAR2(4000); BEGIN BEGIN v_json := taotl_api.list_players(:p_authorization); EXCEPTION WHEN OTHERS THEN IF SQLCODE=-20401 THEN OWA_UTIL.status_line(401,'Unauthorized',FALSE); v_message:=REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *',''); ELSE OWA_UTIL.status_line(500,'Internal Server Error',FALSE); v_message:='Rubrica non disponibile.'; END IF; SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB) INTO v_json FROM dual; END; OWA_UTIL.mime_header('application/json',FALSE); HTP.p('Cache-Control: no-store'); OWA_UTIL.http_header_close; HTP.prn(v_json); END;~'
+  );
+  ORDS.DEFINE_PARAMETER('taotl.players','.','GET','Authorization','p_authorization','HEADER','STRING','IN');
+
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.players', p_pattern => '.', p_method => 'POST',
+    p_source_type => ORDS.source_type_plsql, p_mimes_allowed => 'application/json',
+    p_source => q'~BEGIN taotl_api.create_player(:p_authorization,:body); OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn('{}'); EXCEPTION WHEN OTHERS THEN OWA_UTIL.status_line(CASE SQLCODE WHEN -20400 THEN 400 WHEN -20401 THEN 401 WHEN -20403 THEN 403 WHEN -20409 THEN 409 ELSE 500 END,'Error',FALSE); OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(JSON_OBJECT('message' VALUE CASE WHEN SQLCODE IN (-20400,-20401,-20403,-20409) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Profilo non creato.' END)); END;~'
+  );
+  ORDS.DEFINE_PARAMETER('taotl.players','.','POST','Authorization','p_authorization','HEADER','STRING','IN');
+
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.players', p_pattern => ':id', p_method => 'GET',
+    p_source_type => ORDS.source_type_plsql,
+    p_source => q'~DECLARE v_json CLOB; v_code PLS_INTEGER; v_message VARCHAR2(4000); BEGIN BEGIN v_json:=taotl_api.get_player(:p_authorization,:id); EXCEPTION WHEN OTHERS THEN v_code:=SQLCODE; OWA_UTIL.status_line(CASE v_code WHEN -20401 THEN 401 WHEN -20403 THEN 403 WHEN -20404 THEN 404 ELSE 500 END,'Error',FALSE); v_message:=CASE WHEN v_code IN (-20401,-20403,-20404) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Profilo non disponibile.' END; SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB) INTO v_json FROM dual; END; OWA_UTIL.mime_header('application/json',FALSE); HTP.p('Cache-Control: no-store'); OWA_UTIL.http_header_close; HTP.prn(v_json); END;~'
+  );
+  ORDS.DEFINE_PARAMETER('taotl.players',':id','GET','Authorization','p_authorization','HEADER','STRING','IN');
+
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.players', p_pattern => ':id/photo', p_method => 'GET',
+    p_source_type => ORDS.source_type_plsql,
+    p_source => q'~BEGIN taotl_api.serve_player_photo(:p_authorization,:id); EXCEPTION WHEN OTHERS THEN OWA_UTIL.status_line(CASE SQLCODE WHEN -20401 THEN 401 WHEN -20403 THEN 403 WHEN -20404 THEN 404 ELSE 500 END,'Error',FALSE); OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn('{"message":"Foto non disponibile."}'); END;~'
+  );
+  ORDS.DEFINE_PARAMETER('taotl.players',':id/photo','GET','Authorization','p_authorization','HEADER','STRING','IN');
+
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.players', p_pattern => ':id', p_method => 'PUT',
+    p_source_type => ORDS.source_type_plsql, p_mimes_allowed => 'application/json',
+    p_source => q'~BEGIN taotl_api.update_player(:p_authorization,:id,:body); OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn('{}'); END;~'
+  );
+  ORDS.DEFINE_PARAMETER('taotl.players',':id','PUT','Authorization','p_authorization','HEADER','STRING','IN');
+
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.players', p_pattern => ':id/photo', p_method => 'PUT',
+    p_source_type => ORDS.source_type_plsql,
+    p_source => 'BEGIN taotl_api.update_player_photo(:p_authorization,:id,:body,:p_content_type); END;'
+  );
+  ORDS.DEFINE_PARAMETER('taotl.players',':id/photo','PUT','Authorization','p_authorization','HEADER','STRING','IN');
+
   COMMIT;
 END;
 /

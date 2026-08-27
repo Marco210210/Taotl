@@ -16,7 +16,7 @@ import { theme, type ThemeColors } from "@/theme";
 import { appDateInputToIso, normalizeAppDateInput } from "@/utils/date";
 
 export default function AddManualGameScreen() {
-  const { from } = useLocalSearchParams<{ from?: string }>();
+  const { from, leaderboardId } = useLocalSearchParams<{ from?: string; leaderboardId?: string }>();
   const backDestination = from === "admin" ? "/admin" : "/leaderboard";
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -73,6 +73,7 @@ export default function AddManualGameScreen() {
         winnerOnly,
         playedAt: playedAtIso,
         scores: scoresPayload && scoresPayload.length > 0 ? scoresPayload : undefined,
+        leaderboardId: leaderboardId ?? "lb_general",
       });
       router.dismissTo(backDestination);
     } catch (reason) {

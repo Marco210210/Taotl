@@ -17,6 +17,7 @@ export interface GameSyncPayload {
   // alta): in quel caso conta come vittoria solo questo giocatore, non tutti
   // i pari-merito. Assente/null = comportamento di sempre (vincono entrambi).
   tieBreakWinnerId?: string | null;
+  leaderboardId: string | null;
   players: { id: string; name: string; seatOrder: number }[];
   rounds: {
     index: number;
@@ -30,6 +31,7 @@ export interface GameSyncPayload {
 
 export interface GameHistorySummaryDTO {
   id: string;
+  leaderboardId?: string | null;
   mode: GameMode | "manuale";
   numPlayers: number;
   startedAt: string;
@@ -58,9 +60,14 @@ export interface GameHistoryDetailDTO extends GameHistorySummaryDTO {
   }[];
 }
 
-export function toGameSyncPayload(game: ActiveGame, tieBreakWinnerId?: string | null): GameSyncPayload {
+export function toGameSyncPayload(
+  game: ActiveGame,
+  leaderboardId: string | null,
+  tieBreakWinnerId?: string | null,
+): GameSyncPayload {
   return {
     id: game.id,
+    leaderboardId,
     mode: game.mode,
     numPlayers: game.players.length,
     startDealerId: game.startDealerId,
@@ -85,7 +92,7 @@ export function toGameSyncPayload(game: ActiveGame, tieBreakWinnerId?: string | 
   };
 }
 
-export function toGameHistoryDetail(game: ActiveGame): GameHistoryDetailDTO {
+export function toGameHistoryDetail(game: ActiveGame, leaderboardId: string | null = null): GameHistoryDetailDTO {
   const totals = Object.fromEntries(game.players.map((player) => [player.id, 0]));
   for (const round of game.rounds) {
     for (const result of round.results) {
@@ -96,6 +103,7 @@ export function toGameHistoryDetail(game: ActiveGame): GameHistoryDetailDTO {
 
   return {
     id: game.id,
+    leaderboardId,
     mode: game.mode,
     numPlayers: game.players.length,
     startDealerId: game.startDealerId,

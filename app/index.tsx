@@ -20,7 +20,7 @@ import { theme, type ThemeColors } from "@/theme";
 export default function HomeScreen() {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { account, loading: accountLoading } = useAccount();
+  const { account, token, loading: accountLoading } = useAccount();
   const { game, isHydrated, ranked, resetGame } = useGame();
   const [showAccountPrompt, setShowAccountPrompt] = useState(false);
   const [showDeleteActiveConfirm, setShowDeleteActiveConfirm] = useState(false);
@@ -66,7 +66,7 @@ export default function HomeScreen() {
   useEffect(() => {
     // Non sovrapporsi al prompt "crea account": aspetta che sia risolto
     // (chiuso o non necessario) prima di controllare le partite in sospeso.
-    if (!isHydrated || accountLoading || showAccountPrompt) return;
+    if (!isHydrated || accountLoading || showAccountPrompt || !token) return;
     if (!getApiBaseUrl()) return;
     let active = true;
     fetchPendingSyncGames()
@@ -80,11 +80,11 @@ export default function HomeScreen() {
     return () => {
       active = false;
     };
-  }, [isHydrated, accountLoading, showAccountPrompt]);
+  }, [isHydrated, accountLoading, showAccountPrompt, token]);
 
   const addPendingSyncGames = () => {
     setShowPendingSyncPrompt(false);
-    void retryPendingSyncGames();
+    if (token) void retryPendingSyncGames(token);
   };
 
   const rememberAccountPrompt = async () => {

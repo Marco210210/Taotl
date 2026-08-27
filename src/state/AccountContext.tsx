@@ -14,6 +14,7 @@ import {
   logoutAccount,
   registerAccount,
   requestPasswordReset,
+  updateAccountLeaderboards,
   type AccountDTO,
   type GameRoomDTO,
 } from "@/api/auth";
@@ -40,12 +41,14 @@ interface AccountContextValue {
   }) => Promise<void>;
   login: (handle: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  requestReset: (handle: string, email: string) => Promise<{ message: string }>;
+  requestReset: (email: string) => Promise<{ message: string }>;
   confirmReset: (token: string, password: string) => Promise<void>;
   createRoom: () => Promise<GameRoomDTO>;
   joinRoom: (code: string) => Promise<GameRoomDTO>;
   refreshRoom: () => Promise<void>;
   clearRoom: () => Promise<void>;
+  updateLeaderboards: (defaultLeaderboardId: string) => Promise<void>;
+  refreshAccount: () => Promise<void>;
 }
 
 const AccountContext = createContext<AccountContextValue | null>(null);
@@ -182,8 +185,8 @@ export function AccountProvider({ children }: PropsWithChildren) {
     }
   }, [acceptSession]);
 
-  const requestReset = useCallback(async (handle: string, email: string) => {
-    return requestPasswordReset(handle, email);
+  const requestReset = useCallback(async (email: string) => {
+    return requestPasswordReset(email);
   }, []);
 
   const confirmReset = useCallback(async (token: string, password: string) => {
@@ -244,6 +247,20 @@ export function AccountProvider({ children }: PropsWithChildren) {
     await AsyncStorage.removeItem(ROOM_KEY);
   }, []);
 
+  const updateLeaderboards = useCallback(async (defaultLeaderboardId: string) => {
+    if (!token) throw new Error("Accedi prima di scegliere le classifiche.");
+    const nextAccount = await updateAccountLeaderboards(token, defaultLeaderboardId);
+    setAccount(nextAccount);
+    await AsyncStorage.setItem(ACCOUNT_CACHE_KEY, JSON.stringify(nextAccount));
+  }, [token]);
+
+  const refreshAccount = useCallback(async () => {
+    if (!token) return;
+    const nextAccount = await fetchMyAccount(token);
+    setAccount(nextAccount);
+    await AsyncStorage.setItem(ACCOUNT_CACHE_KEY, JSON.stringify(nextAccount));
+  }, [token]);
+
   const value = useMemo<AccountContextValue>(
     () => ({
       account,
@@ -260,10 +277,12 @@ export function AccountProvider({ children }: PropsWithChildren) {
       joinRoom,
       refreshRoom,
       clearRoom,
+      updateLeaderboards,
+      refreshAccount,
     }),
     [
       account, authError, clearRoom, confirmReset, createRoom, joinRoom, loading, login, logout,
-      refreshRoom, register, requestReset, room, token,
+      refreshAccount, refreshRoom, register, requestReset, room, token, updateLeaderboards,
     ],
   );
 

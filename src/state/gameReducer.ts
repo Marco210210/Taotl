@@ -4,7 +4,16 @@ import type { ActiveGame, Bid, GameMode, Player, RoundPlayerResult } from "@/gam
 import { generateId } from "@/utils/id";
 
 export type GameAction =
-  | { type: "START_GAME"; mode: GameMode; players: Player[]; startDealerId: string; verifiedRoomId?: string | null; saveToAlbo: boolean }
+  | {
+      type: "START_GAME";
+      mode: GameMode;
+      players: Player[];
+      startDealerId: string;
+      verifiedRoomId?: string | null;
+      saveToAlbo: boolean;
+      leaderboardId: string;
+      leaderboardName: string;
+    }
   | { type: "SET_PENDING_CARDS"; cardsDealt: number }
   | { type: "REOPEN_CARDS" }
   | { type: "SET_BID_DRAFT"; playerId: string; bid: number }
@@ -20,11 +29,16 @@ export type GameAction =
 export function gameReducer(state: ActiveGame | null, action: GameAction): ActiveGame | null {
   switch (action.type) {
     case "HYDRATE": {
-      return action.game;
+      if (!action.game) return null;
+      return {
+        ...action.game,
+        leaderboardId: action.game.leaderboardId ?? "lb_general",
+        leaderboardName: action.game.leaderboardName ?? "Generale",
+      };
     }
 
     case "START_GAME": {
-      const { mode, players, startDealerId, verifiedRoomId, saveToAlbo } = action;
+      const { mode, players, startDealerId, verifiedRoomId, saveToAlbo, leaderboardId, leaderboardName } = action;
       const base: ActiveGame = {
         id: generateId("game"),
         mode,
@@ -38,6 +52,8 @@ export function gameReducer(state: ActiveGame | null, action: GameAction): Activ
         pendingResultDrafts: [],
         verifiedRoomId: verifiedRoomId ?? null,
         saveToAlbo,
+        leaderboardId,
+        leaderboardName,
         createdAt: new Date().toISOString(),
         finishedAt: null,
       };

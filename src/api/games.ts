@@ -20,8 +20,8 @@ async function readLocalDetails(): Promise<Record<string, GameHistoryDetailDTO>>
 // Esportata: usata anche quando l'utente sceglie di non salvare la partita
 // nell'albo condiviso (resta comunque visibile nello storico su questo
 // telefono, ma senza tentare la sync col server).
-export async function cacheFinishedGame(game: ActiveGame): Promise<void> {
-  const detail = toGameHistoryDetail(game);
+export async function cacheFinishedGame(game: ActiveGame, leaderboardId: string | null = null): Promise<void> {
+  const detail = toGameHistoryDetail(game, leaderboardId);
   const raw = await AsyncStorage.getItem(LOCAL_HISTORY_KEY);
   const local: GameHistorySummaryDTO[] = raw ? JSON.parse(raw) : [];
   const summaries = [detail, ...local.filter((entry) => entry.id !== detail.id)];
@@ -62,13 +62,13 @@ export async function fetchPendingSyncGames(): Promise<GameSyncPayload[]> {
 // Ritenta l'invio delle partite rimaste solo locali. sync_game lato server è
 // idempotente (MERGE su games + delete/reinsert su rounds/bids), quindi
 // ri-POSTare lo stesso payload più volte è sicuro.
-export async function retryPendingSyncGames(): Promise<{ succeeded: string[]; failed: string[] }> {
+export async function retryPendingSyncGames(token: string): Promise<{ succeeded: string[]; failed: string[] }> {
   const pending = await readPendingSyncPayloads();
   const succeeded: string[] = [];
   const failed: string[] = [];
   for (const payload of pending) {
     try {
-      await apiClient.post<void>("/taotl/games/", payload);
+      await apiClient.postAuthenticated<void>("/taotl/games/", token, payload);
       succeeded.push(payload.id);
     } catch {
       failed.push(payload.id);
@@ -92,13 +92,15 @@ export interface FinishedGameSyncResult {
 
 export async function syncFinishedGame(
   game: ActiveGame,
+  token: string,
+  leaderboardId: string | null,
   verifiedRoom?: { token: string; roomId: string },
   tieBreakWinnerId?: string | null,
 ): Promise<FinishedGameSyncResult> {
-  const payload = toGameSyncPayload(game, tieBreakWinnerId);
-  await cacheFinishedGame(game);
+  const payload = toGameSyncPayload(game, leaderboardId, tieBreakWinnerId);
+  await cacheFinishedGame(game, leaderboardId);
   try {
-    await apiClient.post<void>("/taotl/games/", payload);
+    await apiClient.postAuthenticated<void>("/taotl/games/", token, payload);
     await removePendingSyncPayload(payload.id);
   } catch {
     await addPendingSyncPayload(payload);
@@ -137,9 +139,10 @@ export async function syncFinishedGame(
   }
 }
 
-export async function fetchHistory(): Promise<{ games: GameHistorySummaryDTO[]; fromCache: boolean }> {
+export async function fetchHistory(token?: string | null): Promise<{ games: GameHistorySummaryDTO[]; fromCache: boolean }> {
   try {
-    const games = await apiClient.get<GameHistorySummaryDTO[]>("/taotl/games/", FALLBACK_REQUEST_TIMEOUT_MS);
+    if (!token) throw new Error("Storico locale");
+    const games = await apiClient.getAuthenticated<GameHistorySummaryDTO[]>("/taotl/games/", token, FALLBACK_REQUEST_TIMEOUT_MS);
     await AsyncStorage.setItem(LOCAL_HISTORY_KEY, JSON.stringify(games));
     return { games, fromCache: false };
   } catch {
@@ -149,9 +152,10 @@ export async function fetchHistory(): Promise<{ games: GameHistorySummaryDTO[]; 
   }
 }
 
-export async function fetchGameHistoryDetail(id: string): Promise<{ game: GameHistoryDetailDTO; fromCache: boolean }> {
+export async function fetchGameHistoryDetail(id: string, token?: string | null): Promise<{ game: GameHistoryDetailDTO; fromCache: boolean }> {
   try {
-    const game = await apiClient.get<GameHistoryDetailDTO>(`/taotl/games/${id}`, FALLBACK_REQUEST_TIMEOUT_MS);
+    if (!token) throw new Error("Dettaglio locale");
+    const game = await apiClient.getAuthenticated<GameHistoryDetailDTO>(`/taotl/games/${id}`, token, FALLBACK_REQUEST_TIMEOUT_MS);
     const details = await readLocalDetails();
     details[id] = game;
     await AsyncStorage.setItem(LOCAL_HISTORY_DETAILS_KEY, JSON.stringify(details));

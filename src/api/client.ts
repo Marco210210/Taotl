@@ -36,6 +36,20 @@ interface ApiErrorDetails {
   diagnostic?: string;
 }
 
+function normalizeApplicationStatus(status: number, diagnostic?: string): number {
+  if (status < 500 || !diagnostic) return status;
+  const oracleCode = diagnostic.match(/ORA-(20400|20401|20403|20404|20409|20429)\b/)?.[1];
+  const statusByCode: Record<string, number> = {
+    "20400": 400,
+    "20401": 401,
+    "20403": 403,
+    "20404": 404,
+    "20409": 409,
+    "20429": 429,
+  };
+  return oracleCode ? statusByCode[oracleCode] : status;
+}
+
 async function readErrorDetails(response: Response): Promise<ApiErrorDetails> {
   const text = await response.text().catch(() => "");
   if (text) {
@@ -95,19 +109,24 @@ export async function request<T>(
 
     if (!response.ok) {
       const details = await readErrorDetails(response);
+      const effectiveStatus = normalizeApplicationStatus(response.status, details.diagnostic);
       const requestError = new ApiRequestError(
         details.message,
-        response.status,
+        effectiveStatus,
         path,
         options.method ?? "GET",
         details.diagnostic,
       );
-      reportError("api.request", requestError, {
-        path,
-        method: requestError.method,
-        status: response.status,
-        diagnostic: details.diagnostic,
-      });
+      // I 4xx sono esiti attesi (sessione scaduta, validazione, permessi):
+      // arrivano alla UI ma non devono generare falsi allarmi Telegram.
+      if (effectiveStatus >= 500) {
+        reportError("api.request", requestError, {
+          path,
+          method: requestError.method,
+          status: effectiveStatus,
+          diagnostic: details.diagnostic,
+        });
+      }
       throw requestError;
     }
 
@@ -158,10 +177,18 @@ export const apiClient = {
       headers: { Authorization: `Bearer ${token}` },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     }, timeoutMs),
+  putAuthenticated: <T>(path: string, token: string, body?: unknown, timeoutMs?: number) =>
+    request<T>(path, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}` },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }, timeoutMs),
   deleteAuthenticated: <T>(path: string, token: string, timeoutMs?: number) =>
     request<T>(path, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }, timeoutMs),
   putBinary: <T>(path: string, body: Blob, contentType: string) =>
     request<T>(path, { method: "PUT", body: body as unknown as BodyInit, headers: { "Content-Type": contentType } }),
+  putBinaryAuthenticated: <T>(path: string, token: string, body: Blob, contentType: string) =>
+    request<T>(path, { method: "PUT", body: body as unknown as BodyInit, headers: { "Content-Type": contentType, Authorization: `Bearer ${token}` } }),
 };
 
 export function photoUrlForPlayer(playerId: string, version?: number): string | null {

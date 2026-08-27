@@ -21,6 +21,8 @@ interface GameContextValue {
     startDealerId: string,
     verifiedRoomId?: string | null,
     saveToAlbo?: boolean,
+    leaderboardId?: string,
+    leaderboardName?: string,
   ) => void;
   setPendingCards: (cardsDealt: number) => void;
   reopenCards: () => void;
@@ -69,8 +71,19 @@ export function GameProvider({ children }: PropsWithChildren) {
     startDealerId: string,
     verifiedRoomId?: string | null,
     saveToAlbo: boolean = true,
+    leaderboardId: string = "lb_general",
+    leaderboardName: string = "Generale",
   ) => {
-    dispatch({ type: "START_GAME", mode, players, startDealerId, verifiedRoomId, saveToAlbo });
+    dispatch({
+      type: "START_GAME",
+      mode,
+      players,
+      startDealerId,
+      verifiedRoomId,
+      saveToAlbo,
+      leaderboardId,
+      leaderboardName,
+    });
   }, []);
 
   const setPendingCards = useCallback((cardsDealt: number) => {

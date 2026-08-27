@@ -1,15 +1,17 @@
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { LeaderboardSelector } from "@/components/LeaderboardSelector";
 import { LinearBackButton } from "@/components/LinearBackButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAccount } from "@/state/AccountContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme, type ThemeColors } from "@/theme";
+import { fetchLeaderboards, fetchProfileLinkRequests, joinLeaderboard, respondProfileLinkRequest, type LeaderboardDTO, type ProfileLinkRequestDTO } from "@/api/leaderboard";
 
 type AuthMode = "register" | "login";
 type AuthField =
@@ -59,7 +61,7 @@ export default function AccountScreen() {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const {
-    account,
+    account, token,
     room,
     loading,
     authError,
@@ -70,6 +72,8 @@ export default function AccountScreen() {
     joinRoom,
     refreshRoom,
     clearRoom,
+    updateLeaderboards,
+    refreshAccount,
   } = useAccount();
   const [mode, setMode] = useState<AuthMode>("register");
   const [handle, setHandle] = useState("");
@@ -80,8 +84,15 @@ export default function AccountScreen() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [joinCode, setJoinCode] = useState("");
+  const [leaderboardInviteCode, setLeaderboardInviteCode] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [leaderboards, setLeaderboards] = useState<LeaderboardDTO[]>([]);
+  const [selectedLeaderboardIds, setSelectedLeaderboardIds] = useState<string[]>([]);
+  const [leaderboardsLoading, setLeaderboardsLoading] = useState(true);
+  const [leaderboardsError, setLeaderboardsError] = useState<string | null>(null);
+  const [savingLeaderboards, setSavingLeaderboards] = useState(false);
+  const [linkRequests, setLinkRequests] = useState<ProfileLinkRequestDTO[]>([]);
   const handleRef = useRef<TextInput>(null);
   const firstNameRef = useRef<TextInput>(null);
   const lastNameRef = useRef<TextInput>(null);
@@ -91,6 +102,46 @@ export default function AccountScreen() {
   const confirmPasswordRef = useRef<TextInput>(null);
 
   const normalizedHandle = useMemo(() => sanitizeHandleInput(handle), [handle]);
+  const loginIdentifier = handle.trim().toLowerCase();
+
+  useEffect(() => {
+    let active = true;
+    if (!token) {
+      setLeaderboards([]);
+      setLeaderboardsLoading(false);
+      return () => { active = false; };
+    }
+    fetchLeaderboards(token)
+      .then((items) => {
+        if (!active) return;
+        setLeaderboards(items);
+        setLeaderboardsError(null);
+        setSelectedLeaderboardIds((current) => {
+          if (account?.leaderboards?.length) {
+            const ordered = [...account.leaderboards].sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
+            return ordered.map((item) => item.id);
+          }
+          if (current.length > 0) return current;
+          return items[0] ? [items[0].id] : [];
+        });
+      })
+      .catch((reason) => {
+        if (active) setLeaderboardsError(reason instanceof Error ? reason.message : t("leaderboard.unavailable"));
+      })
+      .finally(() => {
+        if (active) setLeaderboardsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [account?.id, t, token]);
+
+  useEffect(() => {
+    if (!token || !account) { setLinkRequests([]); return; }
+    fetchProfileLinkRequests(token)
+      .then((items) => setLinkRequests(items.filter((item) => item.targetAccountId === account.id)))
+      .catch(() => setLinkRequests([]));
+  }, [account, token]);
 
   const isPasswordValid = (value: string) =>
     value.length >= 8 &&
@@ -133,8 +184,10 @@ export default function AccountScreen() {
   const validateAuthFields = (): FieldErrors => {
     const errors: FieldErrors = {};
 
-    if (!/^[a-z0-9_]{3,24}$/.test(normalizedHandle)) {
-      errors.handle = t("account.invalidHandle");
+    const validHandle = /^[a-z0-9_]{3,24}$/.test(mode === "login" ? loginIdentifier : normalizedHandle);
+    const validEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(loginIdentifier);
+    if (mode === "register" ? !validHandle : !validHandle && !validEmail) {
+      errors.handle = t(mode === "register" ? "account.invalidHandle" : "account.invalidLoginIdentifier");
     }
     if (mode === "register") {
       if (!firstName.trim()) errors.firstName = t("account.invalidFirstName");
@@ -175,7 +228,7 @@ export default function AccountScreen() {
           password,
         });
       } else {
-        await login(normalizedHandle, password);
+        await login(loginIdentifier, password);
       }
       setPassword("");
     } catch (error) {
@@ -219,6 +272,48 @@ export default function AccountScreen() {
     }
   };
 
+  const saveLeaderboardPreferences = async () => {
+    if (selectedLeaderboardIds.length === 0) {
+      setMessage(t("account.leaderboardsRequired"));
+      return;
+    }
+    setSavingLeaderboards(true);
+    setMessage(null);
+    try {
+      await updateLeaderboards(selectedLeaderboardIds[0]);
+      setMessage(t("account.leaderboardsSaved"));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : t("leaderboard.unavailable"));
+    } finally {
+      setSavingLeaderboards(false);
+    }
+  };
+
+  const handleJoinLeaderboard = async () => {
+    if (!token || !leaderboardInviteCode.trim()) return;
+    setSavingLeaderboards(true);
+    setMessage(null);
+    try {
+      await joinLeaderboard(token, leaderboardInviteCode);
+      setLeaderboardInviteCode("");
+      await refreshAccount();
+      setMessage("Classifica aggiunta al tuo account.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Invito non valido.");
+    } finally { setSavingLeaderboards(false); }
+  };
+
+  const handleLinkResponse = async (requestId: string, accept: boolean) => {
+    if (!token) return;
+    setSavingLeaderboards(true);
+    try {
+      await respondProfileLinkRequest(token, requestId, accept);
+      setLinkRequests((current) => current.filter((item) => item.id !== requestId));
+      await refreshAccount();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Richiesta non aggiornata."); }
+    finally { setSavingLeaderboards(false); }
+  };
+
   return (
     <>
       <Stack.Screen
@@ -250,29 +345,31 @@ export default function AccountScreen() {
             </View>
 
             <Card>
-              <Text style={styles.label}>{t("account.handle")}</Text>
+              <Text style={styles.label}>{t(mode === "login" ? "account.loginIdentifier" : "account.handle")}</Text>
               <TextInput
                 ref={handleRef}
                 autoCapitalize="none"
                 autoCorrect={false}
-                maxLength={24}
+                maxLength={mode === "login" ? 160 : 24}
                 value={handle}
                 onChangeText={(value) => {
-                  const nextValue = sanitizeHandleInput(value);
+                  const nextValue = mode === "login" ? value.trimStart().toLowerCase() : sanitizeHandleInput(value);
                   setHandle(nextValue);
                   updateVisibleFieldError(
                     "handle",
-                    /^[a-z0-9_]{3,24}$/.test(nextValue) ? null : t("account.invalidHandle"),
+                    mode === "login"
+                      ? (/^[a-z0-9_]{3,24}$/.test(nextValue.trim()) || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(nextValue.trim()) ? null : t("account.invalidLoginIdentifier"))
+                      : (/^[a-z0-9_]{3,24}$/.test(nextValue) ? null : t("account.invalidHandle")),
                   );
                 }}
-                placeholder={t("account.handlePlaceholder")}
+                placeholder={t(mode === "login" ? "account.loginIdentifierPlaceholder" : "account.handlePlaceholder")}
                 placeholderTextColor={colors.textMuted as string}
                 style={[styles.input, fieldErrors.handle && styles.inputError]}
               />
               {fieldErrors.handle ? (
                 <Text style={styles.fieldError}>{fieldErrors.handle}</Text>
               ) : (
-                <Text style={styles.fieldHint}>{t("account.handleHint")}</Text>
+                <Text style={styles.fieldHint}>{t(mode === "login" ? "account.loginIdentifierHint" : "account.handleHint")}</Text>
               )}
 
               {mode === "register" && (
@@ -342,6 +439,8 @@ export default function AccountScreen() {
                     style={[styles.input, fieldErrors.email && styles.inputError]}
                   />
                   {!!fieldErrors.email && <Text style={styles.fieldError}>{fieldErrors.email}</Text>}
+
+                  <Text style={styles.fieldHint}>Dopo la registrazione potrai creare una classifica privata o entrare con un codice invito.</Text>
                 </>
               )}
 
@@ -428,6 +527,38 @@ export default function AccountScreen() {
               <Button label={t("account.logout")} variant="ghost" onPress={logout} loading={loading} />
             </Card>
 
+            {linkRequests.map((request) => (
+              <Card key={request.id}>
+                <Text style={styles.eyebrow}>Richiesta collegamento profilo</Text>
+                <Text style={styles.body}>{request.leaderboardName}: vuoi collegare il tuo Taotl ID al profilo “{request.playerName}”?</Text>
+                <Button label="Accetta" variant="success" loading={savingLeaderboards} onPress={() => void handleLinkResponse(request.id, true)} />
+                <Button label="Rifiuta" variant="ghost" loading={savingLeaderboards} onPress={() => void handleLinkResponse(request.id, false)} />
+              </Card>
+            ))}
+
+            <Card>
+              <Text style={styles.eyebrow}>{t("account.myLeaderboards")}</Text>
+              <Text style={styles.body}>Puoi vedere più classifiche. Qui scegli quella da aprire automaticamente.</Text>
+              <LeaderboardSelector
+                leaderboards={leaderboards}
+                selectedIds={selectedLeaderboardIds}
+                onChange={setSelectedLeaderboardIds}
+                disabled={leaderboardsLoading || savingLeaderboards}
+              />
+              {!!leaderboardsError && <Text style={styles.error}>{leaderboardsError}</Text>}
+              <Button
+                label={t("common.save")}
+                onPress={saveLeaderboardPreferences}
+                loading={savingLeaderboards}
+                disabled={selectedLeaderboardIds.length === 0}
+              />
+              <View style={styles.divider} />
+              <Text style={styles.label}>Codice invito classifica</Text>
+              <TextInput autoCapitalize="characters" autoCorrect={false} maxLength={12} value={leaderboardInviteCode} onChangeText={(value) => setLeaderboardInviteCode(value.replace(/[^a-z0-9]/gi, "").toUpperCase())} placeholder="Es. A1B2C3D4" placeholderTextColor={colors.textMuted as string} style={[styles.input, styles.codeInput]} />
+              <Button label="Entra nella classifica" onPress={() => void handleJoinLeaderboard()} loading={savingLeaderboards} disabled={leaderboardInviteCode.length < 6} variant="success" />
+              <Button label="Crea o gestisci classifiche" variant="ghost" onPress={() => router.push("/leaderboard")} />
+            </Card>
+
             <Card>
               <Text style={styles.eyebrow}>{t("account.tableTitle")}</Text>
               <Text style={styles.body}>{t("account.tableDescription")}</Text>
@@ -503,6 +634,12 @@ function makeStyles(colors: ThemeColors) {
     tabText: { color: colors.textMuted, fontFamily: theme.font.family.bold, fontSize: 13 },
     tabTextActive: { color: colors.text },
     label: { color: colors.text, fontFamily: theme.font.family.bold, fontSize: 12, marginTop: 4 },
+    sectionTitle: {
+      color: colors.text,
+      fontFamily: theme.font.family.extraBold,
+      fontSize: 14,
+      marginTop: 8,
+    },
     input: {
       minHeight: 50,
       borderRadius: theme.radius.md,

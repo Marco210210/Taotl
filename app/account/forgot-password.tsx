@@ -15,7 +15,6 @@ export default function ForgotPasswordScreen() {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { requestReset } = useAccount();
-  const [handle, setHandle] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -24,7 +23,7 @@ export default function ForgotPasswordScreen() {
     setLoading(true);
     setMessage(null);
     try {
-      const result = await requestReset(handle.trim().toLowerCase().replace(/^@/, ""), email.trim());
+      const result = await requestReset(email);
       setMessage(result.message);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : null);
@@ -39,16 +38,6 @@ export default function ForgotPasswordScreen() {
       <ScreenContainer>
         <ScreenIntro title={t("forgotPassword.title")} description={t("forgotPassword.description")} />
         <Card>
-          <Text style={styles.label}>{t("account.handle")}</Text>
-          <TextInput
-            autoCapitalize="none"
-            autoCorrect={false}
-            value={handle}
-            onChangeText={setHandle}
-            placeholder={t("account.handlePlaceholder")}
-            placeholderTextColor={colors.textMuted as string}
-            style={styles.input}
-          />
           <Text style={styles.label}>{t("account.email")}</Text>
           <TextInput
             autoCapitalize="none"
@@ -65,7 +54,7 @@ export default function ForgotPasswordScreen() {
             label={t("forgotPassword.submit")}
             onPress={submit}
             loading={loading}
-            disabled={!handle.trim() || !email.trim()}
+            disabled={!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())}
             variant="secondary"
           />
           <Pressable onPress={() => router.push("/account/reset-password")} style={styles.link}>

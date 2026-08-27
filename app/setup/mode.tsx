@@ -1,12 +1,10 @@
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
-import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
-import { ToggleRow } from "@/components/ToggleRow";
 import { getFixedSequence } from "@/game/modes";
 import type { GameMode } from "@/game/types";
 import { useAppSettings } from "@/state/AppSettingsContext";
@@ -21,7 +19,6 @@ export default function SetupModeScreen() {
   const { mode, setMode, selectedPlayers, dealerId, reset } = useSetup();
   const { startGame } = useGame();
   const { room } = useAccount();
-  const [saveToAlbo, setSaveToAlbo] = useState(true);
 
   if (selectedPlayers.length === 0 || !dealerId) {
     return (
@@ -34,14 +31,29 @@ export default function SetupModeScreen() {
 
   const start = () => {
     if (!mode) return;
-    startGame(mode, selectedPlayers, dealerId, room?.id ?? null, saveToAlbo);
+    startGame(
+      mode,
+      selectedPlayers,
+      dealerId,
+      room?.id ?? null,
+      false,
+      "",
+      "",
+    );
     reset();
     router.replace("/game/bids");
   };
 
   return (
     <ScreenContainer
-      footer={<Button label={t("mode.start")} trailing="→" onPress={start} disabled={!mode} />}
+      footer={
+        <Button
+          label={t("mode.start")}
+          trailing="→"
+          onPress={start}
+          disabled={!mode}
+        />
+      }
     >
       <ScreenIntro
         title={t("mode.title")}
@@ -99,14 +111,6 @@ export default function SetupModeScreen() {
         })}
       </View>
 
-      <Card>
-        <ToggleRow
-          title={t("mode.saveToAlbo")}
-          description={t("mode.saveToAlboDescription")}
-          value={saveToAlbo}
-          onChange={setSaveToAlbo}
-        />
-      </Card>
     </ScreenContainer>
   );
 }
@@ -152,6 +156,20 @@ function makeStyles(colors: ThemeColors) {
       fontSize: 11.5,
       lineHeight: 17,
     },
+    sectionTitle: { color: colors.text, fontFamily: theme.font.family.extraBold, fontSize: 15 },
+    createRow: { gap: 8, marginTop: 4 },
+    input: {
+      minHeight: 48,
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+      backgroundColor: colors.background,
+      color: colors.text,
+      paddingHorizontal: 14,
+      fontFamily: theme.font.family.semibold,
+      fontSize: 14,
+    },
+    error: { color: colors.danger, fontFamily: theme.font.family.semibold, fontSize: 12 },
     pressed: { opacity: 0.74 },
   });
 }

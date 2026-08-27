@@ -1,12 +1,13 @@
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { fetchLeaderboard } from "@/api/leaderboard";
-import type { LeaderboardEntryDTO } from "@/api/leaderboard";
+import { fetchLeaderboard, fetchLeaderboards } from "@/api/leaderboard";
+import type { LeaderboardDTO, LeaderboardEntryDTO } from "@/api/leaderboard";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { LinearBackButton } from "@/components/LinearBackButton";
+import { LeaderboardSelector } from "@/components/LeaderboardSelector";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAccount } from "@/state/AccountContext";
@@ -14,22 +15,44 @@ import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme, type ThemeColors } from "@/theme";
 
 export default function LeaderboardScreen() {
-  const { from } = useLocalSearchParams<{ from?: string }>();
+  const { from, leaderboardId } = useLocalSearchParams<{ from?: string; leaderboardId?: string }>();
   const backDestination = from === "profile" ? "/profile" : from === "admin" ? "/admin" : "/";
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { account } = useAccount();
+  const { account, token } = useAccount();
   const [entries, setEntries] = useState<LeaderboardEntryDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [leaderboards, setLeaderboards] = useState<LeaderboardDTO[]>([]);
+  const [selectedLeaderboardId, setSelectedLeaderboardId] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       setLoading(true);
-      fetchLeaderboard()
-        .then((result) => {
-          if (active) setEntries(result);
+      setError(null);
+      if (!token) {
+        setError("Accedi con il tuo Taotl ID per vedere le classifiche.");
+        setLoading(false);
+        return () => { active = false; };
+      }
+      fetchLeaderboards(token)
+        .then(async (allLeaderboards) => {
+          if (!active) return;
+          const accountIds = account?.leaderboards?.map((item) => item.id) ?? [];
+          const visible = accountIds.length > 0
+            ? allLeaderboards.filter((item) => accountIds.includes(item.id))
+            : allLeaderboards.filter((item) => item.id === "lb_general");
+          const fallbackVisible = visible.length > 0 ? visible : allLeaderboards.slice(0, 1);
+          const requestedId = selectedLeaderboardId ?? leaderboardId;
+          const nextId = requestedId && fallbackVisible.some((item) => item.id === requestedId)
+            ? requestedId
+            : fallbackVisible.find((item) => item.id === account?.defaultLeaderboardId)?.id
+              ?? fallbackVisible[0]?.id
+              ?? null;
+          setLeaderboards(fallbackVisible);
+          setSelectedLeaderboardId(nextId);
+          setEntries(nextId ? await fetchLeaderboard(token, nextId) : []);
         })
         .catch((reason) => {
           if (active) setError(reason instanceof Error ? reason.message : t("leaderboard.unavailable"));
@@ -40,21 +63,49 @@ export default function LeaderboardScreen() {
       return () => {
         active = false;
       };
-    }, [t]),
+    }, [account?.defaultLeaderboardId, account?.leaderboards, leaderboardId, selectedLeaderboardId, t, token]),
   );
+
+  const selectLeaderboard = useCallback((ids: string[]) => {
+    const nextId = ids[0];
+    if (!nextId || nextId === selectedLeaderboardId) return;
+    setSelectedLeaderboardId(nextId);
+  }, [selectedLeaderboardId]);
+
+  const selectedLeaderboard = leaderboards.find((item) => item.id === selectedLeaderboardId);
 
   return (
     <>
     <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} /> }} />
     <ScreenContainer>
-      <ScreenIntro title={t("leaderboard.title")} description={t("leaderboard.description")} />
+      <ScreenIntro
+        title={selectedLeaderboard?.name ?? t("leaderboard.title")}
+        description={t("leaderboard.description")}
+      />
+
+      {!!token && <Button label="Crea una nuova classifica" variant="secondary" onPress={() => router.push("/leaderboard/manage")} />}
+
+      {leaderboards.length > 1 && (
+        <LeaderboardSelector
+          leaderboards={leaderboards}
+          selectedIds={selectedLeaderboardId ? [selectedLeaderboardId] : []}
+          onChange={selectLeaderboard}
+        />
+      )}
 
       {account?.isAdmin && (
         <Button
           label={t("leaderboard.addGame")}
           variant="success"
-          onPress={() => router.push("/leaderboard/add-game")}
+          onPress={() => router.push({
+            pathname: "/leaderboard/add-game",
+            params: { leaderboardId: selectedLeaderboardId ?? "lb_general" },
+          })}
         />
+      )}
+
+      {selectedLeaderboard?.canManage && (
+        <Button label="Gestisci membri e inviti" variant="secondary" onPress={() => router.push({ pathname: "/leaderboard/manage", params: { leaderboardId: selectedLeaderboard.id, name: selectedLeaderboard.name } })} />
       )}
 
       {loading && <Text style={styles.helper}>{t("common.loading")}</Text>}
@@ -72,6 +123,7 @@ export default function LeaderboardScreen() {
               params: {
                 id: entry.playerId,
                 from: from === "profile" ? "profile-leaderboard" : "leaderboard",
+                leaderboardId: selectedLeaderboardId ?? "lb_general",
               },
             })}
             style={({ pressed }) => pressed && styles.pressed}

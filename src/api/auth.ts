@@ -1,5 +1,14 @@
 import { apiClient } from "./client";
 
+export interface AccountLeaderboardDTO {
+  id: string;
+  name: string;
+  isDefault: boolean;
+  role: "owner" | "manager" | "member" | "viewer" | "superadmin";
+  canManage: boolean;
+  canSubmit: boolean;
+}
+
 export interface AccountDTO {
   id: string;
   handle: string;
@@ -9,6 +18,8 @@ export interface AccountDTO {
   email: string;
   isAdmin: boolean;
   linkedPlayerId: string | null;
+  leaderboards: AccountLeaderboardDTO[];
+  defaultLeaderboardId: string | null;
   createdAt: string;
 }
 
@@ -50,12 +61,21 @@ export function registerAccount(input: {
   return apiClient.post<AuthSessionDTO>("/taotl/auth/register/", input);
 }
 
+export function updateAccountLeaderboards(
+  token: string,
+  defaultLeaderboardId: string,
+): Promise<AccountDTO> {
+  return apiClient.putAuthenticated<AccountDTO>("/taotl/auth/me/leaderboards/", token, {
+    defaultLeaderboardId,
+  });
+}
+
 export function loginAccount(handle: string, password: string): Promise<AuthSessionDTO> {
   return apiClient.post<AuthSessionDTO>("/taotl/auth/login/", { handle, password });
 }
 
-export function requestPasswordReset(handle: string, email: string): Promise<{ message: string }> {
-  return apiClient.post<{ message: string }>("/taotl/auth/forgot-password/", { handle, email });
+export function requestPasswordReset(email: string): Promise<{ message: string }> {
+  return apiClient.post<{ message: string }>("/taotl/auth/forgot-password/", { email: email.trim().toLowerCase() });
 }
 
 export function confirmPasswordReset(token: string, password: string): Promise<AuthSessionDTO> {

@@ -9,6 +9,7 @@ import { LinearBackButton } from "@/components/LinearBackButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAppSettings } from "@/state/AppSettingsContext";
+import { useAccount } from "@/state/AccountContext";
 import { theme, type ThemeColors } from "@/theme";
 import { formatAppDate } from "@/utils/date";
 
@@ -16,6 +17,7 @@ export default function HistoryScreen() {
   const { from } = useLocalSearchParams<{ from?: string }>();
   const backDestination = from === "admin" ? "/admin" : "/";
   const { t, colors } = useAppSettings();
+  const { token } = useAccount();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const [games, setGames] = useState<GameHistorySummaryDTO[]>([]);
   const [fromCache, setFromCache] = useState(false);
@@ -25,7 +27,7 @@ export default function HistoryScreen() {
     useCallback(() => {
       let active = true;
       setLoading(true);
-      fetchHistory().then((result) => {
+      fetchHistory(token).then((result) => {
         if (!active) return;
         setGames(result.games);
         setFromCache(result.fromCache);
@@ -34,7 +36,7 @@ export default function HistoryScreen() {
       return () => {
         active = false;
       };
-    }, []),
+    }, [token]),
   );
 
   return (

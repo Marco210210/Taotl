@@ -18,10 +18,12 @@ CREATE OR REPLACE PACKAGE taotl_identity_api AS
   FUNCTION hash_password(p_salt IN VARCHAR2, p_password IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION normalized_handle(p_value IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION account_json(p_account_id IN VARCHAR2) RETURN CLOB;
+  FUNCTION require_account(p_authorization IN VARCHAR2) RETURN VARCHAR2;
 
   FUNCTION register_account(p_body IN BLOB) RETURN CLOB;
   FUNCTION login_account(p_body IN BLOB) RETURN CLOB;
   FUNCTION my_account(p_authorization IN VARCHAR2) RETURN CLOB;
+  FUNCTION update_my_leaderboards(p_authorization IN VARCHAR2, p_body IN BLOB) RETURN CLOB;
   PROCEDURE logout_account(p_authorization IN VARCHAR2);
   FUNCTION create_room(p_authorization IN VARCHAR2) RETURN CLOB;
   FUNCTION join_room(p_authorization IN VARCHAR2, p_body IN BLOB) RETURN CLOB;
@@ -33,10 +35,12 @@ CREATE OR REPLACE PACKAGE taotl_identity_api AS
   FUNCTION require_admin(p_authorization IN VARCHAR2) RETURN VARCHAR2;
   FUNCTION link_account_player(p_authorization IN VARCHAR2, p_body IN BLOB) RETURN CLOB;
   FUNCTION add_manual_game(p_authorization IN VARCHAR2, p_body IN BLOB) RETURN CLOB;
-  FUNCTION overall_leaderboard RETURN CLOB;
+  FUNCTION list_leaderboards RETURN CLOB;
+  FUNCTION create_leaderboard(p_authorization IN VARCHAR2, p_body IN BLOB) RETURN CLOB;
+  FUNCTION overall_leaderboard(p_leaderboard_id IN VARCHAR2) RETURN CLOB;
   FUNCTION list_accounts(p_authorization IN VARCHAR2) RETURN CLOB;
 
-  -- Recupero password via email. Non rivela mai se un handle/email esiste
+  -- Recupero password via email. Non rivela mai se un indirizzo esiste
   -- (stessa risposta generica in ogni caso) per non permettere di scoprire
   -- chi è registrato.
   FUNCTION request_password_reset(p_body IN BLOB) RETURN CLOB;
@@ -87,6 +91,37 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
              'email'          VALUE a.email,
              'isAdmin'        VALUE CASE WHEN a.is_admin = 'Y' THEN 'true' ELSE 'false' END FORMAT JSON,
              'linkedPlayerId' VALUE ap.player_id,
+             'leaderboards'   VALUE (
+               SELECT COALESCE(
+                        JSON_ARRAYAGG(
+                          JSON_OBJECT(
+                            'id'        VALUE l.id,
+                            'name'      VALUE l.name,
+                            'isDefault' VALUE CASE WHEN al.is_default = 'Y' THEN 'true' ELSE 'false' END FORMAT JSON,
+                            'role'      VALUE al.role,
+                            'canManage' VALUE CASE WHEN a.is_admin = 'Y' OR al.role IN ('owner', 'manager') THEN 'true' ELSE 'false' END FORMAT JSON,
+                            'canSubmit' VALUE CASE WHEN a.is_admin = 'Y' OR al.role IN ('owner', 'manager', 'member') THEN 'true' ELSE 'false' END FORMAT JSON
+                            RETURNING CLOB
+                          )
+                          ORDER BY al.is_default DESC, l.name
+                          RETURNING CLOB
+                        ),
+                        TO_CLOB('[]')
+                      )
+                 FROM taotl_account_leaderboards al
+                 JOIN taotl_leaderboards l ON l.id = al.leaderboard_id
+                WHERE al.account_id = a.id
+                  AND l.is_active = 'Y'
+             ) FORMAT JSON,
+             'defaultLeaderboardId' VALUE (
+               SELECT MAX(al.leaderboard_id) KEEP (
+                        DENSE_RANK FIRST ORDER BY al.is_default DESC, al.joined_at
+                      )
+                 FROM taotl_account_leaderboards al
+                 JOIN taotl_leaderboards l ON l.id = al.leaderboard_id
+                WHERE al.account_id = a.id
+                  AND l.is_active = 'Y'
+             ),
              'createdAt'      VALUE TO_CHAR(a.created_at, 'YYYY-MM-DD"T"HH24:MI:SS.FF3TZH:TZM')
              RETURNING CLOB
            )
@@ -213,6 +248,7 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
     v_salt         VARCHAR2(64);
     v_json         CLOB;
     v_existing     NUMBER;
+    v_player_id     players.id%TYPE;
   BEGIN
     SELECT normalized_handle(JSON_VALUE(p_body, '$.handle' RETURNING VARCHAR2(100))),
            TRIM(JSON_VALUE(p_body, '$.displayName' RETURNING VARCHAR2(80))),
@@ -268,6 +304,14 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
       hash_password(v_salt, v_password)
     );
 
+    -- Ogni nuovo account possiede un profilo personale separato. Le classifiche
+    -- sono invece accessibili solo creando la propria o usando un invito.
+    v_player_id := 'pl_' || LOWER(RAWTOHEX(SYS_GUID()));
+    INSERT INTO players(id, name, owner_account_id)
+    VALUES (v_player_id, v_display_name, v_id);
+    INSERT INTO taotl_account_players(account_id, player_id)
+    VALUES (v_id, v_player_id);
+
     v_json := new_session(v_id);
     COMMIT;
     RETURN v_json;
@@ -278,6 +322,7 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
   END register_account;
 
   FUNCTION login_account(p_body IN BLOB) RETURN CLOB IS
+    v_identifier    VARCHAR2(160);
     v_handle        taotl_accounts.handle_normalized%TYPE;
     v_password      VARCHAR2(200);
     v_account_id    taotl_accounts.id%TYPE;
@@ -287,15 +332,19 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
     v_locked_until  taotl_accounts.locked_until%TYPE;
     v_json          CLOB;
   BEGIN
-    SELECT normalized_handle(JSON_VALUE(p_body, '$.handle' RETURNING VARCHAR2(100))),
+    SELECT LOWER(TRIM(JSON_VALUE(p_body, '$.handle' RETURNING VARCHAR2(160)))),
+           CASE
+             WHEN INSTR(JSON_VALUE(p_body, '$.handle' RETURNING VARCHAR2(160)), '@') > 0 THEN NULL
+             ELSE normalized_handle(JSON_VALUE(p_body, '$.handle' RETURNING VARCHAR2(160)))
+           END,
            JSON_VALUE(p_body, '$.password' RETURNING VARCHAR2(200))
-      INTO v_handle, v_password
+      INTO v_identifier, v_handle, v_password
       FROM dual;
 
     SELECT id, password_salt, password_hash, failed_attempts, locked_until
       INTO v_account_id, v_salt, v_password_hash, v_failed, v_locked_until
       FROM taotl_accounts
-     WHERE handle_normalized = v_handle
+     WHERE (handle_normalized = v_handle OR email = v_identifier)
        AND is_active = 'Y'
        FOR UPDATE;
 
@@ -314,7 +363,7 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
              END
        WHERE id = v_account_id;
       COMMIT;
-      RAISE_APPLICATION_ERROR(-20401, 'Taotl ID o password non corretti.');
+      RAISE_APPLICATION_ERROR(-20401, 'Email, Taotl ID o password non corretti.');
     END IF;
 
     UPDATE taotl_accounts
@@ -327,7 +376,7 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
     RETURN v_json;
   EXCEPTION
     WHEN NO_DATA_FOUND THEN
-      RAISE_APPLICATION_ERROR(-20401, 'Taotl ID o password non corretti.');
+      RAISE_APPLICATION_ERROR(-20401, 'Email, Taotl ID o password non corretti.');
   END login_account;
 
   FUNCTION my_account(p_authorization IN VARCHAR2) RETURN CLOB IS
@@ -339,6 +388,35 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
     COMMIT;
     RETURN v_json;
   END my_account;
+
+  FUNCTION update_my_leaderboards(p_authorization IN VARCHAR2, p_body IN BLOB) RETURN CLOB IS
+    v_account_id            taotl_accounts.id%TYPE;
+    v_default_leaderboard_id taotl_leaderboards.id%TYPE;
+    v_valid                 NUMBER;
+    v_json                  CLOB;
+  BEGIN
+    v_account_id := require_account(p_authorization);
+    SELECT JSON_VALUE(p_body, '$.defaultLeaderboardId' RETURNING VARCHAR2(60))
+      INTO v_default_leaderboard_id
+      FROM dual;
+
+    SELECT COUNT(*) INTO v_valid
+      FROM taotl_account_leaderboards al
+      JOIN taotl_leaderboards l ON l.id = al.leaderboard_id AND l.is_active = 'Y'
+     WHERE al.account_id = v_account_id
+       AND al.leaderboard_id = v_default_leaderboard_id;
+    IF v_default_leaderboard_id IS NULL OR v_valid = 0 THEN
+      RAISE_APPLICATION_ERROR(-20403, 'Puoi scegliere solo una classifica di cui fai parte.');
+    END IF;
+
+    UPDATE taotl_account_leaderboards SET is_default = 'N' WHERE account_id = v_account_id;
+    UPDATE taotl_account_leaderboards SET is_default = 'Y'
+     WHERE account_id = v_account_id AND leaderboard_id = v_default_leaderboard_id;
+
+    v_json := account_json(v_account_id);
+    COMMIT;
+    RETURN v_json;
+  END update_my_leaderboards;
 
   PROCEDURE logout_account(p_authorization IN VARCHAR2) IS
     v_token VARCHAR2(200);
@@ -647,17 +725,28 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
     v_counts_for_rate CHAR(1);
     v_stored_num_players NUMBER;
     v_game_id      games.id%TYPE;
+    v_leaderboard_id taotl_leaderboards.id%TYPE;
+    v_leaderboard_valid NUMBER;
     v_json         CLOB;
   BEGIN
     v_admin_id := require_admin(p_authorization);
 
     SELECT JSON_VALUE(p_body, '$.winnerId' RETURNING VARCHAR2(60)),
            JSON_VALUE(p_body, '$.playedAt' RETURNING VARCHAR2(40)),
-           JSON_VALUE(p_body, '$.winnerOnly' RETURNING VARCHAR2(10))
-      INTO v_winner_id, v_played_at_s, v_winner_only_s
+           JSON_VALUE(p_body, '$.winnerOnly' RETURNING VARCHAR2(10)),
+           NVL(JSON_VALUE(p_body, '$.leaderboardId' RETURNING VARCHAR2(60)), 'lb_general')
+      INTO v_winner_id, v_played_at_s, v_winner_only_s, v_leaderboard_id
       FROM dual;
     v_winner_only := LOWER(NVL(v_winner_only_s, 'false')) = 'true';
     v_counts_for_rate := CASE WHEN v_winner_only THEN 'N' ELSE 'Y' END;
+
+    SELECT COUNT(*) INTO v_leaderboard_valid
+      FROM taotl_leaderboards
+     WHERE id = v_leaderboard_id
+       AND is_active = 'Y';
+    IF v_leaderboard_valid = 0 THEN
+      RAISE_APPLICATION_ERROR(-20400, 'La classifica scelta non esiste più.');
+    END IF;
 
     v_played_at := CASE
       WHEN v_played_at_s IS NULL THEN SYSTIMESTAMP
@@ -702,10 +791,10 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
 
     INSERT INTO games (
       id, game_mode, num_players, start_dealer_id, created_at, finished_at,
-      is_manual, winner_player_id, counts_for_win_rate
+      is_manual, winner_player_id, counts_for_win_rate, leaderboard_id, owner_account_id
     ) VALUES (
       v_game_id, 'manuale', v_stored_num_players, NULL, v_played_at, v_played_at,
-      'Y', v_winner_id, v_counts_for_rate
+      'Y', v_winner_id, v_counts_for_rate, v_leaderboard_id, v_admin_id
     );
 
     IF v_winner_only THEN
@@ -732,7 +821,78 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
     RETURN v_json;
   END add_manual_game;
 
-  FUNCTION overall_leaderboard RETURN CLOB IS
+  FUNCTION list_leaderboards RETURN CLOB IS
+    v_json CLOB;
+  BEGIN
+    SELECT COALESCE(
+             JSON_ARRAYAGG(
+               JSON_OBJECT(
+                 'id'        VALUE id,
+                 'name'      VALUE name,
+                 'createdAt' VALUE TO_CHAR(created_at, 'YYYY-MM-DD"T"HH24:MI:SS.FF3TZH:TZM')
+                 RETURNING CLOB
+               )
+               ORDER BY CASE WHEN id = 'lb_general' THEN 0 ELSE 1 END, name
+               RETURNING CLOB
+             ),
+             TO_CLOB('[]')
+           )
+      INTO v_json
+      FROM taotl_leaderboards
+     WHERE is_active = 'Y';
+    RETURN v_json;
+  END list_leaderboards;
+
+  FUNCTION create_leaderboard(p_authorization IN VARCHAR2, p_body IN BLOB) RETURN CLOB IS
+    v_account_id taotl_accounts.id%TYPE;
+    v_id         taotl_leaderboards.id%TYPE;
+    v_name       taotl_leaderboards.name%TYPE;
+    v_count      NUMBER;
+    v_json       CLOB;
+  BEGIN
+    v_account_id := require_account(p_authorization);
+    SELECT TRIM(JSON_VALUE(p_body, '$.name' RETURNING VARCHAR2(80)))
+      INTO v_name
+      FROM dual;
+    IF v_name IS NULL OR LENGTH(v_name) < 2 THEN
+      RAISE_APPLICATION_ERROR(-20400, 'Il nome della classifica deve avere almeno 2 caratteri.');
+    END IF;
+
+    SELECT COUNT(*) INTO v_count
+      FROM taotl_leaderboards
+     WHERE LOWER(TRIM(name)) = LOWER(v_name)
+       AND is_active = 'Y';
+    IF v_count > 0 THEN
+      RAISE_APPLICATION_ERROR(-20409, 'Esiste già una classifica con questo nome.');
+    END IF;
+
+    SELECT COUNT(*) INTO v_count
+      FROM taotl_account_leaderboards
+     WHERE account_id = v_account_id;
+    v_id := 'lb_' || LOWER(RAWTOHEX(SYS_GUID()));
+    INSERT INTO taotl_leaderboards(id, name, owner_account_id)
+    VALUES (v_id, v_name, v_account_id);
+    INSERT INTO taotl_account_leaderboards(account_id, leaderboard_id, is_default)
+    VALUES (v_account_id, v_id, CASE WHEN v_count = 0 THEN 'Y' ELSE 'N' END);
+
+    SELECT JSON_OBJECT(
+             'id'        VALUE id,
+             'name'      VALUE name,
+             'createdAt' VALUE TO_CHAR(created_at, 'YYYY-MM-DD"T"HH24:MI:SS.FF3TZH:TZM')
+             RETURNING CLOB
+           )
+      INTO v_json
+      FROM taotl_leaderboards
+     WHERE id = v_id;
+    COMMIT;
+    RETURN v_json;
+  EXCEPTION
+    WHEN DUP_VAL_ON_INDEX THEN
+      ROLLBACK;
+      RAISE_APPLICATION_ERROR(-20409, 'Esiste già una classifica con questo nome.');
+  END create_leaderboard;
+
+  FUNCTION overall_leaderboard(p_leaderboard_id IN VARCHAR2) RETURN CLOB IS
     v_json CLOB;
   BEGIN
     SELECT COALESCE(
@@ -751,7 +911,8 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
              TO_CLOB('[]')
            )
       INTO v_json
-      FROM player_overall_stats_v;
+      FROM player_overall_stats_v
+     WHERE leaderboard_id = p_leaderboard_id;
     RETURN v_json;
   END overall_leaderboard;
 
@@ -784,35 +945,46 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
     RETURN v_json;
   END list_accounts;
 
-  -- Punto di innesto per il vero invio email (oggi non collegato a nessun
-  -- servizio: serve un provider esterno, es. via UTL_HTTP verso un'API tipo
-  -- Resend/Mailgun/SendGrid con una chiave, oppure UTL_SMTP con un server SMTP
-  -- vero). Finché non è collegato, il codice di reset non arriva a nessuno:
-  -- va recuperato da chi ha accesso al database, in taotl_password_resets.
+  -- Accoda il messaggio per il worker SMTP sulla VPS. Il token in chiaro vive
+  -- soltanto nella coda ed è eliminato immediatamente dopo l'invio; nella
+  -- tabella dei reset resta esclusivamente l'hash.
   PROCEDURE send_reset_email(p_email IN VARCHAR2, p_token IN VARCHAR2, p_display_name IN VARCHAR2) IS
   BEGIN
-    NULL;
+    DELETE FROM taotl_mail_outbox
+     WHERE recipient = p_email
+        OR created_at < SYSTIMESTAMP - INTERVAL '1' HOUR;
+    INSERT INTO taotl_mail_outbox(id, recipient, subject, body_text)
+    VALUES (
+      'mail_' || LOWER(RAWTOHEX(SYS_GUID())),
+      p_email,
+      'Codice recupero password Taotl',
+      'Ciao ' || p_display_name || ',' || CHR(10) || CHR(10) ||
+      'il tuo codice per reimpostare la password Taotl è:' || CHR(10) || CHR(10) ||
+      p_token || CHR(10) || CHR(10) ||
+      'Il codice scade tra 30 minuti. Se non hai richiesto tu il recupero, ignora questa email.'
+    );
   END send_reset_email;
 
   FUNCTION request_password_reset(p_body IN BLOB) RETURN CLOB IS
-    v_handle       taotl_accounts.handle_normalized%TYPE;
     v_email        taotl_accounts.email%TYPE;
     v_account_id   taotl_accounts.id%TYPE;
     v_display_name taotl_accounts.display_name%TYPE;
     v_token        VARCHAR2(64);
     v_json         CLOB;
   BEGIN
-    SELECT normalized_handle(JSON_VALUE(p_body, '$.handle' RETURNING VARCHAR2(100))),
-           LOWER(TRIM(JSON_VALUE(p_body, '$.email' RETURNING VARCHAR2(160))))
-      INTO v_handle, v_email
+    SELECT LOWER(TRIM(JSON_VALUE(p_body, '$.email' RETURNING VARCHAR2(160))))
+      INTO v_email
       FROM dual;
+
+    IF v_email IS NULL OR NOT REGEXP_LIKE(v_email, '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$') THEN
+      RAISE_APPLICATION_ERROR(-20400, 'Indirizzo email non valido.');
+    END IF;
 
     BEGIN
       SELECT id, display_name
         INTO v_account_id, v_display_name
         FROM taotl_accounts
-       WHERE handle_normalized = v_handle
-         AND email = v_email
+       WHERE email = v_email
          AND is_active = 'Y';
 
       v_token := LOWER(RAWTOHEX(SYS_GUID()) || RAWTOHEX(SYS_GUID()));
@@ -828,7 +1000,7 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
         NULL;
     END;
 
-    -- Risposta sempre identica: non deve rivelare se un handle/email esiste.
+    -- Risposta sempre identica: non deve rivelare se l'email esiste.
     SELECT JSON_OBJECT(
              'message' VALUE 'Se i dati sono corretti riceverai un''email con le istruzioni per il reset.'
              RETURNING CLOB

@@ -52,7 +52,7 @@ export default function HistoryDetailScreen() {
   useEffect(() => {
     if (!id) return;
     let active = true;
-    fetchGameHistoryDetail(id)
+    fetchGameHistoryDetail(id, token)
       .then((result) => {
         if (!active) return;
         setGame(result.game);
@@ -67,7 +67,7 @@ export default function HistoryDetailScreen() {
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [id, token]);
 
   const playerById = useMemo(
     () => new Map(game?.players.map((player) => [player.id, player.name]) ?? []),

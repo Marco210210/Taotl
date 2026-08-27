@@ -64,6 +64,10 @@ export interface ActiveGame {
   // Se false, la partita non va inviata all'albo/classifica condivisa a fine
   // gioco: resta comunque nello storico locale del telefono.
   saveToAlbo: boolean;
+  // Classifica separata scelta prima di iniziare. È obbligatoria quando la
+  // partita viene salvata nell'albo condiviso.
+  leaderboardId: string;
+  leaderboardName: string;
   createdAt: string;
   finishedAt: string | null;
 }

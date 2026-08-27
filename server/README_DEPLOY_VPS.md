@@ -50,7 +50,11 @@ ordine:
 @sql/09_account_display_names_and_repairs.sql
 @sql/10_manual_game_scores.sql
 @sql/11_tie_break_winner.sql
+@sql/12_multiple_leaderboards.sql
+@sql/13_private_leaderboards_and_history.sql
+@sql/14_password_reset_mail_outbox.sql
 @ords/03_identity_package.sql
+@ords/05_collaboration_package.sql
 @ords/01_api_package.sql
 @ords/02_module.sql
 @ords/04_identity_module.sql
@@ -83,13 +87,30 @@ spareggio risolto a mano è:
 ```sql
 @sql/10_manual_game_scores.sql
 @sql/11_tie_break_winner.sql
+@sql/12_multiple_leaderboards.sql
+@sql/13_private_leaderboards_and_history.sql
+@sql/14_password_reset_mail_outbox.sql
 @ords/03_identity_package.sql
+@ords/05_collaboration_package.sql
 @ords/01_api_package.sql
 @ords/04_identity_module.sql
 ```
 
 (`02_module.sql` non serve rieseguirlo qui: non è cambiato — solo i package e il modulo
 `04_identity_module.sql`, che ora espone anche `GET /taotl/players/:id/manual-games`.)
+
+Se `11_tie_break_winner.sql` era già stato applicato, per attivare soltanto le
+classifiche multiple e correggere la risposta delle sessioni scadute esegui:
+
+```sql
+@sql/12_multiple_leaderboards.sql
+@sql/13_private_leaderboards_and_history.sql
+@sql/14_password_reset_mail_outbox.sql
+@ords/03_identity_package.sql
+@ords/05_collaboration_package.sql
+@ords/01_api_package.sql
+@ords/04_identity_module.sql
+```
 
 ## 3. Verifica rapida da riga di comando
 

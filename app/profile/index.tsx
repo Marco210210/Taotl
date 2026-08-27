@@ -18,7 +18,7 @@ import { theme, type ThemeColors } from "@/theme";
 export default function MyProfileScreen() {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { account } = useAccount();
+  const { account, token } = useAccount();
   const [players, setPlayers] = useState<Player[]>([]);
   const [games, setGames] = useState<GameHistorySummaryDTO[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntryDTO[]>([]);
@@ -31,11 +31,16 @@ export default function MyProfileScreen() {
       let active = true;
       setLoading(true);
       setLoadError(null);
-      Promise.all([fetchRoster(), fetchHistory(), fetchLeaderboard()])
+      Promise.all([
+        fetchRoster(token),
+        fetchHistory(token),
+        token && account?.defaultLeaderboardId ? fetchLeaderboard(token, account.defaultLeaderboardId) : Promise.resolve([]),
+      ])
         .then(([roster, history, entries]) => {
           if (!active) return;
           setPlayers(roster.players);
-          setGames(history.games);
+          const selectedBoardId = account?.defaultLeaderboardId ?? "lb_general";
+          setGames(history.games.filter((game) => game.leaderboardId === selectedBoardId || (game.leaderboardId === undefined && selectedBoardId === "lb_general")));
           setLeaderboard(entries);
         })
         .catch((reason) => {
@@ -49,7 +54,7 @@ export default function MyProfileScreen() {
       return () => {
         active = false;
       };
-    }, [t]),
+    }, [account?.defaultLeaderboardId, t, token]),
   );
 
   const linkedPlayer = account?.linkedPlayerId
@@ -65,16 +70,20 @@ export default function MyProfileScreen() {
       return;
     }
     let active = true;
-    fetchManualGames(linkedPlayer.id)
+    if (!token) return;
+    fetchManualGames(token, linkedPlayer.id)
       .then((games) => {
-        if (active) setManualGames(games);
+        if (active) {
+          const selectedBoardId = account?.defaultLeaderboardId ?? "lb_general";
+          setManualGames(games.filter((game) => game.leaderboardId === selectedBoardId || (game.leaderboardId === undefined && selectedBoardId === "lb_general")));
+        }
       })
       .catch(() => {});
     return () => {
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [linkedPlayer?.id]);
+  }, [account?.defaultLeaderboardId, linkedPlayer?.id, token]);
 
   if (loading) {
     return (

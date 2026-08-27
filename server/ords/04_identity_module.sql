@@ -60,6 +60,7 @@ BEGIN
                 JSON_ARRAYAGG(
                   JSON_OBJECT(
                     ''id''         VALUE g.id,
+                    ''leaderboardId'' VALUE g.leaderboard_id,
                     ''mode''       VALUE g.game_mode,
                     ''numPlayers'' VALUE (
                       SELECT COUNT(*) FROM game_players gp_count WHERE gp_count.game_id = g.id
@@ -111,6 +112,7 @@ BEGIN
       'SELECT ''application/json'',
               JSON_OBJECT(
                 ''id''            VALUE g.id,
+                ''leaderboardId'' VALUE g.leaderboard_id,
                 ''mode''          VALUE g.game_mode,
                 ''numPlayers''    VALUE (
                   SELECT COUNT(*) FROM game_players gp_count WHERE gp_count.game_id = g.id
@@ -242,6 +244,7 @@ BEGIN
                 JSON_ARRAYAGG(
                   JSON_OBJECT(
                     ''id''          VALUE g.id,
+                    ''leaderboardId'' VALUE g.leaderboard_id,
                     ''playedAt''    VALUE
                       TO_CHAR(g.created_at, ''YYYY-MM-DD"T"HH24:MI:SS.FF3TZH:TZM''),
                     ''winnerId''    VALUE g.winner_player_id,
@@ -381,9 +384,40 @@ BEGIN
     p_source_type => ORDS.source_type_plsql,
     p_source      => q'~
       DECLARE
-        v_json CLOB;
+        v_json    CLOB;
+        v_status  PLS_INTEGER := 200;
+        v_reason  VARCHAR2(40);
+        v_code    PLS_INTEGER;
+        v_message VARCHAR2(4000);
       BEGIN
-        v_json := taotl_identity_api.my_account(:p_authorization);
+        BEGIN
+          v_json := taotl_identity_api.my_account(:p_authorization);
+        EXCEPTION
+          WHEN OTHERS THEN
+            v_code := SQLCODE;
+            ROLLBACK;
+            v_status := CASE v_code
+              WHEN -20401 THEN 401
+              WHEN -20403 THEN 403
+              ELSE 500
+            END;
+            v_reason := CASE v_status
+              WHEN 401 THEN 'Unauthorized'
+              WHEN 403 THEN 'Forbidden'
+              ELSE 'Internal Server Error'
+            END;
+            v_message := CASE
+              WHEN v_code IN (-20401, -20403)
+                THEN REGEXP_REPLACE(SQLERRM, '^ORA-[0-9]+: *', '')
+              ELSE 'Profilo non disponibile. Riprova tra poco.'
+            END;
+            SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB)
+              INTO v_json
+              FROM dual;
+        END;
+        IF v_status != 200 THEN
+          OWA_UTIL.status_line(v_status, v_reason, FALSE);
+        END IF;
         OWA_UTIL.mime_header('application/json', FALSE);
         HTP.p('Cache-Control: no-store');
         OWA_UTIL.http_header_close;
@@ -394,6 +428,68 @@ BEGIN
     p_module_name        => 'taotl.api',
     p_pattern            => 'auth/me/',
     p_method             => 'GET',
+    p_name               => 'Authorization',
+    p_bind_variable_name => 'p_authorization',
+    p_source_type        => 'HEADER',
+    p_param_type         => 'STRING',
+    p_access_method      => 'IN'
+  );
+
+  ORDS.DEFINE_TEMPLATE(p_module_name => 'taotl.api', p_pattern => 'auth/me/leaderboards/');
+  ORDS.DEFINE_HANDLER(
+    p_module_name   => 'taotl.api',
+    p_pattern       => 'auth/me/leaderboards/',
+    p_method        => 'PUT',
+    p_source_type   => ORDS.source_type_plsql,
+    p_mimes_allowed => 'application/json',
+    p_source        => q'~
+      DECLARE
+        v_json    CLOB;
+        v_status  PLS_INTEGER := 200;
+        v_reason  VARCHAR2(40);
+        v_code    PLS_INTEGER;
+        v_message VARCHAR2(4000);
+      BEGIN
+        BEGIN
+          v_json := taotl_identity_api.update_my_leaderboards(:p_authorization, :body);
+        EXCEPTION
+          WHEN OTHERS THEN
+            v_code := SQLCODE;
+            ROLLBACK;
+            v_status := CASE v_code
+              WHEN -20400 THEN 400
+              WHEN -20401 THEN 401
+              WHEN -20403 THEN 403
+              ELSE 500
+            END;
+            v_reason := CASE v_status
+              WHEN 400 THEN 'Bad Request'
+              WHEN 401 THEN 'Unauthorized'
+              WHEN 403 THEN 'Forbidden'
+              ELSE 'Internal Server Error'
+            END;
+            v_message := CASE
+              WHEN v_code IN (-20400, -20401, -20403)
+                THEN REGEXP_REPLACE(SQLERRM, '^ORA-[0-9]+: *', '')
+              ELSE 'Preferenze non aggiornate. Riprova tra poco.'
+            END;
+            SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB)
+              INTO v_json
+              FROM dual;
+        END;
+        IF v_status != 200 THEN
+          OWA_UTIL.status_line(v_status, v_reason, FALSE);
+        END IF;
+        OWA_UTIL.mime_header('application/json', FALSE);
+        HTP.p('Cache-Control: no-store');
+        OWA_UTIL.http_header_close;
+        HTP.prn(v_json);
+      END;~'
+  );
+  ORDS.DEFINE_PARAMETER(
+    p_module_name        => 'taotl.api',
+    p_pattern            => 'auth/me/leaderboards/',
+    p_method             => 'PUT',
     p_name               => 'Authorization',
     p_bind_variable_name => 'p_authorization',
     p_source_type        => 'HEADER',
@@ -539,8 +635,107 @@ BEGIN
   );
 
   ---------------------------------------------------------------------------
+  -- GET/POST /taotl/leaderboards -> elenco o creazione di una classifica.
+  ---------------------------------------------------------------------------
+  ORDS.DEFINE_TEMPLATE(p_module_name => 'taotl.api', p_pattern => 'leaderboards/');
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.api',
+    p_pattern     => 'leaderboards/',
+    p_method      => 'GET',
+    p_source_type => ORDS.source_type_plsql,
+    p_source      => q'~
+      DECLARE
+        v_json CLOB;
+      BEGIN
+        v_json := taotl_identity_api.list_leaderboards();
+        OWA_UTIL.mime_header('application/json', FALSE);
+        OWA_UTIL.http_header_close;
+        HTP.prn(v_json);
+      END;~'
+  );
+  ORDS.DEFINE_HANDLER(
+    p_module_name   => 'taotl.api',
+    p_pattern       => 'leaderboards/',
+    p_method        => 'POST',
+    p_source_type   => ORDS.source_type_plsql,
+    p_mimes_allowed => 'application/json',
+    p_source        => q'~
+      DECLARE
+        v_json    CLOB;
+        v_status  PLS_INTEGER := 200;
+        v_reason  VARCHAR2(40);
+        v_code    PLS_INTEGER;
+        v_message VARCHAR2(4000);
+      BEGIN
+        BEGIN
+          v_json := taotl_identity_api.create_leaderboard(:p_authorization, :body);
+        EXCEPTION
+          WHEN OTHERS THEN
+            v_code := SQLCODE;
+            ROLLBACK;
+            v_status := CASE v_code
+              WHEN -20400 THEN 400
+              WHEN -20401 THEN 401
+              WHEN -20403 THEN 403
+              WHEN -20409 THEN 409
+              ELSE 500
+            END;
+            v_reason := CASE v_status
+              WHEN 400 THEN 'Bad Request'
+              WHEN 401 THEN 'Unauthorized'
+              WHEN 403 THEN 'Forbidden'
+              WHEN 409 THEN 'Conflict'
+              ELSE 'Internal Server Error'
+            END;
+            v_message := CASE
+              WHEN v_code IN (-20400, -20401, -20403, -20409)
+                THEN REGEXP_REPLACE(SQLERRM, '^ORA-[0-9]+: *', '')
+              ELSE 'Creazione classifica non riuscita. Riprova tra poco.'
+            END;
+            SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB)
+              INTO v_json
+              FROM dual;
+        END;
+        IF v_status != 200 THEN
+          OWA_UTIL.status_line(v_status, v_reason, FALSE);
+        END IF;
+        OWA_UTIL.mime_header('application/json', FALSE);
+        HTP.p('Cache-Control: no-store');
+        OWA_UTIL.http_header_close;
+        HTP.prn(v_json);
+      END;~'
+  );
+  ORDS.DEFINE_PARAMETER(
+    p_module_name        => 'taotl.api',
+    p_pattern            => 'leaderboards/',
+    p_method             => 'POST',
+    p_name               => 'Authorization',
+    p_bind_variable_name => 'p_authorization',
+    p_source_type        => 'HEADER',
+    p_param_type         => 'STRING',
+    p_access_method      => 'IN'
+  );
+
+  ORDS.DEFINE_TEMPLATE(p_module_name => 'taotl.api', p_pattern => 'leaderboards/:id/');
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.api',
+    p_pattern     => 'leaderboards/:id/',
+    p_method      => 'GET',
+    p_source_type => ORDS.source_type_plsql,
+    p_source      => q'~
+      DECLARE
+        v_json CLOB;
+      BEGIN
+        v_json := taotl_identity_api.overall_leaderboard(:id);
+        OWA_UTIL.mime_header('application/json', FALSE);
+        OWA_UTIL.http_header_close;
+        HTP.prn(v_json);
+      END;~'
+  );
+
+  ---------------------------------------------------------------------------
   -- GET /taotl/leaderboard -> classifica generale (vittorie complessive),
-  -- pubblica, non richiede login.
+  -- endpoint di compatibilità per le versioni precedenti dell'app.
   ---------------------------------------------------------------------------
   ORDS.DEFINE_TEMPLATE(p_module_name => 'taotl.api', p_pattern => 'leaderboard/');
   ORDS.DEFINE_HANDLER(
@@ -552,7 +747,7 @@ BEGIN
       DECLARE
         v_json CLOB;
       BEGIN
-        v_json := taotl_identity_api.overall_leaderboard();
+        v_json := taotl_identity_api.overall_leaderboard('lb_general');
         OWA_UTIL.mime_header('application/json', FALSE);
         OWA_UTIL.http_header_close;
         HTP.prn(v_json);
@@ -707,8 +902,24 @@ BEGIN
     p_source        => q'~
       DECLARE
         v_json CLOB;
+        v_code PLS_INTEGER;
+        v_status PLS_INTEGER := 200;
+        v_message VARCHAR2(4000);
       BEGIN
-        v_json := taotl_identity_api.request_password_reset(:body);
+        BEGIN
+          v_json := taotl_identity_api.request_password_reset(:body);
+        EXCEPTION WHEN OTHERS THEN
+          v_code := SQLCODE;
+          ROLLBACK;
+          v_status := CASE v_code WHEN -20400 THEN 400 ELSE 500 END;
+          v_message := CASE WHEN v_code = -20400
+            THEN REGEXP_REPLACE(SQLERRM, '^ORA-[0-9]+: *', '')
+            ELSE 'Richiesta non riuscita. Riprova tra poco.' END;
+          SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB) INTO v_json FROM dual;
+        END;
+        IF v_status != 200 THEN
+          OWA_UTIL.status_line(v_status, CASE WHEN v_status = 400 THEN 'Bad Request' ELSE 'Internal Server Error' END, FALSE);
+        END IF;
         OWA_UTIL.mime_header('application/json', FALSE);
         HTP.p('Cache-Control: no-store');
         OWA_UTIL.http_header_close;
@@ -737,6 +948,143 @@ BEGIN
         HTP.prn(v_json);
       END;~'
   );
+
+  ---------------------------------------------------------------------------
+  -- Collaborazione privata (ridefinisce anche gli handler legacy sopra).
+  ---------------------------------------------------------------------------
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.api', p_pattern => 'games/', p_method => 'GET',
+    p_source_type => ORDS.source_type_plsql,
+    p_source => q'~
+      DECLARE v_json CLOB; v_code PLS_INTEGER; v_status PLS_INTEGER := 200; v_message VARCHAR2(4000);
+      BEGIN
+        BEGIN v_json := taotl_api.list_games(:p_authorization);
+        EXCEPTION WHEN OTHERS THEN v_code := SQLCODE; ROLLBACK;
+          v_status := CASE v_code WHEN -20401 THEN 401 WHEN -20403 THEN 403 ELSE 500 END;
+          v_message := CASE WHEN v_code IN (-20401,-20403) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Storico non disponibile.' END;
+          SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB) INTO v_json FROM dual;
+        END;
+        IF v_status != 200 THEN OWA_UTIL.status_line(v_status, CASE v_status WHEN 401 THEN 'Unauthorized' WHEN 403 THEN 'Forbidden' ELSE 'Internal Server Error' END, FALSE); END IF;
+        OWA_UTIL.mime_header('application/json',FALSE); HTP.p('Cache-Control: no-store'); OWA_UTIL.http_header_close; taotl_api.print_clob(v_json);
+      END;~'
+  );
+  ORDS.DEFINE_PARAMETER('taotl.api','games/','GET','Authorization','p_authorization','HEADER','STRING','IN');
+
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.api', p_pattern => 'games/', p_method => 'POST',
+    p_source_type => ORDS.source_type_plsql, p_mimes_allowed => 'application/json',
+    p_source => q'~
+      DECLARE v_json CLOB := '{}'; v_code PLS_INTEGER; v_status PLS_INTEGER := 200; v_message VARCHAR2(4000);
+      BEGIN
+        BEGIN taotl_api.sync_game(:p_authorization,:body);
+        EXCEPTION WHEN OTHERS THEN v_code := SQLCODE; ROLLBACK;
+          v_status := CASE v_code WHEN -20400 THEN 400 WHEN -20401 THEN 401 WHEN -20403 THEN 403 WHEN -20404 THEN 404 WHEN -20409 THEN 409 ELSE 500 END;
+          v_message := CASE WHEN v_code IN (-20400,-20401,-20403,-20404,-20409) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Salvataggio non riuscito.' END;
+          SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB) INTO v_json FROM dual;
+        END;
+        IF v_status != 200 THEN OWA_UTIL.status_line(v_status, CASE v_status WHEN 400 THEN 'Bad Request' WHEN 401 THEN 'Unauthorized' WHEN 403 THEN 'Forbidden' WHEN 404 THEN 'Not Found' WHEN 409 THEN 'Conflict' ELSE 'Internal Server Error' END, FALSE); END IF;
+        OWA_UTIL.mime_header('application/json',FALSE); HTP.p('Cache-Control: no-store'); OWA_UTIL.http_header_close; taotl_api.print_clob(v_json);
+      END;~'
+  );
+  ORDS.DEFINE_PARAMETER('taotl.api','games/','POST','Authorization','p_authorization','HEADER','STRING','IN');
+
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.api', p_pattern => 'games/:id', p_method => 'GET',
+    p_source_type => ORDS.source_type_plsql,
+    p_source => q'~
+      DECLARE v_json CLOB; v_code PLS_INTEGER; v_status PLS_INTEGER := 200; v_message VARCHAR2(4000);
+      BEGIN
+        BEGIN v_json := taotl_api.get_game(:p_authorization,:id);
+        EXCEPTION WHEN OTHERS THEN v_code := SQLCODE; ROLLBACK;
+          v_status := CASE v_code WHEN -20401 THEN 401 WHEN -20403 THEN 403 WHEN -20404 THEN 404 ELSE 500 END;
+          v_message := CASE WHEN v_code IN (-20401,-20403,-20404) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Partita non disponibile.' END;
+          SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB) INTO v_json FROM dual;
+        END;
+        IF v_status != 200 THEN OWA_UTIL.status_line(v_status, CASE v_status WHEN 401 THEN 'Unauthorized' WHEN 403 THEN 'Forbidden' WHEN 404 THEN 'Not Found' ELSE 'Internal Server Error' END, FALSE); END IF;
+        OWA_UTIL.mime_header('application/json',FALSE); HTP.p('Cache-Control: no-store'); OWA_UTIL.http_header_close; taotl_api.print_clob(v_json);
+      END;~'
+  );
+  ORDS.DEFINE_PARAMETER('taotl.api','games/:id','GET','Authorization','p_authorization','HEADER','STRING','IN');
+
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.api', p_pattern => 'leaderboards/', p_method => 'GET',
+    p_source_type => ORDS.source_type_plsql,
+    p_source => q'~DECLARE v_json CLOB; BEGIN v_json := taotl_collaboration_api.list_leaderboards(:p_authorization); OWA_UTIL.mime_header('application/json',FALSE); HTP.p('Cache-Control: no-store'); OWA_UTIL.http_header_close; HTP.prn(v_json); EXCEPTION WHEN OTHERS THEN IF SQLCODE=-20401 THEN OWA_UTIL.status_line(401,'Unauthorized',FALSE); ELSE OWA_UTIL.status_line(500,'Internal Server Error',FALSE); END IF; OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(JSON_OBJECT('message' VALUE CASE WHEN SQLCODE=-20401 THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Classifiche non disponibili.' END)); END;~'
+  );
+  ORDS.DEFINE_PARAMETER('taotl.api','leaderboards/','GET','Authorization','p_authorization','HEADER','STRING','IN');
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.api', p_pattern => 'leaderboards/', p_method => 'POST',
+    p_source_type => ORDS.source_type_plsql, p_mimes_allowed => 'application/json',
+    p_source => q'~DECLARE v_json CLOB; BEGIN v_json := taotl_collaboration_api.create_leaderboard(:p_authorization,:body); OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(v_json); EXCEPTION WHEN OTHERS THEN OWA_UTIL.status_line(CASE SQLCODE WHEN -20400 THEN 400 WHEN -20401 THEN 401 WHEN -20409 THEN 409 ELSE 500 END,'Error',FALSE); OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(JSON_OBJECT('message' VALUE CASE WHEN SQLCODE IN (-20400,-20401,-20409) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Creazione non riuscita.' END)); END;~'
+  );
+  ORDS.DEFINE_PARAMETER('taotl.api','leaderboards/','POST','Authorization','p_authorization','HEADER','STRING','IN');
+
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.api', p_pattern => 'leaderboards/:id/', p_method => 'GET',
+    p_source_type => ORDS.source_type_plsql,
+    p_source => q'~DECLARE v_json CLOB; BEGIN v_json := taotl_collaboration_api.leaderboard_entries(:p_authorization,:id); OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(v_json); EXCEPTION WHEN OTHERS THEN OWA_UTIL.status_line(CASE SQLCODE WHEN -20401 THEN 401 WHEN -20403 THEN 403 WHEN -20404 THEN 404 ELSE 500 END,'Error',FALSE); OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(JSON_OBJECT('message' VALUE CASE WHEN SQLCODE IN (-20401,-20403,-20404) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Classifica non disponibile.' END)); END;~'
+  );
+  ORDS.DEFINE_PARAMETER('taotl.api','leaderboards/:id/','GET','Authorization','p_authorization','HEADER','STRING','IN');
+
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.api', p_pattern => 'leaderboards/:id/', p_method => 'PUT',
+    p_source_type => ORDS.source_type_plsql, p_mimes_allowed => 'application/json',
+    p_source => q'~DECLARE v_json CLOB; BEGIN v_json := taotl_collaboration_api.rename_leaderboard(:p_authorization,:id,:body); OWA_UTIL.mime_header('application/json',FALSE); HTP.p('Cache-Control: no-store'); OWA_UTIL.http_header_close; taotl_api.print_clob(v_json); EXCEPTION WHEN OTHERS THEN OWA_UTIL.status_line(CASE SQLCODE WHEN -20400 THEN 400 WHEN -20401 THEN 401 WHEN -20403 THEN 403 WHEN -20404 THEN 404 WHEN -20409 THEN 409 ELSE 500 END,'Error',FALSE); OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(JSON_OBJECT('message' VALUE CASE WHEN SQLCODE IN (-20400,-20401,-20403,-20404,-20409) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Rinomina non riuscita.' END)); END;~'
+  );
+  ORDS.DEFINE_PARAMETER('taotl.api','leaderboards/:id/','PUT','Authorization','p_authorization','HEADER','STRING','IN');
+
+  ORDS.DEFINE_TEMPLATE(p_module_name => 'taotl.api', p_pattern => 'leaderboards/join/');
+  ORDS.DEFINE_HANDLER(p_module_name => 'taotl.api', p_pattern => 'leaderboards/join/', p_method => 'POST', p_source_type => ORDS.source_type_plsql, p_mimes_allowed => 'application/json',
+    p_source => q'~DECLARE v_json CLOB; BEGIN v_json := taotl_collaboration_api.join_leaderboard(:p_authorization,:body); OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(v_json); EXCEPTION WHEN OTHERS THEN OWA_UTIL.status_line(CASE SQLCODE WHEN -20401 THEN 401 WHEN -20404 THEN 404 ELSE 500 END,'Error',FALSE); OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(JSON_OBJECT('message' VALUE CASE WHEN SQLCODE IN (-20401,-20404) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Invito non utilizzabile.' END)); END;~');
+  ORDS.DEFINE_PARAMETER('taotl.api','leaderboards/join/','POST','Authorization','p_authorization','HEADER','STRING','IN');
+
+  ORDS.DEFINE_TEMPLATE(p_module_name => 'taotl.api', p_pattern => 'leaderboards/:id/invites/');
+  ORDS.DEFINE_HANDLER(p_module_name => 'taotl.api', p_pattern => 'leaderboards/:id/invites/', p_method => 'POST', p_source_type => ORDS.source_type_plsql, p_mimes_allowed => 'application/json',
+    p_source => q'~DECLARE v_json CLOB; BEGIN v_json := taotl_collaboration_api.create_invite(:p_authorization,:id,:body); OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(v_json); EXCEPTION WHEN OTHERS THEN OWA_UTIL.status_line(CASE SQLCODE WHEN -20400 THEN 400 WHEN -20401 THEN 401 WHEN -20403 THEN 403 WHEN -20404 THEN 404 ELSE 500 END,'Error',FALSE); OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(JSON_OBJECT('message' VALUE CASE WHEN SQLCODE IN (-20400,-20401,-20403,-20404) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Invito non creato.' END)); END;~');
+  ORDS.DEFINE_PARAMETER('taotl.api','leaderboards/:id/invites/','POST','Authorization','p_authorization','HEADER','STRING','IN');
+
+  ORDS.DEFINE_TEMPLATE(p_module_name => 'taotl.api', p_pattern => 'leaderboards/:id/members/');
+  ORDS.DEFINE_HANDLER(p_module_name => 'taotl.api', p_pattern => 'leaderboards/:id/members/', p_method => 'GET', p_source_type => ORDS.source_type_plsql,
+    p_source => q'~DECLARE v_json CLOB; v_code PLS_INTEGER; v_message VARCHAR2(4000); BEGIN BEGIN v_json := taotl_collaboration_api.list_members(:p_authorization,:id); EXCEPTION WHEN OTHERS THEN v_code:=SQLCODE; ROLLBACK; OWA_UTIL.status_line(CASE v_code WHEN -20401 THEN 401 WHEN -20403 THEN 403 WHEN -20404 THEN 404 ELSE 500 END,'Error',FALSE); v_message:=CASE WHEN v_code IN (-20401,-20403,-20404) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Membri non disponibili.' END; SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB) INTO v_json FROM dual; END; OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(v_json); END;~');
+  ORDS.DEFINE_HANDLER(p_module_name => 'taotl.api', p_pattern => 'leaderboards/:id/members/', p_method => 'PUT', p_source_type => ORDS.source_type_plsql, p_mimes_allowed => 'application/json',
+    p_source => q'~DECLARE v_json CLOB:='{}'; v_code PLS_INTEGER; v_message VARCHAR2(4000); BEGIN BEGIN taotl_collaboration_api.update_member_role(:p_authorization,:id,:body); EXCEPTION WHEN OTHERS THEN v_code:=SQLCODE; ROLLBACK; OWA_UTIL.status_line(CASE v_code WHEN -20400 THEN 400 WHEN -20401 THEN 401 WHEN -20403 THEN 403 WHEN -20404 THEN 404 ELSE 500 END,'Error',FALSE); v_message:=CASE WHEN v_code IN (-20400,-20401,-20403,-20404) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Ruolo non aggiornato.' END; SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB) INTO v_json FROM dual; END; OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(v_json); END;~');
+  ORDS.DEFINE_PARAMETER('taotl.api','leaderboards/:id/members/','GET','Authorization','p_authorization','HEADER','STRING','IN');
+  ORDS.DEFINE_PARAMETER('taotl.api','leaderboards/:id/members/','PUT','Authorization','p_authorization','HEADER','STRING','IN');
+
+  ORDS.DEFINE_TEMPLATE(p_module_name => 'taotl.api', p_pattern => 'leaderboards/:id/members/:accountId');
+  ORDS.DEFINE_HANDLER(p_module_name => 'taotl.api', p_pattern => 'leaderboards/:id/members/:accountId', p_method => 'DELETE', p_source_type => ORDS.source_type_plsql,
+    p_source => q'~DECLARE v_json CLOB:='{}'; v_code PLS_INTEGER; v_message VARCHAR2(4000); BEGIN BEGIN taotl_collaboration_api.remove_member(:p_authorization,:id,:accountId); EXCEPTION WHEN OTHERS THEN v_code:=SQLCODE; ROLLBACK; OWA_UTIL.status_line(CASE v_code WHEN -20401 THEN 401 WHEN -20403 THEN 403 WHEN -20404 THEN 404 ELSE 500 END,'Error',FALSE); v_message:=CASE WHEN v_code IN (-20401,-20403,-20404) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Membro non rimosso.' END; SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB) INTO v_json FROM dual; END; OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(v_json); END;~');
+  ORDS.DEFINE_PARAMETER('taotl.api','leaderboards/:id/members/:accountId','DELETE','Authorization','p_authorization','HEADER','STRING','IN');
+
+  ORDS.DEFINE_TEMPLATE(p_module_name => 'taotl.api', p_pattern => 'leaderboards/:id/link-requests/');
+  ORDS.DEFINE_HANDLER(p_module_name => 'taotl.api', p_pattern => 'leaderboards/:id/link-requests/', p_method => 'POST', p_source_type => ORDS.source_type_plsql, p_mimes_allowed => 'application/json',
+    p_source => q'~DECLARE v_json CLOB; v_code PLS_INTEGER; v_message VARCHAR2(4000); BEGIN BEGIN v_json:=taotl_collaboration_api.create_link_request(:p_authorization,:id,:body); EXCEPTION WHEN OTHERS THEN v_code:=SQLCODE; ROLLBACK; OWA_UTIL.status_line(CASE v_code WHEN -20400 THEN 400 WHEN -20401 THEN 401 WHEN -20403 THEN 403 WHEN -20404 THEN 404 WHEN -20409 THEN 409 ELSE 500 END,'Error',FALSE); v_message:=CASE WHEN v_code IN (-20400,-20401,-20403,-20404,-20409) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Richiesta non inviata.' END; SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB) INTO v_json FROM dual; END; OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(v_json); END;~');
+  ORDS.DEFINE_PARAMETER('taotl.api','leaderboards/:id/link-requests/','POST','Authorization','p_authorization','HEADER','STRING','IN');
+
+  ORDS.DEFINE_TEMPLATE(p_module_name => 'taotl.api', p_pattern => 'profile-link-requests/');
+  ORDS.DEFINE_HANDLER(p_module_name => 'taotl.api', p_pattern => 'profile-link-requests/', p_method => 'GET', p_source_type => ORDS.source_type_plsql,
+    p_source => q'~DECLARE v_json CLOB; v_code PLS_INTEGER; v_message VARCHAR2(4000); BEGIN BEGIN v_json:=taotl_collaboration_api.list_link_requests(:p_authorization); EXCEPTION WHEN OTHERS THEN v_code:=SQLCODE; ROLLBACK; OWA_UTIL.status_line(CASE v_code WHEN -20401 THEN 401 WHEN -20403 THEN 403 ELSE 500 END,'Error',FALSE); v_message:=CASE WHEN v_code IN (-20401,-20403) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Richieste non disponibili.' END; SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB) INTO v_json FROM dual; END; OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(v_json); END;~');
+  ORDS.DEFINE_PARAMETER('taotl.api','profile-link-requests/','GET','Authorization','p_authorization','HEADER','STRING','IN');
+
+  ORDS.DEFINE_TEMPLATE(p_module_name => 'taotl.api', p_pattern => 'profile-link-requests/:id/respond/');
+  ORDS.DEFINE_HANDLER(p_module_name => 'taotl.api', p_pattern => 'profile-link-requests/:id/respond/', p_method => 'POST', p_source_type => ORDS.source_type_plsql, p_mimes_allowed => 'application/json',
+    p_source => q'~DECLARE v_json CLOB; v_code PLS_INTEGER; v_message VARCHAR2(4000); BEGIN BEGIN v_json:=taotl_collaboration_api.respond_link_request(:p_authorization,:id,:body); EXCEPTION WHEN OTHERS THEN v_code:=SQLCODE; ROLLBACK; OWA_UTIL.status_line(CASE v_code WHEN -20400 THEN 400 WHEN -20401 THEN 401 WHEN -20403 THEN 403 WHEN -20404 THEN 404 WHEN -20409 THEN 409 ELSE 500 END,'Error',FALSE); v_message:=CASE WHEN v_code IN (-20400,-20401,-20403,-20404,-20409) THEN REGEXP_REPLACE(SQLERRM,'^ORA-[0-9]+: *','') ELSE 'Risposta non salvata.' END; SELECT JSON_OBJECT('message' VALUE v_message RETURNING CLOB) INTO v_json FROM dual; END; OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(v_json); END;~');
+  ORDS.DEFINE_PARAMETER('taotl.api','profile-link-requests/:id/respond/','POST','Authorization','p_authorization','HEADER','STRING','IN');
+
+  -- Chiude gli ultimi endpoint legacy che esponevano dati senza sessione.
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.api', p_pattern => 'leaderboard/', p_method => 'GET',
+    p_source_type => ORDS.source_type_plsql,
+    p_source => q'~DECLARE v_json CLOB; BEGIN v_json := taotl_collaboration_api.leaderboard_entries(:p_authorization,'lb_general'); OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(v_json); EXCEPTION WHEN OTHERS THEN OWA_UTIL.status_line(CASE SQLCODE WHEN -20401 THEN 401 WHEN -20403 THEN 403 WHEN -20404 THEN 404 ELSE 500 END,'Error',FALSE); OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(JSON_OBJECT('message' VALUE 'Classifica non disponibile.')); END;~'
+  );
+  ORDS.DEFINE_PARAMETER('taotl.api','leaderboard/','GET','Authorization','p_authorization','HEADER','STRING','IN');
+
+  ORDS.DEFINE_HANDLER(
+    p_module_name => 'taotl.api', p_pattern => 'players/:id/manual-games', p_method => 'GET',
+    p_source_type => ORDS.source_type_plsql,
+    p_source => q'~DECLARE v_json CLOB; BEGIN v_json := taotl_api.list_manual_games(:p_authorization,:id); OWA_UTIL.mime_header('application/json',FALSE); HTP.p('Cache-Control: no-store'); OWA_UTIL.http_header_close; HTP.prn(v_json); EXCEPTION WHEN OTHERS THEN OWA_UTIL.status_line(CASE SQLCODE WHEN -20401 THEN 401 WHEN -20403 THEN 403 ELSE 500 END,'Error',FALSE); OWA_UTIL.mime_header('application/json',FALSE); OWA_UTIL.http_header_close; HTP.prn(JSON_OBJECT('message' VALUE 'Partite non disponibili.')); END;~'
+  );
+  ORDS.DEFINE_PARAMETER('taotl.api','players/:id/manual-games','GET','Authorization','p_authorization','HEADER','STRING','IN');
 
   COMMIT;
 END;
