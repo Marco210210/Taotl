@@ -7,6 +7,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 from google_auth_oauthlib.flow import InstalledAppFlow
 
@@ -53,6 +54,13 @@ def start() -> None:
 
 
 def finish(authorization_response: str) -> None:
+    redirect = urlparse(authorization_response)
+    if redirect.scheme != "http" or redirect.hostname not in {"localhost", "127.0.0.1"}:
+        raise RuntimeError("Il reindirizzamento OAuth deve provenire da localhost.")
+    # OAuthlib blocca HTTP in generale; Google lo consente esplicitamente per il
+    # callback loopback delle applicazioni desktop. L'eccezione resta confinata
+    # all'URL localhost appena validato.
+    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
     pending = json.loads(PENDING_FILE.read_text(encoding="utf-8"))
     flow = InstalledAppFlow.from_client_secrets_file(
         CLIENT_FILE,
@@ -81,4 +89,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
