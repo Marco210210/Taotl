@@ -42,7 +42,7 @@ interface AccountContextValue {
   login: (handle: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   requestReset: (email: string) => Promise<{ message: string }>;
-  confirmReset: (token: string, password: string) => Promise<void>;
+  confirmReset: (email: string, token: string, password: string) => Promise<void>;
   createRoom: () => Promise<GameRoomDTO>;
   joinRoom: (code: string) => Promise<GameRoomDTO>;
   refreshRoom: () => Promise<void>;
@@ -189,10 +189,10 @@ export function AccountProvider({ children }: PropsWithChildren) {
     return requestPasswordReset(email);
   }, []);
 
-  const confirmReset = useCallback(async (token: string, password: string) => {
+  const confirmReset = useCallback(async (email: string, token: string, password: string) => {
     setLoading(true);
     try {
-      await acceptSession(await confirmPasswordReset(token, password));
+      await acceptSession(await confirmPasswordReset(email, token, password));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Reset non riuscito.";
       setAuthError(message);

@@ -966,9 +966,10 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
       p_email,
       'Codice recupero password Taotl',
       'Ciao ' || p_display_name || ',' || CHR(10) || CHR(10) ||
-      'il tuo codice per reimpostare la password Taotl è:' || CHR(10) || CHR(10) ||
+      'ecco il codice per reimpostare la password Taotl:' || CHR(10) || CHR(10) ||
       p_token || CHR(10) || CHR(10) ||
-      'Il codice scade tra 30 minuti. Se non hai richiesto tu il recupero, ignora questa email.'
+      'Il codice scade tra 5 minuti.' || CHR(10) ||
+      'Se non hai richiesto tu il recupero, ignora questa email.'
     );
   END send_reset_email;
 
@@ -976,7 +977,8 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
     v_email        taotl_accounts.email%TYPE;
     v_account_id   taotl_accounts.id%TYPE;
     v_display_name taotl_accounts.display_name%TYPE;
-    v_token        VARCHAR2(64);
+    v_token        VARCHAR2(8);
+    v_recent_count NUMBER;
     v_json         CLOB;
   BEGIN
     SELECT LOWER(TRIM(JSON_VALUE(p_body, '$.email' RETURNING VARCHAR2(160))))
@@ -992,15 +994,29 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
         INTO v_account_id, v_display_name
         FROM taotl_accounts
        WHERE email = v_email
-         AND is_active = 'Y';
+         AND is_active = 'Y'
+       FOR UPDATE;
 
-      v_token := LOWER(RAWTOHEX(SYS_GUID()) || RAWTOHEX(SYS_GUID()));
+      SELECT COUNT(*)
+        INTO v_recent_count
+        FROM taotl_password_resets
+       WHERE account_id = v_account_id
+         AND created_at > SYSTIMESTAMP - INTERVAL '30' SECOND;
 
-      DELETE FROM taotl_password_resets WHERE account_id = v_account_id;
-      INSERT INTO taotl_password_resets(token_hash, account_id, expires_at)
-      VALUES (sha256(v_token), v_account_id, SYSTIMESTAMP + INTERVAL '30' MINUTE);
+      -- Evita doppi invii causati da tocchi ripetuti o richieste concorrenti.
+      IF v_recent_count = 0 THEN
+        v_token := LPAD(
+          TO_CHAR(MOD(TO_NUMBER(RAWTOHEX(DBMS_CRYPTO.RANDOMBYTES(4)), 'XXXXXXXX'), 100000000)),
+          8,
+          '0'
+        );
 
-      send_reset_email(v_email, v_token, v_display_name);
+        DELETE FROM taotl_password_resets WHERE account_id = v_account_id;
+        INSERT INTO taotl_password_resets(token_hash, account_id, expires_at, attempts)
+        VALUES (sha256(v_token), v_account_id, SYSTIMESTAMP + INTERVAL '5' MINUTE, 0);
+
+        send_reset_email(v_email, v_token, v_display_name);
+      END IF;
       COMMIT;
     EXCEPTION
       WHEN NO_DATA_FOUND THEN
@@ -1018,16 +1034,25 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
   END request_password_reset;
 
   FUNCTION confirm_password_reset(p_body IN BLOB) RETURN CLOB IS
-    v_token      VARCHAR2(200);
-    v_password   VARCHAR2(200);
-    v_account_id taotl_accounts.id%TYPE;
-    v_salt       VARCHAR2(64);
-    v_json       CLOB;
+    v_email       taotl_accounts.email%TYPE;
+    v_token       VARCHAR2(8);
+    v_password    VARCHAR2(200);
+    v_account_id  taotl_accounts.id%TYPE;
+    v_token_hash  taotl_password_resets.token_hash%TYPE;
+    v_attempts    taotl_password_resets.attempts%TYPE;
+    v_salt        VARCHAR2(64);
+    v_json        CLOB;
   BEGIN
-    SELECT JSON_VALUE(p_body, '$.token' RETURNING VARCHAR2(200)),
+    SELECT LOWER(TRIM(JSON_VALUE(p_body, '$.email' RETURNING VARCHAR2(160)))),
+           JSON_VALUE(p_body, '$.token' RETURNING VARCHAR2(8)),
            JSON_VALUE(p_body, '$.password' RETURNING VARCHAR2(200))
-      INTO v_token, v_password
+      INTO v_email, v_token, v_password
       FROM dual;
+
+    IF v_email IS NULL OR NOT REGEXP_LIKE(v_email, '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$')
+       OR v_token IS NULL OR NOT REGEXP_LIKE(v_token, '^[0-9]{8}$') THEN
+      RAISE_APPLICATION_ERROR(-20401, 'Codice di reset non valido o scaduto.');
+    END IF;
 
     IF v_password IS NULL OR LENGTH(v_password) < 8 OR LENGTH(v_password) > 72
        OR NOT REGEXP_LIKE(v_password, '[A-Z]')
@@ -1036,11 +1061,26 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
         'La password deve avere almeno 8 caratteri, una maiuscola e un numero.');
     END IF;
 
-    SELECT account_id
-      INTO v_account_id
-      FROM taotl_password_resets
-     WHERE token_hash = sha256(v_token)
-       AND expires_at > SYSTIMESTAMP;
+    SELECT r.account_id, r.token_hash, r.attempts
+      INTO v_account_id, v_token_hash, v_attempts
+      FROM taotl_password_resets r
+      JOIN taotl_accounts a ON a.id = r.account_id
+     WHERE a.email = v_email
+       AND a.is_active = 'Y'
+       AND r.expires_at > SYSTIMESTAMP
+     FOR UPDATE OF r.attempts;
+
+    IF v_attempts >= 5 OR v_token_hash <> sha256(v_token) THEN
+      IF v_attempts >= 4 THEN
+        DELETE FROM taotl_password_resets WHERE account_id = v_account_id;
+      ELSE
+        UPDATE taotl_password_resets
+           SET attempts = attempts + 1
+         WHERE account_id = v_account_id;
+      END IF;
+      COMMIT;
+      RAISE_APPLICATION_ERROR(-20401, 'Codice di reset non valido o scaduto.');
+    END IF;
 
     v_salt := LOWER(RAWTOHEX(SYS_GUID()) || RAWTOHEX(SYS_GUID()));
 

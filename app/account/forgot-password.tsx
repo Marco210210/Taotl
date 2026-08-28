@@ -20,11 +20,15 @@ export default function ForgotPasswordScreen() {
   const [message, setMessage] = useState<string | null>(null);
 
   const submit = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
     setLoading(true);
     setMessage(null);
     try {
-      const result = await requestReset(email);
-      setMessage(result.message);
+      await requestReset(normalizedEmail);
+      router.replace({
+        pathname: "/account/reset-password",
+        params: { email: normalizedEmail, sentAt: String(Date.now()) },
+      });
     } catch (error) {
       setMessage(error instanceof Error ? error.message : null);
     } finally {
@@ -57,7 +61,13 @@ export default function ForgotPasswordScreen() {
             disabled={!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())}
             variant="secondary"
           />
-          <Pressable onPress={() => router.push("/account/reset-password")} style={styles.link}>
+          <Pressable
+            onPress={() => router.push({
+              pathname: "/account/reset-password",
+              params: email.trim() ? { email: email.trim().toLowerCase() } : {},
+            })}
+            style={styles.link}
+          >
             <Text style={styles.linkText}>{t("forgotPassword.haveCode")}</Text>
           </Pressable>
         </Card>

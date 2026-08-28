@@ -53,6 +53,7 @@ ordine:
 @sql/12_multiple_leaderboards.sql
 @sql/13_private_leaderboards_and_history.sql
 @sql/14_password_reset_mail_outbox.sql
+@sql/15_password_reset_short_codes.sql
 @ords/03_identity_package.sql
 @ords/05_collaboration_package.sql
 @ords/01_api_package.sql
@@ -90,6 +91,7 @@ spareggio risolto a mano è:
 @sql/12_multiple_leaderboards.sql
 @sql/13_private_leaderboards_and_history.sql
 @sql/14_password_reset_mail_outbox.sql
+@sql/15_password_reset_short_codes.sql
 @ords/03_identity_package.sql
 @ords/05_collaboration_package.sql
 @ords/01_api_package.sql
@@ -106,6 +108,7 @@ classifiche multiple e correggere la risposta delle sessioni scadute esegui:
 @sql/12_multiple_leaderboards.sql
 @sql/13_private_leaderboards_and_history.sql
 @sql/14_password_reset_mail_outbox.sql
+@sql/15_password_reset_short_codes.sql
 @ords/03_identity_package.sql
 @ords/05_collaboration_package.sql
 @ords/01_api_package.sql

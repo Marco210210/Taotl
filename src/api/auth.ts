@@ -78,8 +78,12 @@ export function requestPasswordReset(email: string): Promise<{ message: string }
   return apiClient.post<{ message: string }>("/taotl/auth/forgot-password/", { email: email.trim().toLowerCase() });
 }
 
-export function confirmPasswordReset(token: string, password: string): Promise<AuthSessionDTO> {
-  return apiClient.post<AuthSessionDTO>("/taotl/auth/reset-password/", { token, password });
+export function confirmPasswordReset(email: string, token: string, password: string): Promise<AuthSessionDTO> {
+  return apiClient.post<AuthSessionDTO>("/taotl/auth/reset-password/", {
+    email: email.trim().toLowerCase(),
+    token,
+    password,
+  });
 }
 
 export function fetchMyAccount(token: string, timeoutMs?: number): Promise<AccountDTO> {

@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import base64
+import html
 import os
+import re
 import smtplib
 import ssl
 import time
@@ -37,6 +39,29 @@ def create_message(recipient: str, subject: str, body: str) -> EmailMessage:
     message["Subject"] = subject
     message["Auto-Submitted"] = "auto-generated"
     message.set_content(body)
+    code_match = re.search(r"(?m)^([0-9]{8})$", body)
+    greeting_match = re.search(r"^Ciao ([^,\r\n]+),", body)
+    if code_match:
+        code = html.escape(code_match.group(1))
+        display_name = html.escape(greeting_match.group(1) if greeting_match else "")
+        greeting = f"Ciao {display_name}," if display_name else "Ciao,"
+        message.add_alternative(
+            f"""<!doctype html>
+<html lang="it"><body style="margin:0;background:#f5f1e8;color:#1d2433;font-family:Arial,sans-serif">
+  <div style="max-width:560px;margin:0 auto;padding:32px 20px">
+    <div style="background:#ffffff;border:1px solid #ddd5c6;border-radius:18px;padding:28px">
+      <div style="font-size:12px;font-weight:700;letter-spacing:2px;color:#8b5e34">TAOTL</div>
+      <h1 style="font-size:24px;margin:14px 0 20px">Reimposta la password</h1>
+      <p style="font-size:16px;line-height:1.6">{greeting}</p>
+      <p style="font-size:16px;line-height:1.6">Ecco il codice da inserire nell'app:</p>
+      <div style="margin:24px 0;padding:18px;border-radius:12px;background:#1d2433;color:#ffffff;text-align:center;font-family:monospace;font-size:34px;font-weight:700;letter-spacing:7px">{code}</div>
+      <p style="font-size:14px;line-height:1.6;color:#596273">Il codice scade tra 5 minuti. Un nuovo invio rende subito non valido quello precedente.</p>
+      <p style="font-size:14px;line-height:1.6;color:#596273">Se non hai richiesto tu il recupero, puoi ignorare questa email.</p>
+    </div>
+  </div>
+</body></html>""",
+            subtype="html",
+        )
     return message
 
 
