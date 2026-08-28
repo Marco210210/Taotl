@@ -39,32 +39,15 @@ finché non colleghi il backend Oracle (vedi sotto).
    `EXPO_PUBLIC_APP_KEY` con l'URL pubblico e la chiave scelti in fase di deploy.
 3. Riavvia `npx expo start`.
 
-## Distribuzione agli amici (gratis)
+## Distribuzione agli amici
 
-### Android — file APK installabile
+La pagina pubblica [Taotl](https://marco210210.github.io/Taotl/) contiene i collegamenti
+per installare Expo Go e aprire la versione live dell'app su Android, iPhone e iPad.
+La stessa pagina ospita anche l'informativa privacy e i termini di servizio.
 
-```bash
-npx eas login          # richiede un account Expo gratuito
-eas build:configure
-eas build -p android --profile preview
-```
-
-A fine build, Expo fornisce un link per scaricare l'APK: condividilo con i tuoi amici
-Android, lo installano e lo trovano come app vera in home screen.
-
-### iOS — via Expo Go (nessun account sviluppatore Apple richiesto)
-
-```bash
-eas update --branch production
-```
-
-Manda ai tuoi amici iOS il link al progetto pubblicato (mostrato dal comando). Aprendolo
-la prima volta con **Expo Go** installato, lancia l'app; dalle volte successive la
-trovano nella lista "Recenti" di Expo Go senza bisogno del link.
-
-Ogni volta che modifichi l'interfaccia o la logica (non le dipendenze native), un nuovo
-`eas update` aggiorna l'app per tutti — sia su Android (nel file APK) sia su iOS (via
-Expo Go) — senza bisogno di ridistribuire nulla.
+Il bundle live viene servito dal tunnel Expo Go gestito sulla VPS. Quando viene
+pubblicato un nuovo APK Android autonomo, può essere allegato a una release GitHub e
+collegato dalla stessa pagina senza modificare l'indirizzo condiviso con gli utenti.
 
 ## Verifiche eseguite in sviluppo
 
@@ -75,6 +58,5 @@ Expo Go) — senza bisogno di ridistribuire nulla.
   scelta mazziere → chiamate turno 1 → blocco della chiamata vietata per il mazziere →
   punteggio turno (verificato contro i calcoli attesi) → turno 2 con mazziere e ordine di
   chiamata ruotati correttamente → classifica live.
-- Non ancora testati end-to-end con backend reale: sincronizzazione partite/rubrica su
-  Oracle (gli script `server/` sono pronti ma da eseguire e verificare sulla VPS), build
-  EAS per Android/iOS (richiedono il tuo account Expo).
+- Il backend Oracle/ORDS e il tunnel Expo Go vengono distribuiti separatamente usando
+  le configurazioni descritte nella cartella `server/`.
