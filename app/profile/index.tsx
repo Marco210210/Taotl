@@ -8,6 +8,7 @@ import { fetchRoster } from "@/api/players";
 import type { GameHistorySummaryDTO } from "@/api/types";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PlayerStatsView } from "@/components/PlayerStatsView";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import type { Player } from "@/game/types";
@@ -18,13 +19,14 @@ import { theme, type ThemeColors } from "@/theme";
 export default function MyProfileScreen() {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { account, token } = useAccount();
+  const { account, token, logout } = useAccount();
   const [players, setPlayers] = useState<Player[]>([]);
   const [games, setGames] = useState<GameHistorySummaryDTO[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntryDTO[]>([]);
   const [manualGames, setManualGames] = useState<ManualGameDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -96,6 +98,21 @@ export default function MyProfileScreen() {
 
   return (
     <ScreenContainer>
+      <ConfirmDialog
+        visible={showLogoutConfirm}
+        title={t("account.logoutTitle")}
+        description={t("account.logoutDescription")}
+        confirmLabel={t("account.logout")}
+        cancelLabel={t("common.cancel")}
+        destructive
+        onConfirm={() => {
+          setShowLogoutConfirm(false);
+          void logout().then(() => {
+            router.replace({ pathname: "/account", params: { from: "profile", mode: "login" } });
+          });
+        }}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
       <Card style={styles.accountCard}>
         {account ? (
           <>
@@ -106,6 +123,11 @@ export default function MyProfileScreen() {
               label={t("profile.openAccount")}
               variant="ghost"
               onPress={() => router.push({ pathname: "/account", params: { from: "profile" } })}
+            />
+            <Button
+              label={t("account.logout")}
+              variant="danger"
+              onPress={() => setShowLogoutConfirm(true)}
             />
             {account.isAdmin && (
               <Button

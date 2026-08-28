@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { LeaderboardSelector } from "@/components/LeaderboardSelector";
 import { LinearBackButton } from "@/components/LinearBackButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
@@ -49,7 +50,7 @@ function sanitizeHandleInput(value: string): string {
 }
 
 export default function AccountScreen() {
-  const { from } = useLocalSearchParams<{ from?: string }>();
+  const { from, mode: initialMode } = useLocalSearchParams<{ from?: string; mode?: string }>();
   const backDestination =
     from === "setup"
       ? "/setup/players"
@@ -75,7 +76,8 @@ export default function AccountScreen() {
     updateLeaderboards,
     refreshAccount,
   } = useAccount();
-  const [mode, setMode] = useState<AuthMode>("register");
+  const [mode, setMode] = useState<AuthMode>(initialMode === "login" ? "login" : "register");
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [handle, setHandle] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -314,8 +316,24 @@ export default function AccountScreen() {
     finally { setSavingLeaderboards(false); }
   };
 
+  const confirmLogout = async () => {
+    setShowLogoutConfirm(false);
+    await logout();
+    setMode("login");
+  };
+
   return (
     <>
+      <ConfirmDialog
+        visible={showLogoutConfirm}
+        title={t("account.logoutTitle")}
+        description={t("account.logoutDescription")}
+        confirmLabel={t("account.logout")}
+        cancelLabel={t("common.cancel")}
+        destructive
+        onConfirm={() => void confirmLogout()}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
       <Stack.Screen
         options={{
           headerLeft: () => <LinearBackButton destination={backDestination} />,
@@ -524,7 +542,12 @@ export default function AccountScreen() {
               <Text style={styles.name}>{account.displayName}</Text>
               <Text style={styles.handle}>@{account.handle}</Text>
               <Text style={styles.helper}>{t("account.signedInAs")} Taotl ID</Text>
-              <Button label={t("account.logout")} variant="ghost" onPress={logout} loading={loading} />
+              <Button
+                label={t("account.logout")}
+                variant="danger"
+                onPress={() => setShowLogoutConfirm(true)}
+                loading={loading}
+              />
             </Card>
 
             {linkRequests.map((request) => (
