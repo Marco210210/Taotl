@@ -1,6 +1,6 @@
 import * as Haptics from "expo-haptics";
 import { useMemo } from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { theme, type ThemeColors } from "@/theme";
@@ -29,7 +29,7 @@ export function Button({
   const { vibrationEnabled, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const variantStyles = useMemo(() => makeVariantStyles(colors), [colors]);
-  const isDisabled = disabled || loading;
+  const isDisabled = !!(disabled || loading);
   // primary/danger/success restano sfondi colorati e saturi in entrambi i
   // temi → testo di un colore chiaro fisso. secondary invece usa
   // colors.text come sfondo, che SI INVERTE tra i due temi (ink scuro
@@ -40,20 +40,25 @@ export function Button({
   const isYellow = variant === "yellow";
 
   return (
-    <TouchableOpacity
+    <Pressable
+      // Il rettangolo è l'unico bersaglio nativo, anche sopra testo e freccia.
+      // Non affidare l'hit testing ai figli o a una View animata.
+      pointerEvents="box-only"
+      collapsable={false}
       onPress={() => {
         if (vibrationEnabled) void Haptics.selectionAsync().catch(() => {});
         onPress();
       }}
       disabled={isDisabled}
       accessibilityRole="button"
-      accessibilityState={{ disabled: isDisabled }}
-      activeOpacity={0.74}
-      style={[
+      accessibilityLabel={subtitle ? `${label}. ${subtitle}` : label}
+      accessibilityState={{ disabled: isDisabled, busy: !!loading }}
+      style={({ pressed }) => [
         styles.base,
         fullWidth ? styles.fullWidth : null,
         variantStyles[variant],
         isDisabled ? styles.disabled : null,
+        pressed && !isDisabled ? styles.pressed : null,
       ]}
     >
       {loading ? (
@@ -103,7 +108,7 @@ export function Button({
           )}
         </>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -136,6 +141,7 @@ function makeStyles(colors: ThemeColors) {
     secondarySubtitle: { color: colors.backgroundMuted },
     yellowLabel: { color: "#17181D" },
     disabled: { opacity: 0.42 },
+    pressed: { opacity: 0.74 },
   });
 }
 

@@ -26,6 +26,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
+from expo_compatibility import CompatibilityMonitor
+
 
 BIND = os.environ.get("TAOTL_MONITOR_BIND", "127.0.0.1")
 PORT = int(os.environ.get("TAOTL_MONITOR_PORT", "8091"))
@@ -75,6 +77,9 @@ health_state: dict[str, Any] = {
     "ordsDetail": "non ancora verificato",
     "ordsAlerted": False,
     "lastExpoRecovery": 0.0,
+    "expoCompatibility": "unknown",
+    "expoCompatibilityDetail": "non ancora verificata",
+    "expoCompatibilityCheckedAt": None,
 }
 
 
@@ -164,14 +169,14 @@ def telegram_call(method: str, payload: dict[str, Any], timeout: int = 35) -> An
     return result.get("result") if result.get("ok") else None
 
 
-def send_telegram(text: str) -> None:
+def send_telegram(text: str) -> bool:
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
-        return
+        return False
     try:
-        telegram_call("sendMessage", {"chat_id": TELEGRAM_CHAT_ID, "text": text[:4_000]})
+        return bool(telegram_call("sendMessage", {"chat_id": TELEGRAM_CHAT_ID, "text": text[:4_000]}))
     except Exception:
         # Il registro deve continuare a funzionare anche quando Telegram è offline.
-        pass
+        return False
 
 
 def notify_error(record: dict[str, Any]) -> None:
@@ -217,7 +222,9 @@ def allowed_by_rate_limit(client_ip: str) -> bool:
         return True
 
 
-def check_url(url: str, headers: dict[str, str] | None = None) -> tuple[bool, str]:
+def check_url(
+    url: str, headers: dict[str, str] | None = None, *, allow_session_required: bool = False,
+) -> tuple[bool, str]:
     if not url:
         return False, "URL non configurato"
     try:
@@ -229,6 +236,16 @@ def check_url(url: str, headers: dict[str, str] | None = None) -> tuple[bool, st
             return 200 <= response.status < 400, f"HTTP {response.status}"
     except urllib.error.HTTPError as error:
         body = error.read(8_192).decode("utf-8", errors="replace")
+        # La rubrica richiede ora una sessione. Questa risposta applicativa
+        # conferma che ORDS e il package Oracle rispondono, senza usare account.
+        # Altri 401 (proxy/autenticazione guasta) restano errori.
+        if allow_session_required and error.code == 401:
+            try:
+                payload = json.loads(body)
+                if isinstance(payload, dict) and payload.get("message") == "Sessione mancante.":
+                    return True, "HTTP 401 (endpoint protetto raggiungibile)"
+            except ValueError:
+                pass
         oracle_codes = sorted(set(re.findall(r"ORA-\d{5}", body)))
         suffix = f" ({', '.join(oracle_codes)})" if oracle_codes else ""
         return False, f"HTTP {error.code}{suffix}"
@@ -242,7 +259,7 @@ def watchdog_loop() -> None:
             EXPO_HEALTH_URL,
             {"Accept": "application/expo+json", "Expo-Platform": "android"},
         )
-        ords_ok, ords_detail = check_url(ORDS_HEALTH_URL)
+        ords_ok, ords_detail = check_url(ORDS_HEALTH_URL, allow_session_required=True)
         in_startup_grace = time.monotonic() - watchdog_started_monotonic < WATCHDOG_STARTUP_GRACE_SECONDS
         oracle_maintenance = ORACLE_MAINTENANCE_FLAG.exists()
         with lock:
@@ -328,6 +345,8 @@ def handle_bot_command(text: str) -> str:
             return (
                 "Stato Taotl\n"
                 f"Expo Go: {health_state['expo']}\n"
+                f"Compatibilità: {health_state['expoCompatibilityDetail']}\n"
+                f"Ultimo controllo SDK: {health_state['expoCompatibilityCheckedAt'] or 'mai'}\n"
                 f"Oracle/ORDS: {health_state['ords']} ({health_state['ordsDetail']})\n"
                 f"Errori in memoria: {len(recent_errors)}"
             )
@@ -451,6 +470,19 @@ def main() -> None:
     if not MONITOR_KEY:
         raise SystemExit("TAOTL_MONITOR_KEY o EXPO_PUBLIC_APP_KEY non configurata.")
     load_recent_errors()
+
+    def publish_compatibility(status: dict[str, Any]) -> None:
+        with lock:
+            health_state.update(status)
+
+    compatibility = CompatibilityMonitor(
+        Path(__file__).resolve().parents[2],
+        EXPO_HEALTH_URL,
+        LOG_PATH.parent / "expo-compatibility.json",
+        send_telegram,
+        publish_compatibility,
+    )
+    threading.Thread(target=compatibility.run, name="expo-compatibility", daemon=True).start()
     threading.Thread(target=watchdog_loop, name="watchdog", daemon=True).start()
     threading.Thread(target=telegram_polling_loop, name="telegram", daemon=True).start()
     server = ThreadingHTTPServer((BIND, PORT), MonitorHandler)

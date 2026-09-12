@@ -35,6 +35,8 @@ __pycache__/
 # local env files
 .env
 .env*.local
+.claude/settings.local.json
+/.local/
 client_secret_*.json
 google-oauth-client*.json
 google-oauth-token*.json

@@ -17,6 +17,7 @@ export function ScreenContainer({
   return (
     <SafeAreaView style={styles.safe} edges={["bottom", "left", "right"]}>
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={[styles.content, footer ? styles.contentWithFooter : null, style]}
         keyboardShouldPersistTaps="handled"
         scrollEnabled={scrollEnabled}
@@ -31,6 +32,7 @@ export function ScreenContainer({
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.background },
+    scroll: { flex: 1 },
     content: {
       width: "100%",
       maxWidth: 620,
@@ -43,6 +45,7 @@ function makeStyles(colors: ThemeColors) {
     },
     contentWithFooter: { paddingBottom: 18 },
     footer: {
+      flexShrink: 0,
       width: "100%",
       maxWidth: 620,
       alignSelf: "center",
