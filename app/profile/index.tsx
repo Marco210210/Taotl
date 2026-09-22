@@ -129,13 +129,6 @@ export default function MyProfileScreen() {
               variant="danger"
               onPress={() => setShowLogoutConfirm(true)}
             />
-            {account.isAdmin && (
-              <Button
-                label={t("admin.homeShortcut")}
-                variant="yellow"
-                onPress={() => router.push({ pathname: "/admin", params: { from: "profile" } })}
-              />
-            )}
           </>
         ) : (
           <>

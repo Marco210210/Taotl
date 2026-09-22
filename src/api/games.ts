@@ -167,19 +167,3 @@ export async function fetchGameHistoryDetail(id: string, token?: string | null):
     throw error;
   }
 }
-
-// Riservata all'admin: il backend verifica il token di sessione (vedi require_admin
-// lato server).
-export async function deleteFinishedGame(id: string, adminToken: string): Promise<void> {
-  if (getApiBaseUrl()) {
-    await apiClient.deleteAuthenticated<void>(`/taotl/games/${id}`, adminToken);
-  }
-  const raw = await AsyncStorage.getItem(LOCAL_HISTORY_KEY);
-  const summaries: GameHistorySummaryDTO[] = raw ? JSON.parse(raw) : [];
-  const details = await readLocalDetails();
-  delete details[id];
-  await Promise.all([
-    AsyncStorage.setItem(LOCAL_HISTORY_KEY, JSON.stringify(summaries.filter((game) => game.id !== id))),
-    AsyncStorage.setItem(LOCAL_HISTORY_DETAILS_KEY, JSON.stringify(details)),
-  ]);
-}

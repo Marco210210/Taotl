@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.15 — 2026-09-22
+
+- Pannello amministrativo in frontend separato, accessibile tramite tunnel SSH.
+- Chiave privata del monitor separata dalla telemetria pubblica e ruotata.
+- Controlli server su proprietà delle partite, profili, stanze e punteggi.
+- Foto limitate a immagini riconosciute e risposte API senza dettagli Oracle.
+- Decoder URL corretto contro blocchi su input malformati; patch delle dipendenze XML e glob.
+- Test riproducibili di sicurezza e regressione dei salvataggi.
+- Allineamento alle patch compatibili Expo SDK 57.0.24.
+
 ## 1.0.14 — 2026-09-12
 
 - Aggiornamento a Expo SDK 57 con dipendenze compatibili.

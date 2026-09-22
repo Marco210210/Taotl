@@ -54,7 +54,7 @@ export default function RootLayout() {
   );
 }
 
-function FontGate() {
+export function FontGate({ children }: { children?: React.ReactNode }) {
   const [manropeLoaded, manropeError] = useManropeFonts({
     Manrope_400Regular,
     Manrope_500Medium,
@@ -73,7 +73,7 @@ function FontGate() {
 
   return (
     <AppSettingsProvider>
-      <AppNavigation />
+      {children ?? <AppNavigation />}
     </AppSettingsProvider>
   );
 }
@@ -196,24 +196,6 @@ function AppNavigation() {
                 }}
               />
               <Stack.Screen
-                name="leaderboard/add-game"
-                options={{
-                  title: t("nav.leaderboard"),
-                  headerBackVisible: false,
-                  gestureEnabled: false,
-                  headerLeft: () => <LinearBackButton destination="/leaderboard" />,
-                }}
-              />
-              <Stack.Screen
-                name="leaderboard/link-account"
-                options={{
-                  title: t("nav.leaderboard"),
-                  headerBackVisible: false,
-                  gestureEnabled: false,
-                  headerLeft: () => <LinearBackButton destination="/leaderboard" />,
-                }}
-              />
-              <Stack.Screen
                 name="leaderboard/player/[id]"
                 options={{
                   title: t("nav.profile"),
@@ -282,15 +264,6 @@ function AppNavigation() {
                   headerBackVisible: false,
                   gestureEnabled: false,
                   headerLeft: () => <LinearBackButton destination="/account/forgot-password" />,
-                }}
-              />
-              <Stack.Screen
-                name="admin/index"
-                options={{
-                  title: t("nav.admin"),
-                  headerBackVisible: false,
-                  gestureEnabled: false,
-                  headerLeft: () => <LinearBackButton destination="/" />,
                 }}
               />
             </Stack>

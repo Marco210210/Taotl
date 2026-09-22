@@ -1,0 +1,275 @@
+import { fetchAdminAccounts } from "@admin/api";
+import * as ImagePicker from "expo-image-picker";
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import type { Href } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+
+
+import { Button } from "@/components/Button";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { LinearBackButton } from "@/components/LinearBackButton";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { ScreenContainer } from "@/components/ScreenContainer";
+import { useAccount } from "@/state/AccountContext";
+import { useAppSettings } from "@/state/AppSettingsContext";
+import { useAdminRoster as useRoster } from "@admin/useAdminRoster";
+import { theme, type ThemeColors } from "@/theme";
+
+type AccountLinkStatus = "not-applicable" | "checking" | "linked" | "unlinked" | "unavailable";
+
+export default function EditPlayerScreen() {
+  const { t, colors } = useAppSettings();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { account, token } = useAccount();
+  const { id, from, leaderboardId, leaderboardName } = useLocalSearchParams<{ id?: string; from?: string; leaderboardId?: string; leaderboardName?: string }>();
+  const rosterDestination: Href =
+    from === "manage" && leaderboardId
+      ? { pathname: "/leaderboard/manage", params: { leaderboardId, ...(leaderboardName ? { name: leaderboardName } : {}) } }
+      : from === "admin"
+      ? { pathname: "/roster", params: { from: "admin", ...(leaderboardId ? { leaderboardId } : {}) } }
+      : from === "setup"
+        ? { pathname: "/roster", params: { from: "setup", ...(leaderboardId ? { leaderboardId } : {}) } }
+        : "/roster";
+  const { players, loading, addPlayer, renamePlayer, setPlayerPhoto, removePlayer } = useRoster(leaderboardId);
+  const existing = id ? players.find((p) => p.id === id) : undefined;
+
+  const [name, setName] = useState("");
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [photoType, setPhotoType] = useState<string | undefined>();
+  const [loadedPlayerId, setLoadedPlayerId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [accountLinkStatus, setAccountLinkStatus] = useState<AccountLinkStatus>("not-applicable");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  useEffect(() => {
+    if (existing && loadedPlayerId !== existing.id) {
+      setName(existing.name);
+      setPhotoUri(existing.photoUri ?? null);
+      setLoadedPlayerId(existing.id);
+    }
+  }, [existing, loadedPlayerId]);
+
+  useEffect(() => {
+    if (!existing) {
+      setAccountLinkStatus("not-applicable");
+      return;
+    }
+    if (account?.linkedPlayerId === existing.id) {
+      setAccountLinkStatus("linked");
+      return;
+    }
+    if (!account?.isAdmin || !token) {
+      setAccountLinkStatus("not-applicable");
+      return;
+    }
+
+    let active = true;
+    setAccountLinkStatus("checking");
+    fetchAdminAccounts(token)
+      .then((accounts) => {
+        if (!active) return;
+        setAccountLinkStatus(
+          accounts.some((candidate) => candidate.linkedPlayerId === existing.id) ? "linked" : "unlinked",
+        );
+      })
+      .catch(() => {
+        if (active) setAccountLinkStatus("unavailable");
+      });
+    return () => {
+      active = false;
+    };
+  }, [account?.isAdmin, account?.linkedPlayerId, existing, token]);
+
+  const isNameLocked = accountLinkStatus === "linked"
+    || accountLinkStatus === "checking"
+    || accountLinkStatus === "unavailable";
+
+  const pickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(
+        t("player.permissionTitle"),
+        t("player.permissionBody"),
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setPhotoUri(result.assets[0].uri);
+      setPhotoType(result.assets[0].mimeType ?? "image/jpeg");
+    }
+  };
+
+  const handleSave = async () => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setSaving(true);
+    try {
+      let playerId: string;
+      if (existing) {
+        playerId = existing.id;
+        if (!isNameLocked && trimmed !== existing.name) {
+          await renamePlayer(playerId, trimmed);
+        }
+      } else {
+        if (id) {
+          throw new Error(t("player.notFound"));
+        }
+        const created = await addPlayer(trimmed);
+        playerId = created.id;
+      }
+      if (photoUri && photoUri !== existing?.photoUri) {
+        await setPlayerPhoto(playerId, photoUri, photoType);
+      }
+      router.dismissTo(rosterDestination);
+    } catch (error) {
+      Alert.alert(
+        t("player.saveFailed"),
+        error instanceof Error ? error.message : t("history.retry"),
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = () => {
+    if (!existing || !token) return;
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!existing || !token) return;
+    setShowDeleteConfirm(false);
+    setDeleting(true);
+    try {
+      await removePlayer(existing.id, token);
+      router.dismissTo(rosterDestination);
+    } catch (error) {
+      Alert.alert(
+        t("player.deleteFailed"),
+        error instanceof Error ? error.message : t("history.retry"),
+      );
+      setDeleting(false);
+    }
+  };
+
+  if (id && loading && !existing) {
+    return (
+      <>
+      <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={rosterDestination} /> }} />
+      <ScreenContainer style={styles.loading}>
+        <ActivityIndicator color={colors.primary as string} size="large" />
+        <Text style={styles.avatarHint}>{t("player.loading")}</Text>
+      </ScreenContainer>
+      </>
+    );
+  }
+
+  if (id && !loading && !existing) {
+    return (
+      <>
+      <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={rosterDestination} /> }} />
+      <ScreenContainer style={styles.content}>
+        <Text style={styles.error}>{t("player.missing")}</Text>
+        <Button label={t("player.backRoster")} onPress={() => router.dismissTo(rosterDestination)} variant="secondary" />
+      </ScreenContainer>
+      </>
+    );
+  }
+
+  return (
+    <>
+    <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={rosterDestination} /> }} />
+    <ConfirmDialog
+      visible={showDeleteConfirm}
+      title={t("player.deleteTitle")}
+      description={`${existing?.name ?? ""} ${t("player.deleteBody")}`}
+      confirmLabel={t("common.delete")}
+      cancelLabel={t("common.cancel")}
+      destructive
+      onConfirm={confirmDelete}
+      onCancel={() => setShowDeleteConfirm(false)}
+    />
+    <ScreenContainer style={styles.content}>
+      <Pressable onPress={pickImage} style={styles.avatarWrapper}>
+        <PlayerAvatar name={name || "?"} photoUri={photoUri} size={96} />
+        <Text style={styles.avatarHint}>
+          {t("player.tapPhoto")} {photoUri ? t("player.change") : t("player.addPhoto")} {t("player.photo")}
+        </Text>
+      </Pressable>
+
+      <View>
+        <Text style={styles.label}>{t("player.name")}</Text>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          editable={!isNameLocked}
+          placeholder={t("player.namePlaceholder")}
+          placeholderTextColor={colors.textMuted as string}
+          style={[styles.input, isNameLocked && styles.inputLocked]}
+        />
+        {accountLinkStatus === "linked" && (
+          <Text style={styles.fieldHint}>{t("player.linkedNameLocked")}</Text>
+        )}
+        {accountLinkStatus === "unavailable" && (
+          <Text style={styles.fieldError}>{t("player.accountLinkUnavailable")}</Text>
+        )}
+      </View>
+
+      <Button label={t("common.save")} onPress={handleSave} loading={saving} disabled={!name.trim()} />
+      {existing && account?.isAdmin && (
+        <Button
+          label={t("player.deleteProfile")}
+          onPress={handleDelete}
+          variant="danger"
+          loading={deleting}
+          disabled={saving}
+        />
+      )}
+    </ScreenContainer>
+    </>
+  );
+}
+
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    content: { alignItems: "stretch" },
+    loading: { alignItems: "center", justifyContent: "center" },
+    avatarWrapper: { alignItems: "center", gap: theme.spacing(1) },
+    avatarHint: { color: colors.textMuted, fontSize: theme.font.small },
+    error: { color: colors.danger, fontSize: theme.font.body, textAlign: "center" },
+    label: { color: colors.textMuted, fontSize: theme.font.small, fontWeight: "700", marginBottom: 6 },
+    input: {
+      backgroundColor: colors.surfaceAlt,
+      borderRadius: theme.radius.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: theme.spacing(1.5),
+      paddingVertical: 10,
+      color: colors.text,
+      fontSize: theme.font.body,
+    },
+    inputLocked: { color: colors.textMuted, opacity: 0.72 },
+    fieldHint: {
+      marginTop: 6,
+      color: colors.textMuted,
+      fontSize: 10.5,
+      lineHeight: 15,
+      fontFamily: theme.font.family.medium,
+    },
+    fieldError: {
+      marginTop: 6,
+      color: colors.danger,
+      fontSize: 10.5,
+      lineHeight: 15,
+      fontFamily: theme.font.family.semibold,
+    },
+  });
+}

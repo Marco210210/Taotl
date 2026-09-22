@@ -162,7 +162,6 @@ Nel progetto Expo (`Conteggio-app/`), crea un file `.env` (non versionato) con:
 
 ```
 EXPO_PUBLIC_API_BASE_URL=https://<tuo-ip-pubblico>.sslip.io/ords/taotl_app
-EXPO_PUBLIC_APP_KEY=<la-stessa-chiave-messa-in-c_expected_app_key>
 ```
 
 Riavvia `npx expo start` (le variabili `EXPO_PUBLIC_*` vengono lette al build/dev). Da
@@ -173,3 +172,9 @@ database Oracle invece che solo in locale.
 
 Essendo l'unica copia "vera" dei dati (rubrica, storico), pianifica un export periodico,
 anche solo con `expdp` schedulato via cron sulla VPS.
+
+## Aggiornamento sicurezza 1.0.15
+
+Dopo i package e i moduli ORDS eseguire `ords/06_security_handlers.sql`.
+Non configurare chiavi `EXPO_PUBLIC_APP_KEY`: il client usa sessioni individuali.
+Consultare [security/README.md](security/README.md) per il frontend amministrativo separato.

@@ -16,7 +16,7 @@ import { formatAppDate } from "@/utils/date";
 
 export default function HistoryScreen() {
   const { from } = useLocalSearchParams<{ from?: string }>();
-  const backDestination = from === "admin" ? "/admin" : "/";
+  const backDestination = from === "admin" ? "/" : "/";
   const { t, colors } = useAppSettings();
   const { account, token } = useAccount();
   const styles = useMemo(() => makeStyles(colors), [colors]);

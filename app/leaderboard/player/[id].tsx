@@ -5,10 +5,8 @@ import { ActivityIndicator, StyleSheet, Text } from "react-native";
 
 import { fetchHistory } from "@/api/games";
 import {
-  fetchAdminAccounts,
   fetchLeaderboard,
   fetchManualGames,
-  type AdminAccountDTO,
   type LeaderboardEntryDTO,
   type ManualGameDTO,
 } from "@/api/leaderboard";
@@ -36,35 +34,24 @@ export default function LeaderboardPlayerScreen() {
   const [games, setGames] = useState<GameHistorySummaryDTO[]>([]);
   const [manualGames, setManualGames] = useState<ManualGameDTO[]>([]);
   const [officialStats, setOfficialStats] = useState<LeaderboardEntryDTO | undefined>();
-  const [linkedAccount, setLinkedAccount] = useState<AdminAccountDTO | null>(null);
-  const [accountInfoUnavailable, setAccountInfoUnavailable] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!id) return;
     let active = true;
-    const accountLookup = account?.isAdmin && token
-      ? fetchAdminAccounts(token)
-          .then((accounts) => ({ accounts, failed: false }))
-          .catch(() => ({ accounts: [] as AdminAccountDTO[], failed: true }))
-      : Promise.resolve({ accounts: [] as AdminAccountDTO[], failed: false });
-
     Promise.all([
       fetchRoster(token, leaderboardId ?? account?.defaultLeaderboardId),
       fetchHistory(token),
       token ? fetchLeaderboard(token, leaderboardId ?? account?.defaultLeaderboardId ?? "lb_general") : Promise.resolve([]),
-      accountLookup,
       token ? fetchManualGames(token, id).catch(() => []) : Promise.resolve([]),
     ])
-      .then(([roster, history, entries, accountResult, manual]) => {
+      .then(([roster, history, entries, manual]) => {
         if (!active) return;
         setPlayer(roster.players.find((entry) => entry.id === id) ?? null);
         const selectedBoardId = leaderboardId ?? "lb_general";
         setGames(history.games.filter((game) => game.leaderboardId === selectedBoardId || (game.leaderboardId === undefined && selectedBoardId === "lb_general")));
         setManualGames(manual.filter((game) => game.leaderboardId === selectedBoardId || (game.leaderboardId === undefined && selectedBoardId === "lb_general")));
         setOfficialStats(entries.find((entry) => entry.playerId === id));
-        setLinkedAccount(accountResult.accounts.find((entry) => entry.linkedPlayerId === id) ?? null);
-        setAccountInfoUnavailable(accountResult.failed);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -108,9 +95,6 @@ export default function LeaderboardPlayerScreen() {
         t={t}
         fromPath="leaderboard"
         leaderboardOrigin={from}
-        showAccountInfo={Boolean(account?.isAdmin)}
-        accountInfo={linkedAccount}
-        accountInfoUnavailable={accountInfoUnavailable}
       />
       {!!leaderboardId && (account?.isAdmin || account?.leaderboards.find((board) => board.id === leaderboardId)?.canManage) && (
         <Button label="Proponi collegamento a un Taotl ID" variant="secondary" onPress={() => router.push({ pathname: "/leaderboard/manage", params: { leaderboardId, playerId: id } })} />

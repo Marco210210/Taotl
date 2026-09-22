@@ -201,6 +201,23 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
     COMMIT;
   END update_player;
 
+  FUNCTION validated_photo_type(p_body IN BLOB, p_type IN VARCHAR2) RETURN VARCHAR2 IS
+    v_type VARCHAR2(120) := LOWER(TRIM(p_type));
+    v_magic VARCHAR2(24);
+  BEGIN
+    IF p_body IS NULL OR DBMS_LOB.getlength(p_body) = 0 OR DBMS_LOB.getlength(p_body) > 5242880 THEN
+      RAISE_APPLICATION_ERROR(-20400, 'La foto deve essere un’immagine di massimo 5 MB.');
+    END IF;
+    v_magic := RAWTOHEX(DBMS_LOB.substr(p_body, 12, 1));
+    IF (v_type = 'image/jpeg' AND SUBSTR(v_magic,1,6) = 'FFD8FF')
+       OR (v_type = 'image/png' AND SUBSTR(v_magic,1,16) = '89504E470D0A1A0A')
+       OR (v_type = 'image/gif' AND SUBSTR(v_magic,1,12) IN ('474946383761','474946383961'))
+       OR (v_type = 'image/webp' AND SUBSTR(v_magic,1,8) = '52494646' AND SUBSTR(v_magic,17,8) = '57454250') THEN
+      RETURN v_type;
+    END IF;
+    RAISE_APPLICATION_ERROR(-20400, 'Formato foto non valido: usa JPEG, PNG, GIF o WebP.');
+  END validated_photo_type;
+
   PROCEDURE update_player_photo(
     p_authorization IN VARCHAR2,
     p_id         IN VARCHAR2,
@@ -209,15 +226,17 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
   ) IS
     v_account_id VARCHAR2(60);
     v_allowed NUMBER;
+    v_media_type VARCHAR2(120);
   BEGIN
     v_account_id := taotl_identity_api.require_account(p_authorization);
     SELECT COUNT(*) INTO v_allowed FROM players p JOIN taotl_accounts a ON a.id = v_account_id
      WHERE p.id = p_id AND (p.owner_account_id = v_account_id OR a.is_admin = 'Y');
     IF v_allowed = 0 THEN RAISE_APPLICATION_ERROR(-20403, 'Non puoi modificare questo profilo.'); END IF;
 
+    v_media_type := validated_photo_type(p_body, p_media_type);
     UPDATE players
        SET photo = p_body,
-           photo_media_type = NVL(p_media_type, 'application/octet-stream')
+           photo_media_type = v_media_type
      WHERE id = p_id
        AND is_active = 'Y';
 
@@ -303,7 +322,10 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
     IF can_read_player(v_account_id, p_id) = 0 THEN RAISE_APPLICATION_ERROR(-20404, 'Foto non trovata.'); END IF;
     SELECT photo, NVL(photo_media_type, 'application/octet-stream') INTO v_photo, v_media_type
       FROM players WHERE id = p_id AND photo IS NOT NULL;
+    v_media_type := validated_photo_type(v_photo, v_media_type);
     OWA_UTIL.mime_header(v_media_type, FALSE);
+    HTP.p('X-Content-Type-Options: nosniff');
+    HTP.p('Content-Security-Policy: sandbox; default-src ''none''');
     HTP.p('Cache-Control: private, max-age=3600');
     HTP.p('Content-Length: ' || DBMS_LOB.getlength(v_photo));
     OWA_UTIL.http_header_close;
@@ -416,6 +438,9 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
     v_leaderboard_valid NUMBER;
     v_existing_owner games.owner_account_id%TYPE;
     v_round_id    rounds.id%TYPE;
+    v_count NUMBER;
+    v_invalid NUMBER;
+    v_expected_score NUMBER;
   BEGIN
     v_account_id := taotl_identity_api.require_account(p_authorization);
     SELECT is_admin INTO v_is_admin FROM taotl_accounts WHERE id = v_account_id;
@@ -454,12 +479,19 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
     END IF;
 
     BEGIN
-      SELECT owner_account_id INTO v_existing_owner FROM games WHERE id = v_game_id;
-      IF v_is_admin != 'Y' AND v_existing_owner != v_account_id THEN
+      SELECT owner_account_id INTO v_existing_owner FROM games WHERE id = v_game_id FOR UPDATE;
+      IF v_is_admin != 'Y' AND (v_existing_owner IS NULL OR v_existing_owner != v_account_id) THEN
         RAISE_APPLICATION_ERROR(-20403, 'Questa partita appartiene a un altro account.');
       END IF;
     EXCEPTION WHEN NO_DATA_FOUND THEN NULL;
     END;
+
+    SELECT COUNT(*), COUNT(DISTINCT id) INTO v_count, v_invalid
+      FROM JSON_TABLE(p_body, '$.players[*]' COLUMNS (id VARCHAR2(60) PATH '$.id'));
+    IF v_game_id IS NULL OR v_count NOT BETWEEN 2 AND 12 OR v_count != v_invalid
+       OR v_num_players IS NULL OR v_num_players != v_count THEN
+      RAISE_APPLICATION_ERROR(-20400, 'Giocatori della partita non validi.');
+    END IF;
 
     -- Assicura che ogni giocatore della partita esista in rubrica (id + nome minimi).
     FOR pl IN (
@@ -470,10 +502,14 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
                  name VARCHAR2(120) PATH '$.name'
                ))
     ) LOOP
+      SELECT COUNT(*) INTO v_count FROM players WHERE id = pl.id;
+      IF v_count > 0 AND can_read_player(v_account_id, pl.id) = 0 THEN
+        RAISE_APPLICATION_ERROR(-20403, 'Non puoi utilizzare questo profilo.');
+      END IF;
       upsert_player(pl.id, pl.name, v_account_id);
     END LOOP;
 
-    MERGE INTO games g
+    MERGE /*+ DISABLE_PARALLEL_DML NO_PARALLEL */ INTO games g
     USING (SELECT v_game_id AS id FROM dual) src
     ON (g.id = src.id)
     WHEN NOT MATCHED THEN
@@ -492,7 +528,7 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
     DELETE FROM rounds WHERE game_id = v_game_id;
     DELETE FROM game_players WHERE game_id = v_game_id;
 
-    INSERT INTO game_players (game_id, player_id, seat_order)
+    INSERT /*+ DISABLE_PARALLEL_DML NO_PARALLEL */ INTO game_players (game_id, player_id, seat_order)
     SELECT v_game_id, id, seat_order
       FROM JSON_TABLE(p_body, '$.players[*]'
              COLUMNS (
@@ -526,11 +562,43 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
                  results        CLOB FORMAT JSON PATH '$.results'
                ))
     ) LOOP
-      INSERT INTO rounds (game_id, round_index, cards_dealt, presa_value, rispetto_value, dealer_player_id)
+      IF r.idx IS NULL OR r.idx != TRUNC(r.idx) OR r.idx NOT BETWEEN 1 AND 104
+         OR r.cards_dealt IS NULL OR r.cards_dealt != TRUNC(r.cards_dealt) OR r.cards_dealt NOT BETWEEN 1 AND 104
+         OR r.presa_value IS NULL OR r.presa_value != 5*r.idx
+         OR r.rispetto_value IS NULL OR r.rispetto_value != 10*r.idx THEN
+        RAISE_APPLICATION_ERROR(-20400, 'Valori del turno non validi.');
+      END IF;
+      SELECT COUNT(*) INTO v_count FROM game_players WHERE game_id = v_game_id AND player_id = r.dealer_id;
+      IF v_count != 1 THEN RAISE_APPLICATION_ERROR(-20400, 'Mazziere non valido.'); END IF;
+      SELECT COUNT(*), COUNT(DISTINCT player_id) INTO v_count, v_invalid
+        FROM JSON_TABLE(r.results, '$[*]' COLUMNS (player_id VARCHAR2(60) PATH '$.playerId'));
+      IF v_count != v_num_players OR v_invalid != v_num_players THEN
+        RAISE_APPLICATION_ERROR(-20400, 'Risultati incompleti o duplicati.');
+      END IF;
+      FOR result IN (
+        SELECT * FROM JSON_TABLE(r.results, '$[*]' COLUMNS (
+          player_id VARCHAR2(60) PATH '$.playerId', bid NUMBER PATH '$.bid',
+          respected VARCHAR2(10) PATH '$.respected', scarto NUMBER PATH '$.scarto', score NUMBER PATH '$.score'
+        ))
+      ) LOOP
+        SELECT COUNT(*) INTO v_count FROM game_players WHERE game_id = v_game_id AND player_id = result.player_id;
+        IF v_count != 1 OR result.bid IS NULL OR result.bid != TRUNC(result.bid) OR result.bid NOT BETWEEN 0 AND r.cards_dealt
+           OR result.respected IS NULL OR result.respected NOT IN ('true','false')
+           OR result.scarto IS NULL OR result.scarto != TRUNC(result.scarto)
+           OR (result.respected = 'true' AND result.scarto != 0)
+           OR (result.respected = 'false' AND result.scarto NOT BETWEEN 1 AND r.cards_dealt) THEN
+          RAISE_APPLICATION_ERROR(-20400, 'Risultato del giocatore non valido.');
+        END IF;
+        v_expected_score := CASE WHEN result.respected = 'true' THEN 5*r.idx*result.bid + 10*r.idx ELSE -5*r.idx*result.scarto END;
+        IF result.score IS NULL OR result.score != v_expected_score THEN
+          RAISE_APPLICATION_ERROR(-20400, 'Punteggio non coerente con le regole.');
+        END IF;
+      END LOOP;
+      INSERT /*+ DISABLE_PARALLEL_DML NO_PARALLEL */ INTO rounds (game_id, round_index, cards_dealt, presa_value, rispetto_value, dealer_player_id)
       VALUES (v_game_id, r.idx, r.cards_dealt, r.presa_value, r.rispetto_value, r.dealer_id)
       RETURNING id INTO v_round_id;
 
-      INSERT INTO round_bids (round_id, player_id, bid, respected, scarto, score)
+      INSERT /*+ DISABLE_PARALLEL_DML NO_PARALLEL */ INTO round_bids (round_id, player_id, bid, respected, scarto, score)
       SELECT v_round_id, player_id, bid, CASE WHEN respected = 'true' THEN 'Y' ELSE 'N' END, scarto, score
         FROM JSON_TABLE(r.results, '$[*]'
                COLUMNS (
@@ -543,6 +611,9 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
     END LOOP;
 
     COMMIT;
+  EXCEPTION WHEN OTHERS THEN
+    ROLLBACK;
+    RAISE;
   END sync_game;
 
   FUNCTION can_read_game(p_account_id IN VARCHAR2, p_game_id IN VARCHAR2) RETURN NUMBER IS

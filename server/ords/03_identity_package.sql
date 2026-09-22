@@ -139,7 +139,7 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
     v_expires_at TIMESTAMP WITH TIME ZONE := SYSTIMESTAMP + INTERVAL '30' DAY;
     v_json       CLOB;
   BEGIN
-    v_token := LOWER(RAWTOHEX(SYS_GUID()) || RAWTOHEX(SYS_GUID()));
+    v_token := LOWER(RAWTOHEX(DBMS_CRYPTO.RANDOMBYTES(32)));
     v_token_hash := sha256(v_token);
 
     DELETE FROM taotl_sessions
@@ -448,7 +448,7 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
 
     FOR i IN 1..10 LOOP
       BEGIN
-        v_code := UPPER(SUBSTR(RAWTOHEX(SYS_GUID()), 1, 6));
+        v_code := RAWTOHEX(DBMS_CRYPTO.RANDOMBYTES(3));
         INSERT INTO taotl_game_rooms(
           id, join_code, host_account_id, expires_at
         ) VALUES (
@@ -580,7 +580,8 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
       FROM games
      WHERE id = v_game_id
        AND finished_at IS NOT NULL
-       AND is_manual = 'N';
+       AND is_manual = 'N'
+       AND owner_account_id = v_account_id;
 
     IF v_game_valid = 0 THEN
       RAISE_APPLICATION_ERROR(-20404, 'Partita conclusa non trovata.');

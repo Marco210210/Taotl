@@ -1,8 +1,9 @@
+import { addManualGame } from "@admin/api";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { addManualGame } from "@/api/leaderboard";
+
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { LinearBackButton } from "@/components/LinearBackButton";

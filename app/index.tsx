@@ -269,22 +269,6 @@ export default function HomeScreen() {
             <Text style={styles.leaderboardArrow}>›</Text>
           </Pressable>
 
-          {account?.isAdmin && (
-            <Pressable
-              onPress={() => router.navigate("/admin")}
-              style={({ pressed }) => [styles.adminCard, pressed && styles.pressed]}
-            >
-              <View style={styles.adminBadge}>
-                <Text style={styles.adminBadgeText}>A</Text>
-              </View>
-              <View style={styles.adminInfo}>
-                <Text style={styles.adminLabel}>{t("admin.homeShortcut")}</Text>
-                <Text style={styles.adminMeta}>@{account.handle}</Text>
-              </View>
-              <Text style={styles.leaderboardArrow}>›</Text>
-            </Pressable>
-          )}
-
           <Pressable onPress={() => router.navigate("/roster")} style={styles.rosterLink}>
             <Text style={styles.rosterText}>{t("home.manageRoster")}</Text>
             <Text style={styles.rosterArrow}>›</Text>

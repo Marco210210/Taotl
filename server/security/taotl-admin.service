@@ -1,0 +1,15 @@
+[Unit]
+Description=Taotl private administration (SSH tunnel only)
+After=network-online.target
+
+[Service]
+WorkingDirectory=/home/ubuntu/progetti/Taotl
+ExecStart=/usr/bin/python3 server/security/serve_admin.py
+Restart=on-failure
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

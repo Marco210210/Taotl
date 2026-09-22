@@ -1,9 +1,10 @@
+import { fetchAdminAccounts, linkAccountToPlayer, type AdminAccountDTO } from "@admin/api";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import type { AdminAccountDTO } from "@/api/leaderboard";
-import { fetchAdminAccounts, linkAccountToPlayer } from "@/api/leaderboard";
+
+
 import { Button } from "@/components/Button";
 import { LinearBackButton } from "@/components/LinearBackButton";
 import { PlayerAvatar } from "@/components/PlayerAvatar";

@@ -3,11 +3,10 @@ import type { Href } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 
-import { deleteFinishedGame, fetchGameHistoryDetail } from "@/api/games";
+import { fetchGameHistoryDetail } from "@/api/games";
 import type { GameHistoryDetailDTO } from "@/api/types";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { LinearBackButton } from "@/components/LinearBackButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
@@ -45,9 +44,7 @@ export default function HistoryDetailScreen() {
   const [game, setGame] = useState<GameHistoryDetailDTO | null>(null);
   const [fromCache, setFromCache] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -73,27 +70,6 @@ export default function HistoryDetailScreen() {
     () => new Map(game?.players.map((player) => [player.id, player.name]) ?? []),
     [game],
   );
-
-  const requestDelete = () => {
-    if (!game || !token) return;
-    setShowDeleteConfirm(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!game || !token) return;
-    setShowDeleteConfirm(false);
-    setDeleting(true);
-    try {
-      await deleteFinishedGame(game.id, token);
-      router.dismissTo(backDestination);
-    } catch (reason) {
-      Alert.alert(
-        t("history.deleteFailed"),
-        reason instanceof Error ? reason.message : t("history.retry"),
-      );
-      setDeleting(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -122,16 +98,6 @@ export default function HistoryDetailScreen() {
   return (
     <>
       <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} /> }} />
-      <ConfirmDialog
-        visible={showDeleteConfirm}
-        title={t("history.deleteTitle")}
-        description={t("history.deleteBody")}
-        confirmLabel={t("common.delete")}
-        cancelLabel={t("common.cancel")}
-        destructive
-        onConfirm={confirmDelete}
-        onCancel={() => setShowDeleteConfirm(false)}
-      />
       <ScreenContainer>
       <View>
         <ScreenIntro
@@ -187,9 +153,7 @@ export default function HistoryDetailScreen() {
         </Card>
       ))}
 
-      {account?.isAdmin && (
-        <Button label={t("history.deleteGame")} variant="danger" loading={deleting} onPress={requestDelete} />
-      )}
+
       </ScreenContainer>
     </>
   );

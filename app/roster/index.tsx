@@ -12,7 +12,7 @@ import { theme, type ThemeColors } from "@/theme";
 
 export default function RosterScreen() {
   const { from, leaderboardId } = useLocalSearchParams<{ from?: string; leaderboardId?: string }>();
-  const backDestination = from === "setup" ? "/setup/players" : from === "admin" ? "/admin" : "/";
+  const backDestination = from === "setup" ? "/setup/players" : from === "admin" ? "/" : "/";
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { players, loading, fromCache, reload } = useRoster(leaderboardId);

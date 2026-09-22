@@ -55,7 +55,7 @@ export default function AccountScreen() {
     from === "setup"
       ? "/setup/players"
       : from === "admin"
-        ? "/admin"
+        ? "/"
         : from === "home"
           ? "/"
           : "/profile";

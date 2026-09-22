@@ -1,4 +1,13 @@
 module.exports = ({ config }) => {
+  if (process.env.TAOTL_ADMIN_BUILD === "1") {
+    return {
+      ...config,
+      name: "Taotl Amministrazione",
+      plugins: config.plugins.map((plugin) =>
+        plugin === "expo-router" ? ["expo-router", { root: "./admin/app", sitemap: false }] : plugin
+      ),
+    };
+  }
   if (process.env.TAOTL_EXPO_GO !== "1") {
     return config;
   }

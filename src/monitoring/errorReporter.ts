@@ -36,8 +36,7 @@ export function reportError(
   context: Record<string, ErrorContextValue> = {},
 ): void {
   const endpoint = process.env.EXPO_PUBLIC_ERROR_REPORT_URL?.trim();
-  const monitorKey = process.env.EXPO_PUBLIC_APP_KEY?.trim();
-  if (!endpoint || !monitorKey) return;
+  if (!endpoint) return;
 
   const normalized = normalizeError(error);
   const fingerprint = `${source}|${normalized.name}|${normalized.message}`;
@@ -58,7 +57,6 @@ export function reportError(
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      "X-Monitor-Key": monitorKey,
     },
     body: JSON.stringify({
       version: 1,

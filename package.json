@@ -1,25 +1,26 @@
 {
   "name": "conteggio-app",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "main": "expo-router/entry",
   "dependencies": {
     "@expo-google-fonts/instrument-serif": "^0.4.1",
     "@expo-google-fonts/manrope": "^0.4.2",
-    "@expo/metro-runtime": "~57.0.15",
+    "@expo/metro-runtime": "~57.0.16",
     "@react-native-async-storage/async-storage": "2.2.0",
-    "expo": "~57.0.22",
+    "decode-uri-component": "file:vendor/decode-uri-component",
+    "expo": "~57.0.24",
     "expo-constants": "~57.0.17",
     "expo-file-system": "~57.0.6",
     "expo-font": "~57.0.3",
     "expo-haptics": "~57.0.3",
-    "expo-image-picker": "~57.0.17",
+    "expo-image-picker": "~57.0.19",
     "expo-linking": "~57.0.10",
     "expo-localization": "~57.0.2",
-    "expo-router": "~57.0.21",
+    "expo-router": "~57.0.22",
     "expo-secure-store": "~57.0.4",
     "expo-splash-screen": "~57.0.9",
     "expo-status-bar": "~57.0.1",
-    "expo-updates": "~57.0.22",
+    "expo-updates": "~57.0.23",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
@@ -39,5 +40,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "decode-uri-component": "$decode-uri-component"
+  }
 }

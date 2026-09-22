@@ -4,9 +4,7 @@ import type { Href } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { fetchAdminAccounts } from "@/api/leaderboard";
 import { Button } from "@/components/Button";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { LinearBackButton } from "@/components/LinearBackButton";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
@@ -30,7 +28,7 @@ export default function EditPlayerScreen() {
       : from === "setup"
         ? { pathname: "/roster", params: { from: "setup", ...(leaderboardId ? { leaderboardId } : {}) } }
         : "/roster";
-  const { players, loading, addPlayer, renamePlayer, setPlayerPhoto, removePlayer } = useRoster(leaderboardId);
+  const { players, loading, addPlayer, renamePlayer, setPlayerPhoto } = useRoster(leaderboardId);
   const existing = id ? players.find((p) => p.id === id) : undefined;
 
   const [name, setName] = useState("");
@@ -38,9 +36,7 @@ export default function EditPlayerScreen() {
   const [photoType, setPhotoType] = useState<string | undefined>();
   const [loadedPlayerId, setLoadedPlayerId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [accountLinkStatus, setAccountLinkStatus] = useState<AccountLinkStatus>("not-applicable");
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (existing && loadedPlayerId !== existing.id) {
@@ -59,27 +55,8 @@ export default function EditPlayerScreen() {
       setAccountLinkStatus("linked");
       return;
     }
-    if (!account?.isAdmin || !token) {
-      setAccountLinkStatus("not-applicable");
-      return;
-    }
-
-    let active = true;
-    setAccountLinkStatus("checking");
-    fetchAdminAccounts(token)
-      .then((accounts) => {
-        if (!active) return;
-        setAccountLinkStatus(
-          accounts.some((candidate) => candidate.linkedPlayerId === existing.id) ? "linked" : "unlinked",
-        );
-      })
-      .catch(() => {
-        if (active) setAccountLinkStatus("unavailable");
-      });
-    return () => {
-      active = false;
-    };
-  }, [account?.isAdmin, account?.linkedPlayerId, existing, token]);
+    setAccountLinkStatus("not-applicable");
+  }, [account?.linkedPlayerId, existing]);
 
   const isNameLocked = accountLinkStatus === "linked"
     || accountLinkStatus === "checking"
@@ -138,27 +115,6 @@ export default function EditPlayerScreen() {
     }
   };
 
-  const handleDelete = () => {
-    if (!existing || !token) return;
-    setShowDeleteConfirm(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!existing || !token) return;
-    setShowDeleteConfirm(false);
-    setDeleting(true);
-    try {
-      await removePlayer(existing.id, token);
-      router.dismissTo(rosterDestination);
-    } catch (error) {
-      Alert.alert(
-        t("player.deleteFailed"),
-        error instanceof Error ? error.message : t("history.retry"),
-      );
-      setDeleting(false);
-    }
-  };
-
   if (id && loading && !existing) {
     return (
       <>
@@ -186,16 +142,6 @@ export default function EditPlayerScreen() {
   return (
     <>
     <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={rosterDestination} /> }} />
-    <ConfirmDialog
-      visible={showDeleteConfirm}
-      title={t("player.deleteTitle")}
-      description={`${existing?.name ?? ""} ${t("player.deleteBody")}`}
-      confirmLabel={t("common.delete")}
-      cancelLabel={t("common.cancel")}
-      destructive
-      onConfirm={confirmDelete}
-      onCancel={() => setShowDeleteConfirm(false)}
-    />
     <ScreenContainer style={styles.content}>
       <Pressable onPress={pickImage} style={styles.avatarWrapper}>
         <PlayerAvatar name={name || "?"} photoUri={photoUri} size={96} />
@@ -223,15 +169,7 @@ export default function EditPlayerScreen() {
       </View>
 
       <Button label={t("common.save")} onPress={handleSave} loading={saving} disabled={!name.trim()} />
-      {existing && account?.isAdmin && (
-        <Button
-          label={t("player.deleteProfile")}
-          onPress={handleDelete}
-          variant="danger"
-          loading={deleting}
-          disabled={saving}
-        />
-      )}
+
     </ScreenContainer>
     </>
   );

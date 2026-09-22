@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { createPlayer, deletePlayer, fetchRoster, updatePlayerName, uploadPlayerPhoto } from "@/api/players";
+import { createPlayer, fetchRoster, updatePlayerName, uploadPlayerPhoto } from "@/api/players";
 import type { Player } from "@/game/types";
 import { useAccount } from "@/state/AccountContext";
 
@@ -44,10 +44,6 @@ export function useRoster(leaderboardId?: string | null, enabled = true) {
     setPlayers((prev) => prev.map((p) => (p.id === id ? { ...p, photoUri: url } : p)));
   }, [leaderboardId, token]);
 
-  const removePlayer = useCallback(async (id: string, adminToken: string) => {
-    await deletePlayer(id, adminToken);
-    setPlayers((prev) => prev.filter((p) => p.id !== id));
-  }, []);
 
-  return { players, loading, fromCache, reload, addPlayer, renamePlayer, setPlayerPhoto, removePlayer };
+  return { players, loading, fromCache, reload, addPlayer, renamePlayer, setPlayerPhoto };
 }

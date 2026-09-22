@@ -1,4 +1,4 @@
-import { getApiBaseUrl, getAppKey, REQUEST_TIMEOUT_MS } from "./config";
+import { getApiBaseUrl, REQUEST_TIMEOUT_MS } from "./config";
 import { reportError } from "@/monitoring/errorReporter";
 
 export class ApiUnavailableError extends Error {
@@ -91,12 +91,10 @@ export async function request<T>(
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const appKey = getAppKey();
     const headers: Record<string, string> = {
       Accept: "application/json",
       ...(options.headers as Record<string, string> | undefined),
     };
-    if (appKey) headers["X-App-Key"] = appKey;
     if (options.body && !headers["Content-Type"] && typeof options.body === "string") {
       headers["Content-Type"] = "application/json";
     }

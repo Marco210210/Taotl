@@ -31,7 +31,7 @@ from expo_compatibility import CompatibilityMonitor
 
 BIND = os.environ.get("TAOTL_MONITOR_BIND", "127.0.0.1")
 PORT = int(os.environ.get("TAOTL_MONITOR_PORT", "8091"))
-MONITOR_KEY = os.environ.get("TAOTL_MONITOR_KEY") or os.environ.get("EXPO_PUBLIC_APP_KEY", "")
+MONITOR_KEY = os.environ.get("TAOTL_MONITOR_KEY", "")
 LOG_PATH = Path(
     os.environ.get(
         "TAOTL_ERROR_LOG_PATH",
@@ -183,13 +183,21 @@ def notify_error(record: dict[str, Any]) -> None:
     fingerprint = record["fingerprint"]
     now = time.monotonic()
     with lock:
+        # La telemetria mobile è input pubblico, mai una fonte autenticata.
+        # Limite globale per evitare spam con messaggi sempre diversi.
+        if now - last_notifications.get("__all__", 0.0) < NOTIFICATION_COOLDOWN_SECONDS:
+            return
         previous = last_notifications.get(fingerprint, 0.0)
         if now - previous < NOTIFICATION_COOLDOWN_SECONDS:
             return
         last_notifications[fingerprint] = now
+        last_notifications["__all__"] = now
+        for key, sent_at in list(last_notifications.items()):
+            if now - sent_at > NOTIFICATION_COOLDOWN_SECONDS:
+                del last_notifications[key]
     context = record.get("context", {})
     lines = [
-        "🚨 Errore Taotl",
+        "🚨 Segnalazione client Taotl (non verificata)",
         f"ID: {record['id']}",
         f"Origine: {record.get('source') or 'sconosciuta'}",
         f"Piattaforma: {record.get('platform') or 'sconosciuta'}",
@@ -213,6 +221,11 @@ def is_authorized(headers: Any) -> bool:
 def allowed_by_rate_limit(client_ip: str) -> bool:
     now = time.monotonic()
     with lock:
+        for key, entries in list(rate_windows.items()):
+            if not entries or now - entries[-1] > 60:
+                del rate_windows[key]
+        if client_ip not in rate_windows and len(rate_windows) >= 1000:
+            return False
         window = rate_windows[client_ip]
         while window and now - window[0] > 60:
             window.popleft()
@@ -430,11 +443,12 @@ class MonitorHandler(BaseHTTPRequestHandler):
         if urllib.parse.urlsplit(self.path).path != "/v1/errors":
             self.send_json(HTTPStatus.NOT_FOUND, {"error": "Not Found"})
             return
-        if not is_authorized(self.headers):
-            self.send_json(HTTPStatus.UNAUTHORIZED, {"error": "Unauthorized"})
-            return
-        client_ip = self.headers.get("X-Forwarded-For", self.client_address[0]).split(",", 1)[0].strip()
-        if not allowed_by_rate_limit(client_ip):
+        # Caddy aggiunge in fondo l'IP osservato: ignora il prefisso controllabile
+        # dal mittente. Le installazioni esposte direttamente ignorano XFF.
+        client_ip = self.client_address[0]
+        if client_ip in ("127.0.0.1", "::1"):
+            client_ip = self.headers.get("X-Forwarded-For", client_ip).split(",")[-1].strip()
+        if not allowed_by_rate_limit("__all__") or not allowed_by_rate_limit(client_ip):
             self.send_json(HTTPStatus.TOO_MANY_REQUESTS, {"error": "Too Many Requests"})
             return
         try:
@@ -468,7 +482,7 @@ def load_recent_errors() -> None:
 
 def main() -> None:
     if not MONITOR_KEY:
-        raise SystemExit("TAOTL_MONITOR_KEY o EXPO_PUBLIC_APP_KEY non configurata.")
+        raise SystemExit("TAOTL_MONITOR_KEY privata non configurata.")
     load_recent_errors()
 
     def publish_compatibility(status: dict[str, Any]) -> None:

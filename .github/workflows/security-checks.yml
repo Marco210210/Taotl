@@ -1,0 +1,35 @@
+name: Security regression checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.1
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci --ignore-scripts
+      - run: npx tsc --noEmit
+      - run: node server/security/test_decoder.cjs
+      - run: python3 -m unittest discover -s server/monitoring -p 'test_*.py'
+      - name: Export public web application
+        run: npx expo export --platform web --output-dir dist
+      - name: Check public bundle excludes administration API
+        run: |
+          if grep -r -l '/taotl/admin/' dist; then
+            echo 'Administrative code found in public bundle'
+            exit 1
+          fi

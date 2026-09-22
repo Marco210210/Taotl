@@ -7,11 +7,6 @@ export function getApiBaseUrl(): string | null {
   return url && url.trim().length > 0 ? url.replace(/\/+$/, "") : null;
 }
 
-export function getAppKey(): string | null {
-  const key = process.env.EXPO_PUBLIC_APP_KEY;
-  return key && key.trim().length > 0 ? key : null;
-}
-
 // Oracle esegue l'hash della password prima di rispondere a registrazione e login.
 // Su un'istanza Always Free, nei momenti di carico, otto secondi possono essere
 // troppo pochi e il client finirebbe per mostrare un falso errore di password.

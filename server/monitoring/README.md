@@ -86,3 +86,12 @@ systemctl --user restart taotl-error-monitor.service
 
 Prima di riavviare, sostituire nel file il token generato da BotFather e l'ID numerico
 della chat autorizzata.
+
+## Separazione delle credenziali
+
+`GET /v1/errors` richiede `TAOTL_MONITOR_KEY`, generata casualmente e conservata
+solo nel file privato del server. Non è la vecchia chiave pubblica dell'app.
+`POST /v1/errors` riceve telemetria non autenticata con limiti per IP e globali;
+le notifiche client sono marcate non verificate e limitate globalmente a una ogni
+cinque minuti. Gli avvisi di compatibilità SDK e il watchdog restano indipendenti.
+Non sovrascrivere il file privato esistente con l'esempio durante gli aggiornamenti.

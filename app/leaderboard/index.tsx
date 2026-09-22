@@ -16,7 +16,7 @@ import { theme, type ThemeColors } from "@/theme";
 
 export default function LeaderboardScreen() {
   const { from, leaderboardId } = useLocalSearchParams<{ from?: string; leaderboardId?: string }>();
-  const backDestination = from === "profile" ? "/profile" : from === "admin" ? "/admin" : "/";
+  const backDestination = from === "profile" ? "/profile" : from === "admin" ? "/" : "/";
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { account, token } = useAccount();
@@ -91,17 +91,6 @@ export default function LeaderboardScreen() {
         />
       )}
 
-      {account?.isAdmin && (
-        <Button
-          label={t("leaderboard.addGame")}
-          variant="success"
-          onPress={() => router.push({
-            pathname: "/leaderboard/add-game",
-            params: { leaderboardId: selectedLeaderboardId ?? "lb_general" },
-          })}
-        />
-      )}
-
       {selectedLeaderboard?.canManage && (
         <Button label="Gestisci membri e inviti" variant="secondary" onPress={() => router.push({ pathname: "/leaderboard/manage", params: { leaderboardId: selectedLeaderboard.id, name: selectedLeaderboard.name } })} />
       )}
@@ -140,16 +129,6 @@ export default function LeaderboardScreen() {
           </Pressable>
         ))}
       </View>
-
-      {account?.isAdmin && (
-        <Pressable
-          onPress={() => router.push("/leaderboard/link-account")}
-          style={({ pressed }) => [styles.manageLink, pressed && styles.pressed]}
-        >
-          <Text style={styles.manageText}>{t("leaderboard.linkAccount")}</Text>
-          <Text style={styles.manageArrow}>›</Text>
-        </Pressable>
-      )}
     </ScreenContainer>
     </>
   );

@@ -35,8 +35,8 @@ finché non colleghi il backend Oracle (vedi sotto).
 
 1. Segui `server/README_DEPLOY_VPS.md` per creare le tabelle su Oracle ed esporre ORDS
    pubblicamente in HTTPS (gratis, via VPS Oracle Cloud Always Free).
-2. Copia `.env.example` in `.env` e valorizza `EXPO_PUBLIC_API_BASE_URL` e
-   `EXPO_PUBLIC_APP_KEY` con l'URL pubblico e la chiave scelti in fase di deploy.
+2. Copia `.env.example` in `.env` e valorizza `EXPO_PUBLIC_API_BASE_URL`
+   con l'URL pubblico scelto in fase di deploy. Le operazioni protette usano la sessione utente; nessuna chiave amministrativa deve essere inclusa nel client.
 3. Riavvia `npx expo start`.
 
 ## Distribuzione agli amici
@@ -49,7 +49,7 @@ Il bundle live viene servito dal tunnel Expo Go gestito sulla VPS. Quando viene
 pubblicato un nuovo APK Android autonomo, può essere allegato a una release GitHub e
 collegato dalla stessa pagina senza modificare l'indirizzo condiviso con gli utenti.
 
-La release corrente è **1.0.14** (Expo SDK 57). In **Impostazioni**, in fondo alla
+La release corrente è **1.0.15** (Expo SDK 57). In **Impostazioni**, in fondo alla
 pagina, la versione e la data del bundle permettono di verificare che il telefono
 abbia caricato l'aggiornamento. Le modifiche al bundle live vengono rilevate da
 Metro sulla VPS; per una sessione rimasta in background può servire riaprire Taotl
@@ -70,3 +70,5 @@ descritti in [server/monitoring/README.md](server/monitoring/README.md).
   chiamata ruotati correttamente → classifica live.
 - Il backend Oracle/ORDS e il tunnel Expo Go vengono distribuiti separatamente usando
   le configurazioni descritte nella cartella `server/`.
+
+Amministrazione separata e verifiche di sicurezza: [server/security/README.md](server/security/README.md).
