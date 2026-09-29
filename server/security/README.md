@@ -8,6 +8,14 @@ non sostituisce questi controlli.
 
 ## Accesso al pannello
 
+Se il progetto è aperto in VS Code tramite Remote SSH, non serve un secondo
+comando SSH. Aprire la scheda **Porte / Ports** accanto al Terminale, scegliere
+**Inoltra una porta / Forward a Port**, inserire `8095`, quindi aprire nel browser
+`http://127.0.0.1:8095`. Se la scheda non è visibile, usare `Ctrl+Shift+P` e cercare
+**Ports: Focus on Ports View**. La configurazione `.vscode/settings.json` assegna
+alla porta il nome “Taotl — pannello amministratore privato” e abilita il ripristino
+degli inoltri. La porta locale 8095 deve essere libera.
+
 Dal proprio computer, con la chiave SSH già autorizzata sulla VPS:
 
 ```sh
@@ -64,7 +72,42 @@ provenienza upstream della correzione 0.5.0, con compatibilità CommonJS per
 Expo Router 57. Il test riproduce il precedente blocco su una query malformata
 in un processo separato con timeout.
 
+## Strix
+
 Strix è installato fuori dal progetto in `~/.local/share/taotl-security`.
-La scansione non è stata eseguita: mancano Docker e una chiave API LLM dedicata.
-Non sono state riutilizzate credenziali di Codex. I risultati del rapporto
-provengono dai test mirati e dall'analisi del codice, non da Strix.
+Docker è disponibile e l'immagine `ghcr.io/usestrix/strix-sandbox:1.3.0` è stata
+scaricata e avviata con successo su ARM64 (verifica del 29 settembre 2026).
+Resta necessario autenticare Strix con un account
+modello: `strix auth status` non rileva un accesso. La CLI supporta un login
+dedicato con ChatGPT, come documentato da Strix, oppure una chiave API LLM.
+Non è necessario acquistare una chiave API se il login in abbonamento supportato
+da Strix funziona per il proprio account; la disponibilità del modello va verificata
+dopo il login. Non vengono copiate le credenziali dell'estensione Codex.
+
+Nel terminale remoto di VS Code:
+
+```sh
+~/.local/bin/strix auth login chatgpt --manual
+```
+
+Aprire il link mostrato e completare l'accesso personalmente. Se il browser
+termina su una pagina localhost che non carica, copiare l'indirizzo completo
+dalla barra e incollarlo **nel terminale che attende**, non nella chat o in Git.
+La modalità manuale evita di dover inoltrare anche la porta OAuth 1455.
+
+Dopo l'accesso:
+
+```sh
+~/.local/bin/strix auth status
+bash server/security/run_strix.sh
+```
+
+Il launcher usa una copia dei soli file committati, fuori dalla cartella live,
+senza `.env`, wallet o storia Git. I test sono limitati allo snapshot e ai servizi
+locali creati nella sandbox. Il container ha limiti di CPU e memoria; risultati in
+`~/.local/share/taotl-security/runs`. Per usare un provider API configurare
+`STRIX_LLM` e `LLM_API_KEY` nel proprio ambiente privato prima dell'avvio.
+
+Finché l'accesso non viene completato, non è stata eseguita una scansione Strix:
+i risultati del rapporto 1.0.15 provengono dai test mirati e dall'analisi del codice.
+Riferimento: https://github.com/usestrix/strix#sign-in-with-a-chatgpt-subscription

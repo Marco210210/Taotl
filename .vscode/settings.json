@@ -1,0 +1,11 @@
+{
+  "remote.autoForwardPorts": true,
+  "remote.restoreForwardedPorts": true,
+  "remote.portsAttributes": {
+    "8095": {
+      "label": "Taotl — pannello amministratore privato",
+      "onAutoForward": "notify",
+      "requireLocalPort": true
+    }
+  }
+}
