@@ -86,7 +86,7 @@ export default function AddManualGameScreen() {
 
   return (
     <>
-    <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} /> }} />
+    <Stack.Screen options={{ title: "Inserisci partita", headerLeft: () => <LinearBackButton destination={backDestination} preferHistory /> }} />
     <ScreenContainer
       footer={
         <Button

@@ -46,7 +46,7 @@ function deviceLanguage(): AppLanguage {
   return getLocales()[0]?.languageCode === "en" ? "en" : "it";
 }
 
-export function AppSettingsProvider({ children }: PropsWithChildren) {
+export function AppSettingsProvider({ children, languageOverride }: PropsWithChildren<{ languageOverride?: AppLanguage }>) {
   const systemScheme = useColorScheme();
   const [settings, setSettings] = useState<StoredSettings>(DEFAULT_SETTINGS);
   const [hydrated, setHydrated] = useState(false);
@@ -71,7 +71,7 @@ export function AppSettingsProvider({ children }: PropsWithChildren) {
     setSettings((current) => ({ ...current, [key]: value }));
   }, []);
 
-  const resolvedLanguage = settings.language === "system" ? deviceLanguage() : settings.language;
+  const resolvedLanguage = languageOverride ?? (settings.language === "system" ? deviceLanguage() : settings.language);
   const resolvedTheme = settings.theme === "system"
     ? (systemScheme === "dark" ? "dark" : "light")
     : settings.theme;

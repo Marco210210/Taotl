@@ -13,7 +13,7 @@ import { SetupProvider } from "@/state/SetupContext";
 import { useAppSettings } from "@/state/AppSettingsContext";
 
 export default function AdminLayout() {
-  return <ErrorBoundary><FontGate><GestureHandlerRootView style={{ flex: 1 }}>
+  return <ErrorBoundary><FontGate languageOverride="it"><GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider><AccountProvider><GameProvider><SetupProvider>
       <AdminNavigation />
     </SetupProvider></GameProvider></AccountProvider></SafeAreaProvider>
@@ -41,19 +41,33 @@ function AdminNavigation() {
     if (token && verifiedToken === token) router.replace("/admin");
   }, [token, verifiedToken]);
   return <>
-    <Stack screenOptions={{ title: "Taotl · Amministrazione", headerStyle: { backgroundColor: colors.background }, headerTintColor: colors.text }}>
-      <Stack.Screen name="account" />
+    <Stack screenOptions={{ title: "Amministrazione", headerBackTitle: "Indietro", headerBackVisible: false, headerStyle: { backgroundColor: colors.background }, headerTintColor: colors.text }}>
+      <Stack.Screen name="account/index" options={{ title: "Accesso amministratore" }} />
+      <Stack.Screen name="account/forgot-password" options={{ title: "Recupera password" }} />
+      <Stack.Screen name="account/reset-password" options={{ title: "Reimposta password" }} />
       <Stack.Protected guard={Boolean(token && verifiedToken === token)}>
-        <Stack.Screen name="admin" />
-        <Stack.Screen name="game" />
-        <Stack.Screen name="history" />
-        <Stack.Screen name="index" />
-        <Stack.Screen name="leaderboard" />
-        <Stack.Screen name="profile" />
-        <Stack.Screen name="roster" />
-        <Stack.Screen name="rules" />
-        <Stack.Screen name="settings" />
-        <Stack.Screen name="setup" />
+        <Stack.Screen name="admin/index" options={{ title: "Pannello amministratore" }} />
+        <Stack.Screen name="leaderboard/index" options={{ title: "Classifiche" }} />
+        <Stack.Screen name="leaderboard/manage" options={{ title: "Gestione classifica" }} />
+        <Stack.Screen name="leaderboard/add-game" options={{ title: "Inserisci partita" }} />
+        <Stack.Screen name="leaderboard/link-account" options={{ title: "Collega account e giocatori" }} />
+        <Stack.Screen name="leaderboard/player/[id]" options={{ title: "Profilo giocatore" }} />
+        <Stack.Screen name="roster/index" options={{ title: "Rubrica giocatori" }} />
+        <Stack.Screen name="roster/edit" options={{ title: "Modifica giocatore" }} />
+        <Stack.Screen name="history/index" options={{ title: "Storico partite" }} />
+        <Stack.Screen name="history/[id]" options={{ title: "Dettaglio partita" }} />
+        <Stack.Screen name="profile/index" options={{ title: "Profilo" }} />
+        <Stack.Screen name="rules/index" options={{ title: "Regole" }} />
+        <Stack.Screen name="settings/index" options={{ title: "Impostazioni" }} />
+        <Stack.Screen name="setup/players" options={{ title: "Giocatori" }} />
+        <Stack.Screen name="setup/dealer" options={{ title: "Ordine e mazziere" }} />
+        <Stack.Screen name="setup/mode" options={{ title: "Modalità" }} />
+        <Stack.Screen name="game/bids" options={{ title: "Chiamate" }} />
+        <Stack.Screen name="game/dealer" options={{ title: "Mazziere" }} />
+        <Stack.Screen name="game/scoring" options={{ title: "Punteggi" }} />
+        <Stack.Screen name="game/standings" options={{ title: "Classifica partita" }} />
+        <Stack.Screen name="game/end" options={{ title: "Fine partita" }} />
+        <Stack.Screen name="index" options={{ title: "Amministrazione", headerShown: false }} />
       </Stack.Protected>
     </Stack>
     {denied && <View style={{ padding: 16, backgroundColor: colors.background }}>

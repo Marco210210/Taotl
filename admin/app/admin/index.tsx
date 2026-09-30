@@ -4,7 +4,6 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
-import { LinearBackButton } from "@/components/LinearBackButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
 import { useAccount } from "@/state/AccountContext";
@@ -18,7 +17,7 @@ export default function AdminScreen() {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const header = <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} /> }} />;
+  const header = <Stack.Screen options={{ title: "Pannello amministratore", headerBackVisible: false, headerLeft: () => null }} />;
 
   if (!account) {
     return (
@@ -77,11 +76,7 @@ export default function AdminScreen() {
       <Card>
         <Text style={styles.sectionTitle}>Classifiche · super admin</Text>
         <Text style={styles.handle}>Puoi vedere e gestire tutte le classifiche, inclusi giocatori, membri e inviti.</Text>
-        <Button label="Gestisci tutte le classifiche" onPress={() => router.push({ pathname: "/leaderboard", params: { from: "admin" } })} />
-        <Button label="Crea una nuova classifica" variant="secondary" onPress={() => router.push("/leaderboard/manage")} />
-        {account.leaderboards.map((board) => (
-          <Button key={board.id} label={board.name} variant="ghost" onPress={() => router.push({ pathname: "/leaderboard/manage", params: { leaderboardId: board.id, name: board.name } })} />
-        ))}
+        <Button label="Classifiche" onPress={() => router.push({ pathname: "/leaderboard", params: { from: "admin" } })} />
       </Card>
 
       <View style={styles.actions}>
@@ -91,17 +86,13 @@ export default function AdminScreen() {
           onPress={() => router.push({ pathname: "/leaderboard/link-account", params: { from: "admin" } })}
         />
         <Button
-          label={t("admin.addGame")}
-          onPress={() => router.push({ pathname: "/leaderboard/add-game", params: { from: "admin" } })}
-        />
-        <Button
           label={t("admin.managePlayers")}
           variant="secondary"
           onPress={() => router.push({ pathname: "/roster", params: { from: "admin" } })}
         />
         <Button
           label={t("admin.manageHistory")}
-          variant="ghost"
+          variant="secondary"
           onPress={() => router.push({ pathname: "/history", params: { from: "admin" } })}
         />
       </View>

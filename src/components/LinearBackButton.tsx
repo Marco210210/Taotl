@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import type { ThemeColors } from "@/theme";
 
-export function LinearBackButton({ destination }: { destination: Href }) {
+export function LinearBackButton({ destination, preferHistory = false }: { destination: Href; preferHistory?: boolean }) {
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
@@ -15,7 +15,7 @@ export function LinearBackButton({ destination }: { destination: Href }) {
       accessibilityRole="button"
       accessibilityLabel={t("common.back")}
       hitSlop={12}
-      onPress={() => router.dismissTo(destination)}
+      onPress={() => preferHistory && router.canGoBack() ? router.back() : router.dismissTo(destination)}
       style={({ pressed }) => [styles.button, pressed && styles.pressed]}
     >
       <View pointerEvents="none" style={styles.icon} />

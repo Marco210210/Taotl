@@ -80,7 +80,7 @@ export default function ManageLeaderboardScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination="/leaderboard" /> }} />
+      <Stack.Screen options={{ title: leaderboardId ? "Gestione classifica" : "Nuova classifica", headerBackVisible: false, headerLeft: () => <LinearBackButton destination="/leaderboard" preferHistory /> }} />
       <ScreenContainer>
         <ScreenIntro title={leaderboardName || "Nuova classifica"} description="Classifica privata: scegli chi invitare e quali giocatori includere. Il super admin dell’app può accedere per assistenza." />
 
@@ -131,7 +131,7 @@ export default function ManageLeaderboardScreen() {
             <Card>
               <Text style={styles.title}>Membri</Text>
               {members.map((member) => <View key={member.accountId} style={styles.member}>
-                <View style={styles.flex}><Text style={styles.memberName}>{member.displayName}</Text><Text style={styles.help}>@{member.handle} · {member.role}</Text></View>
+                <View style={styles.flex}><Text style={styles.memberName}>{member.displayName}</Text><Text style={styles.help}>@{member.handle} · {{ owner: "Proprietario", manager: "Gestore", member: "Membro", viewer: "Osservatore" }[member.role]}</Text></View>
                 {member.role !== "owner" && <>
                   <Pressable onPress={() => void run(() => updateLeaderboardMember(token, leaderboardId, member.accountId, member.role === "viewer" ? "member" : "viewer"))}><Text style={styles.action}>{member.role === "viewer" ? "Promuovi" : "Solo lettura"}</Text></Pressable>
                   <Pressable onPress={() => void run(() => removeLeaderboardMember(token, leaderboardId, member.accountId))}><Text style={styles.remove}>Rimuovi</Text></Pressable>

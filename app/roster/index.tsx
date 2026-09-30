@@ -25,7 +25,7 @@ export default function RosterScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} /> }} />
+      <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} preferHistory /> }} />
       <SafeAreaView style={styles.safe} edges={["bottom", "left", "right"]}>
         <ScrollView
           contentContainerStyle={styles.content}

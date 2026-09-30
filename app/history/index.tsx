@@ -58,7 +58,7 @@ export default function HistoryScreen() {
 
   return (
     <>
-    <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} /> }} />
+    <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} preferHistory /> }} />
     <ScreenContainer>
       <ScreenIntro
         title={selectedLeaderboard ? `${t("history.title")} · ${selectedLeaderboard.name}` : t("history.title")}

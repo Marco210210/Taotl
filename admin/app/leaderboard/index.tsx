@@ -16,7 +16,7 @@ import { theme, type ThemeColors } from "@/theme";
 
 export default function LeaderboardScreen() {
   const { from, leaderboardId } = useLocalSearchParams<{ from?: string; leaderboardId?: string }>();
-  const backDestination = from === "profile" ? "/profile" : from === "admin" ? "/admin" : "/";
+  const backDestination = from === "profile" ? "/profile" : "/admin";
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { account, token } = useAccount();
@@ -73,11 +73,11 @@ export default function LeaderboardScreen() {
 
   return (
     <>
-    <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} /> }} />
+    <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} preferHistory /> }} />
     <ScreenContainer>
       <ScreenIntro
-        title={selectedLeaderboard?.name ?? t("leaderboard.title")}
-        description={t("leaderboard.description")}
+        title="Classifiche"
+        description="Scegli una classifica per gestire giocatori e inviti, oppure inserire una partita."
       />
 
       {!!token && <Button label="Crea una nuova classifica" variant="secondary" onPress={() => router.push("/leaderboard/manage")} />}
@@ -90,7 +90,9 @@ export default function LeaderboardScreen() {
         />
       )}
 
-      {account?.isAdmin && (
+      {selectedLeaderboard && <Text style={styles.boardName}>{selectedLeaderboard.name}</Text>}
+
+      {account?.isAdmin && selectedLeaderboard && (
         <Button
           label={t("leaderboard.addGame")}
           variant="success"
@@ -140,15 +142,6 @@ export default function LeaderboardScreen() {
         ))}
       </View>
 
-      {account?.isAdmin && (
-        <Pressable
-          onPress={() => router.push("/leaderboard/link-account")}
-          style={({ pressed }) => [styles.manageLink, pressed && styles.pressed]}
-        >
-          <Text style={styles.manageText}>{t("leaderboard.linkAccount")}</Text>
-          <Text style={styles.manageArrow}>›</Text>
-        </Pressable>
-      )}
     </ScreenContainer>
     </>
   );
@@ -156,6 +149,7 @@ export default function LeaderboardScreen() {
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
+    boardName: { color: colors.text, fontFamily: theme.font.family.extraBold, fontSize: 20 },
     helper: { fontSize: theme.font.small, color: colors.textMuted, fontFamily: theme.font.family.medium },
     error: { fontSize: theme.font.small, color: colors.danger, fontFamily: theme.font.family.semibold },
     list: { gap: theme.spacing(1) },

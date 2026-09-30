@@ -54,7 +54,7 @@ export default function RootLayout() {
   );
 }
 
-export function FontGate({ children }: { children?: React.ReactNode }) {
+export function FontGate({ children, languageOverride }: { children?: React.ReactNode; languageOverride?: "it" | "en" }) {
   const [manropeLoaded, manropeError] = useManropeFonts({
     Manrope_400Regular,
     Manrope_500Medium,
@@ -72,7 +72,7 @@ export function FontGate({ children }: { children?: React.ReactNode }) {
   if (!ready) return null;
 
   return (
-    <AppSettingsProvider>
+    <AppSettingsProvider languageOverride={languageOverride}>
       {children ?? <AppNavigation />}
     </AppSettingsProvider>
   );

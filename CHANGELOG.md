@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.18 — 2026-09-30
+
+- Pannello admin compatto con un solo accesso alle classifiche; creazione e partite manuali nella sezione Classifiche.
+- Titoli leggibili, percorsi registrati correttamente e navigazione indietro basata sulla provenienza.
+- Pannello amministrativo interamente in italiano, indipendente dalla lingua del browser.
+
 ## 1.0.17 — 2026-09-30
 
 - Gestione classifiche raggiungibile dal pannello admin; super admin vede tutte le classifiche.

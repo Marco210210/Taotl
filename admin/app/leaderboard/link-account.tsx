@@ -80,7 +80,7 @@ export default function LinkAccountScreen() {
 
   return (
     <>
-    <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={backDestination} /> }} />
+    <Stack.Screen options={{ title: "Collega account e giocatori", headerLeft: () => <LinearBackButton destination={backDestination} preferHistory /> }} />
     <ScreenContainer
       footer={
         <Button

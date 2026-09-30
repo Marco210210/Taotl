@@ -49,7 +49,7 @@ Il bundle live viene servito dal tunnel Expo Go gestito sulla VPS. Quando viene
 pubblicato un nuovo APK Android autonomo, può essere allegato a una release GitHub e
 collegato dalla stessa pagina senza modificare l'indirizzo condiviso con gli utenti.
 
-La release corrente è **1.0.17** (Expo SDK 57). In **Impostazioni**, in fondo alla
+La release corrente è **1.0.18** (Expo SDK 57). In **Impostazioni**, in fondo alla
 pagina, la versione e la data del bundle permettono di verificare che il telefono
 abbia caricato l'aggiornamento. Le modifiche al bundle live vengono rilevate da
 Metro sulla VPS; per una sessione rimasta in background può servire riaprire Taotl
