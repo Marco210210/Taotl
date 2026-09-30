@@ -11,7 +11,7 @@ fi
 docker info >/dev/null
 
 # An explicit API configuration may override the subscription model.
-export STRIX_LLM="${STRIX_LLM:-chatgpt/gpt-5.4}"
+export STRIX_LLM="${STRIX_LLM:-chatgpt/gpt-6-sol}"
 export STRIX_TELEMETRY=false
 if [[ "$STRIX_LLM" == chatgpt/* ]] && ! "$strix_bin" auth status >/dev/null; then
   printf 'Completa prima il login: ~/.local/bin/strix auth login chatgpt --manual\n' >&2

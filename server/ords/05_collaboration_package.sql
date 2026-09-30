@@ -416,6 +416,7 @@ CREATE OR REPLACE PACKAGE BODY taotl_collaboration_api AS
     v_target_id VARCHAR2(60);
     v_player_id VARCHAR2(60);
     v_request_id VARCHAR2(60);
+    v_player_owner VARCHAR2(60);
     v_count     NUMBER;
     v_current_player_id VARCHAR2(60);
     v_json      CLOB;
@@ -429,6 +430,11 @@ CREATE OR REPLACE PACKAGE BODY taotl_collaboration_api AS
     SELECT COUNT(*) INTO v_count FROM taotl_leaderboard_players
      WHERE leaderboard_id = p_leaderboard_id AND player_id = v_player_id;
     IF v_count = 0 THEN RAISE_APPLICATION_ERROR(-20404, 'Profilo non presente nella classifica.'); END IF;
+    SELECT owner_account_id INTO v_player_owner FROM players WHERE id = v_player_id FOR UPDATE;
+    IF NOT account_is_superadmin(v_actor_id)
+       AND (v_player_owner IS NULL OR v_player_owner != v_actor_id) THEN
+      RAISE_APPLICATION_ERROR(-20403, 'Solo il proprietario del profilo può autorizzare il collegamento.');
+    END IF;
     SELECT COUNT(*) INTO v_count FROM taotl_account_players WHERE player_id = v_player_id;
     IF v_count > 0 THEN RAISE_APPLICATION_ERROR(-20409, 'Profilo già collegato.'); END IF;
     BEGIN
@@ -494,6 +500,8 @@ CREATE OR REPLACE PACKAGE BODY taotl_collaboration_api AS
 
   FUNCTION respond_link_request(p_authorization IN VARCHAR2, p_request_id IN VARCHAR2, p_body IN BLOB) RETURN CLOB IS
     v_account_id VARCHAR2(60);
+    v_requested_by VARCHAR2(60);
+    v_player_owner VARCHAR2(60);
     v_target_id  VARCHAR2(60);
     v_player_id  VARCHAR2(60);
     v_accept_s   VARCHAR2(10);
@@ -503,8 +511,8 @@ CREATE OR REPLACE PACKAGE BODY taotl_collaboration_api AS
     v_json       CLOB;
   BEGIN
     v_account_id := taotl_identity_api.require_account(p_authorization);
-    SELECT target_account_id, player_id
-      INTO v_target_id, v_player_id
+    SELECT target_account_id, player_id, requested_by
+      INTO v_target_id, v_player_id, v_requested_by
       FROM taotl_profile_link_requests
      WHERE id = p_request_id AND status = 'pending' FOR UPDATE;
     IF v_account_id != v_target_id AND NOT account_is_superadmin(v_account_id) THEN
@@ -512,6 +520,12 @@ CREATE OR REPLACE PACKAGE BODY taotl_collaboration_api AS
     END IF;
     SELECT JSON_VALUE(p_body, '$.accept' RETURNING VARCHAR2(10)) INTO v_accept_s FROM dual;
     IF LOWER(NVL(v_accept_s, 'false')) = 'true' THEN
+      -- Recheck existing requests against current ownership before any mutation.
+      SELECT owner_account_id INTO v_player_owner FROM players WHERE id = v_player_id FOR UPDATE;
+      IF NOT account_is_superadmin(v_requested_by)
+         AND (v_player_owner IS NULL OR v_player_owner != v_requested_by) THEN
+        RAISE_APPLICATION_ERROR(-20403, 'Il proprietario del profilo non ha autorizzato il collegamento.');
+      END IF;
       SELECT COUNT(*) INTO v_count FROM taotl_account_players WHERE player_id = v_player_id;
       IF v_count > 0 THEN RAISE_APPLICATION_ERROR(-20409, 'Profilo già collegato.'); END IF;
       BEGIN

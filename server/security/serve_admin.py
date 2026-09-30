@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Serve solo il bundle amministrativo esportato, sul loopback per tunnel SSH."""
+"""Serve il bundle admin su loopback, dietro Caddy HTTPS o tunnel SSH."""
 import os
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path

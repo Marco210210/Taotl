@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.16 — 2026-09-29
+
+- Collegamento al pannello amministratore dal proprio profilo nell'app.
+- Pannello su dominio HTTPS separato, accessibile anche dal telefono senza tunnel SSH.
+- Schermata amministrativa aperta inizialmente sul login; permessi verificati dalle API.
+- Collegamento di un profilo consentito solo con autorizzazione del suo proprietario o di un amministratore, ricontrollata all'accettazione.
+
 ## 1.0.15 — 2026-09-22
 
 - Pannello amministrativo in frontend separato, accessibile tramite tunnel SSH.

@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text } from "react-native";
+import { ActivityIndicator, Alert, Linking, StyleSheet, Text } from "react-native";
 
 import { fetchHistory } from "@/api/games";
 import { fetchLeaderboard, fetchManualGames, type LeaderboardEntryDTO, type ManualGameDTO } from "@/api/leaderboard";
@@ -124,6 +124,18 @@ export default function MyProfileScreen() {
               variant="ghost"
               onPress={() => router.push({ pathname: "/account", params: { from: "profile" } })}
             />
+            {account.isAdmin && (
+              <Button
+                label={t("admin.title")}
+                variant="secondary"
+                trailing="↗"
+                onPress={() => {
+                  void Linking.openURL("https://admin-taotl.130.110.16.97.sslip.io").catch(() => {
+                    Alert.alert(t("admin.title"), "Impossibile aprire il browser. Riprova tra poco.");
+                  });
+                }}
+              />
+            )}
             <Button
               label={t("account.logout")}
               variant="danger"

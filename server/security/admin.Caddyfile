@@ -1,0 +1,8 @@
+# Dedicated origin: the public Expo frontend only contains a link to this site.
+# The loopback service keeps its Host check; Caddy supplies the expected value.
+admin-taotl.130.110.16.97.sslip.io {
+    header X-Robots-Tag "noindex, nofollow, noarchive"
+    reverse_proxy 127.0.0.1:8095 {
+        header_up Host 127.0.0.1:8095
+    }
+}

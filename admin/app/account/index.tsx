@@ -76,7 +76,7 @@ export default function AccountScreen() {
     updateLeaderboards,
     refreshAccount,
   } = useAccount();
-  const [mode, setMode] = useState<AuthMode>(initialMode === "login" ? "login" : "register");
+  const [mode, setMode] = useState<AuthMode>(initialMode === "register" ? "register" : "login");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [handle, setHandle] = useState("");
   const [displayName, setDisplayName] = useState("");

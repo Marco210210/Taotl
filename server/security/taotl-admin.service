@@ -1,5 +1,5 @@
 [Unit]
-Description=Taotl private administration (SSH tunnel only)
+Description=Taotl administration frontend (loopback behind HTTPS proxy)
 After=network-online.target
 
 [Service]
