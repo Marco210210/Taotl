@@ -33,13 +33,19 @@ export default function SetupPlayersScreen() {
     setLeaderboard(preferred.id, preferred.name);
   }, [account, leaderboardId, setLeaderboard, writableBoards]);
 
+  const normalizeName = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase().trim();
+  const query = normalizeName(newName);
+  const matchingPlayers = players.filter((player) => normalizeName(player.name).includes(query));
+  const exactMatch = players.some((player) => normalizeName(player.name) === query);
+  const canCreate = !account || !!selectedBoard?.canManage;
+
   const selectedIds = new Set(selectedPlayers.map((player) => player.id));
   const canAddMore = selectedPlayers.length < MAX_PLAYERS;
   const canContinue = selectedPlayers.length >= MIN_PLAYERS && selectedPlayers.length <= MAX_PLAYERS;
 
   const handleAddPlayer = async () => {
     const name = newName.trim();
-    if (!name) return;
+    if (!name || exactMatch || !canCreate || adding) return;
     setAdding(true);
     setAddError(null);
     try {
@@ -123,37 +129,25 @@ export default function SetupPlayersScreen() {
         </Pressable>
       </Card>
 
-      {(!account || selectedBoard?.canManage) && <View style={styles.addRow}>
+      <View style={styles.addRow}>
         <TextInput
           value={newName}
-          onChangeText={(value) => {
-            setNewName(value);
-            setAddError(null);
-          }}
-          placeholder={t("players.addPlaceholder")}
+          onChangeText={(value) => { setNewName(value); setAddError(null); }}
+          placeholder="Cerca un giocatore per nome"
+          accessibilityLabel="Cerca un giocatore per nome"
           placeholderTextColor={colors.textMuted as string}
           style={styles.input}
-          onSubmitEditing={handleAddPlayer}
-          returnKeyType="done"
+          returnKeyType="search"
         />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("players.addAccessibility")}
-          disabled={!newName.trim() || adding}
-          onPress={handleAddPlayer}
-          style={({ pressed }) => [styles.addButton, (!newName.trim() || adding) && styles.disabled, pressed && styles.pressed]}
-        >
-          <Text allowFontScaling={false} pointerEvents="none" style={styles.addButtonText}>{adding ? "…" : "+"}</Text>
-        </Pressable>
-      </View>}
+      </View>
       {!!addError && <Text style={styles.addError}>{addError}</Text>}
 
       <View style={styles.list}>
         {loading && <Text style={styles.helper}>{t("players.loading")}</Text>}
-        {!loading && players.length === 0 && (
-          <Text style={styles.empty}>{t("players.empty")}</Text>
+        {!loading && matchingPlayers.length === 0 && (
+          <Text style={styles.empty}>{query ? "Nessun giocatore corrisponde alla ricerca." : t("players.empty")}</Text>
         )}
-        {players.map((player) => {
+        {matchingPlayers.map((player) => {
           const selected = selectedIds.has(player.id);
           const order = selectedPlayers.findIndex((entry) => entry.id === player.id);
           const disabled = !selected && !canAddMore;
@@ -186,6 +180,16 @@ export default function SetupPlayersScreen() {
           );
         })}
       </View>
+
+      {canCreate && !!query && !exactMatch && (
+        <Button
+          label={`Crea nuovo giocatore “${newName.trim()}”`}
+          variant="secondary"
+          loading={adding}
+          disabled={loading || adding || !canAddMore}
+          onPress={() => void handleAddPlayer()}
+        />
+      )}
 
       {(!account || selectedBoard?.canManage) && <Pressable
         onPress={() => router.push({ pathname: "/roster", params: { from: "setup", leaderboardId: leaderboardId ?? undefined } })}

@@ -74,6 +74,16 @@ export default function AdminScreen() {
         </Text>
       </Card>
 
+      <Card>
+        <Text style={styles.sectionTitle}>Classifiche · super admin</Text>
+        <Text style={styles.handle}>Puoi vedere e gestire tutte le classifiche, inclusi giocatori, membri e inviti.</Text>
+        <Button label="Gestisci tutte le classifiche" onPress={() => router.push({ pathname: "/leaderboard", params: { from: "admin" } })} />
+        <Button label="Crea una nuova classifica" variant="secondary" onPress={() => router.push("/leaderboard/manage")} />
+        {account.leaderboards.map((board) => (
+          <Button key={board.id} label={board.name} variant="ghost" onPress={() => router.push({ pathname: "/leaderboard/manage", params: { leaderboardId: board.id, name: board.name } })} />
+        ))}
+      </Card>
+
       <View style={styles.actions}>
         <Button
           label={t("admin.linkAccounts")}

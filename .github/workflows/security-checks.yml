@@ -24,6 +24,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npx tsc --noEmit
       - run: node server/security/test_decoder.cjs
+      - run: node server/security/test_classica.cjs
       - run: python3 -m unittest discover -s server/monitoring -p 'test_*.py'
       - name: Export public web application
         run: npx expo export --platform web --output-dir dist

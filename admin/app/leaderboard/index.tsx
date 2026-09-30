@@ -39,9 +39,8 @@ export default function LeaderboardScreen() {
       fetchLeaderboards(token)
         .then(async (allLeaderboards) => {
           if (!active) return;
-          const accountIds = account?.leaderboards?.map((item) => item.id) ?? [];
-          const visible = allLeaderboards.filter((item) => accountIds.includes(item.id));
-          const fallbackVisible = visible.length > 0 ? visible : allLeaderboards.slice(0, 1);
+          // The API already applies membership and superadmin authorization.
+          const fallbackVisible = allLeaderboards;
           const requestedId = selectedLeaderboardId ?? leaderboardId;
           const nextId = requestedId && fallbackVisible.some((item) => item.id === requestedId)
             ? requestedId
@@ -103,7 +102,7 @@ export default function LeaderboardScreen() {
       )}
 
       {selectedLeaderboard?.canManage && (
-        <Button label="Gestisci membri e inviti" variant="secondary" onPress={() => router.push({ pathname: "/leaderboard/manage", params: { leaderboardId: selectedLeaderboard.id, name: selectedLeaderboard.name } })} />
+        <Button label="Gestisci giocatori, membri e inviti" variant="secondary" onPress={() => router.push({ pathname: "/leaderboard/manage", params: { leaderboardId: selectedLeaderboard.id, name: selectedLeaderboard.name } })} />
       )}
 
       {loading && <Text style={styles.helper}>{t("common.loading")}</Text>}

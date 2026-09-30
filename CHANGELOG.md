@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.17 — 2026-09-30
+
+- Gestione classifiche raggiungibile dal pannello admin; super admin vede tutte le classifiche.
+- Ricerca giocatori per nome durante la preparazione e creazione esplicita sotto i risultati.
+- Modalità classica con 7 giocatori: primo turno corretto a 10 carte.
+- Checklist di sicurezza riutilizzabile con evidenze e limiti separati.
+
 ## 1.0.16 — 2026-09-29
 
 - Collegamento al pannello amministratore dal proprio profilo nell'app.

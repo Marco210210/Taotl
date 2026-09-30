@@ -98,7 +98,7 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
                             'id'        VALUE l.id,
                             'name'      VALUE l.name,
                             'isDefault' VALUE CASE WHEN al.is_default = 'Y' THEN 'true' ELSE 'false' END FORMAT JSON,
-                            'role'      VALUE al.role,
+                            'role'      VALUE CASE WHEN a.is_admin = 'Y' THEN 'superadmin' ELSE al.role END,
                             'canManage' VALUE CASE WHEN a.is_admin = 'Y' OR al.role IN ('owner', 'manager') THEN 'true' ELSE 'false' END FORMAT JSON,
                             'canSubmit' VALUE CASE WHEN a.is_admin = 'Y' OR al.role IN ('owner', 'manager', 'member') THEN 'true' ELSE 'false' END FORMAT JSON
                             RETURNING CLOB
@@ -108,9 +108,10 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
                         ),
                         TO_CLOB('[]')
                       )
-                 FROM taotl_account_leaderboards al
-                 JOIN taotl_leaderboards l ON l.id = al.leaderboard_id
-                WHERE al.account_id = a.id
+                 FROM taotl_leaderboards l
+                 LEFT JOIN taotl_account_leaderboards al
+                   ON al.leaderboard_id = l.id AND al.account_id = a.id
+                WHERE (a.is_admin = 'Y' OR al.account_id IS NOT NULL)
                   AND l.is_active = 'Y'
              ) FORMAT JSON,
              'defaultLeaderboardId' VALUE (

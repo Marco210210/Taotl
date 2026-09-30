@@ -82,7 +82,7 @@ export default function ManageLeaderboardScreen() {
     <>
       <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination="/leaderboard" /> }} />
       <ScreenContainer>
-        <ScreenIntro title={leaderboardName || "Nuova classifica"} description="Classifica privata: solo chi riceve un invito può accedere." />
+        <ScreenIntro title={leaderboardName || "Nuova classifica"} description="Classifica privata: scegli chi invitare e quali giocatori includere. Il super admin dell’app può accedere per assistenza." />
 
         {!leaderboardId ? (
           <Card>
@@ -90,7 +90,7 @@ export default function ManageLeaderboardScreen() {
             <TextInput value={newName} onChangeText={setNewName} maxLength={80} placeholder="Es. Amici del venerdì" placeholderTextColor={colors.textMuted as string} style={styles.input} />
             <Button label="Crea classifica privata" loading={busy} disabled={newName.trim().length < 2} onPress={() => void run(async () => {
               const created = await createLeaderboard(token, newName.trim());
-              setLeaderboardId(created.id); setLeaderboardName(created.name); await refreshAccount();
+              setLeaderboardId(created.id); setLeaderboardName(created.name); setEditedName(created.name); await refreshAccount();
             })} />
           </Card>
         ) : (
@@ -141,7 +141,7 @@ export default function ManageLeaderboardScreen() {
 
             <Card>
               <Text style={styles.title}>Giocatori della classifica</Text>
-              <Text style={styles.help}>Questi sono gli unici giocatori disponibili quando si crea una partita in questa classifica.</Text>
+              <Text style={styles.help}>Aggiungi o rimuovi i giocatori disponibili per le partite. Un giocatore può appartenere a più classifiche; rimuoverlo dalla rosa non elimina il suo profilo.</Text>
               {boardPlayers.map((player) => <View key={player.id} style={styles.member}>
                 <Text style={[styles.memberName, styles.flex]}>{player.name}</Text>
                 <Pressable onPress={() => void run(() => removeLeaderboardPlayer(token, leaderboardId, player.id))}><Text style={styles.remove}>Rimuovi dalla rosa</Text></Pressable>
