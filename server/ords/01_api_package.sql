@@ -115,6 +115,13 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
       RAISE_APPLICATION_ERROR(-20400, 'Id e nome del giocatore sono obbligatori.');
     END IF;
 
+    IF v_leaderboard_id IS NULL THEN
+      SELECT COUNT(*) INTO v_allowed FROM taotl_accounts WHERE id = v_account_id AND is_admin = 'Y';
+      IF v_allowed = 0 THEN
+        RAISE_APPLICATION_ERROR(-20403, 'Scegli una classifica che gestisci per creare un giocatore.');
+      END IF;
+    END IF;
+
     IF v_leaderboard_id IS NOT NULL THEN
       SELECT COUNT(*) INTO v_allowed
         FROM taotl_leaderboards l
@@ -154,12 +161,18 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
     v_name players.name%TYPE;
     v_exists NUMBER;
     v_linked NUMBER;
+    v_current_name players.name%TYPE;
     v_account_id VARCHAR2(60);
     v_allowed NUMBER;
   BEGIN
     v_account_id := taotl_identity_api.require_account(p_authorization);
     SELECT COUNT(*) INTO v_allowed FROM players p JOIN taotl_accounts a ON a.id = v_account_id
-     WHERE p.id = p_id AND (p.owner_account_id = v_account_id OR a.is_admin = 'Y');
+     WHERE p.id = p_id AND p.is_active = 'Y' AND (a.is_admin = 'Y' OR EXISTS (
+       SELECT 1 FROM taotl_leaderboard_players lp
+       JOIN taotl_account_leaderboards al ON al.leaderboard_id = lp.leaderboard_id
+       JOIN taotl_leaderboards l ON l.id = lp.leaderboard_id AND l.is_active = 'Y'
+       WHERE lp.player_id = p.id AND al.account_id = v_account_id AND al.role IN ('owner','manager')
+     ));
     IF v_allowed = 0 THEN RAISE_APPLICATION_ERROR(-20403, 'Non puoi modificare questo profilo.'); END IF;
 
     SELECT JSON_VALUE(p_body, '$.name' RETURNING VARCHAR2(120))
@@ -170,13 +183,18 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
       RAISE_APPLICATION_ERROR(-20400, 'Il nome del giocatore è obbligatorio.');
     END IF;
 
+    SELECT name INTO v_current_name FROM players WHERE id = p_id FOR UPDATE;
+    SELECT player_name INTO v_current_name FROM player_display_names_v WHERE id = p_id;
     SELECT COUNT(*)
       INTO v_linked
       FROM taotl_account_players
      WHERE player_id = p_id;
-    IF v_linked > 0 THEN
-      RAISE_APPLICATION_ERROR(-20409,
-        'Il nome è gestito dal Taotl ID collegato e non può essere modificato dalla rubrica.');
+    IF v_linked > 0 AND NVL(JSON_VALUE(p_body, '$.confirmLinkedRename'), 'false') != 'true' THEN
+      RAISE_APPLICATION_ERROR(-20409, 'Conferma la modifica anche del nome dell’account collegato.');
+    END IF;
+    IF v_linked > 0 AND (JSON_VALUE(p_body, '$.expectedName') IS NULL
+       OR JSON_VALUE(p_body, '$.expectedName') != v_current_name) THEN
+      RAISE_APPLICATION_ERROR(-20409, 'Il nome è cambiato: ricarica il profilo e conferma nuovamente.');
     END IF;
 
     SELECT COUNT(*)
@@ -198,7 +216,14 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
       RAISE_APPLICATION_ERROR(-20404, 'Giocatore non trovato.');
     END IF;
 
+    IF v_linked > 0 THEN
+      UPDATE taotl_accounts SET display_name = TRIM(v_name)
+       WHERE id IN (SELECT account_id FROM taotl_account_players WHERE player_id = p_id);
+    END IF;
     COMMIT;
+  EXCEPTION WHEN OTHERS THEN
+    ROLLBACK;
+    RAISE;
   END update_player;
 
   FUNCTION validated_photo_type(p_body IN BLOB, p_type IN VARCHAR2) RETURN VARCHAR2 IS
@@ -230,7 +255,12 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
   BEGIN
     v_account_id := taotl_identity_api.require_account(p_authorization);
     SELECT COUNT(*) INTO v_allowed FROM players p JOIN taotl_accounts a ON a.id = v_account_id
-     WHERE p.id = p_id AND (p.owner_account_id = v_account_id OR a.is_admin = 'Y');
+     WHERE p.id = p_id AND p.is_active = 'Y' AND (a.is_admin = 'Y' OR EXISTS (
+       SELECT 1 FROM taotl_leaderboard_players lp
+       JOIN taotl_account_leaderboards al ON al.leaderboard_id = lp.leaderboard_id
+       JOIN taotl_leaderboards l ON l.id = lp.leaderboard_id AND l.is_active = 'Y'
+       WHERE lp.player_id = p.id AND al.account_id = v_account_id AND al.role IN ('owner','manager')
+     ));
     IF v_allowed = 0 THEN RAISE_APPLICATION_ERROR(-20403, 'Non puoi modificare questo profilo.'); END IF;
 
     v_media_type := validated_photo_type(p_body, p_media_type);
@@ -254,6 +284,12 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
     v_account_id := taotl_identity_api.require_account(p_authorization);
     SELECT COALESCE(JSON_ARRAYAGG(JSON_OBJECT(
       'id' VALUE d.id, 'name' VALUE d.player_name,
+      'linkedAccount' VALUE CASE WHEN EXISTS (SELECT 1 FROM taotl_account_players ap WHERE ap.player_id = d.id) THEN 'true' ELSE 'false' END FORMAT JSON,
+      'canEdit' VALUE CASE WHEN EXISTS (SELECT 1 FROM taotl_accounts a WHERE a.id = v_account_id AND a.is_admin = 'Y') OR EXISTS (
+        SELECT 1 FROM taotl_leaderboard_players ep JOIN taotl_account_leaderboards ea ON ea.leaderboard_id = ep.leaderboard_id
+        JOIN taotl_leaderboards el ON el.id = ep.leaderboard_id AND el.is_active = 'Y'
+        WHERE ep.player_id = d.id AND ea.account_id = v_account_id AND ea.role IN ('owner','manager')
+      ) THEN 'true' ELSE 'false' END FORMAT JSON,
       'hasPhoto' VALUE CASE WHEN d.photo IS NULL THEN 'false' ELSE 'true' END FORMAT JSON
       RETURNING CLOB) ORDER BY d.created_at, d.player_name RETURNING CLOB), TO_CLOB('[]'))
       INTO v_json
@@ -265,6 +301,11 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
          SELECT 1 FROM taotl_leaderboard_players lp
          JOIN taotl_account_leaderboards al ON al.leaderboard_id = lp.leaderboard_id
           WHERE lp.player_id = d.id AND al.account_id = v_account_id
+       ) OR EXISTS (
+         SELECT 1 FROM game_players gp JOIN games g ON g.id = gp.game_id
+         JOIN taotl_account_leaderboards al ON al.leaderboard_id = g.leaderboard_id
+         JOIN taotl_leaderboards l ON l.id = g.leaderboard_id AND l.is_active = 'Y'
+         WHERE gp.player_id = d.id AND al.account_id = v_account_id AND al.role IN ('owner','manager')
        ));
     COMMIT;
     RETURN v_json;
@@ -289,6 +330,12 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
 
     SELECT COALESCE(JSON_ARRAYAGG(JSON_OBJECT(
       'id' VALUE d.id, 'name' VALUE d.player_name,
+      'linkedAccount' VALUE CASE WHEN EXISTS (SELECT 1 FROM taotl_account_players ap WHERE ap.player_id = d.id) THEN 'true' ELSE 'false' END FORMAT JSON,
+      'canEdit' VALUE CASE WHEN EXISTS (SELECT 1 FROM taotl_accounts a WHERE a.id = v_account_id AND a.is_admin = 'Y') OR EXISTS (
+        SELECT 1 FROM taotl_leaderboard_players ep JOIN taotl_account_leaderboards ea ON ea.leaderboard_id = ep.leaderboard_id
+        JOIN taotl_leaderboards el ON el.id = ep.leaderboard_id AND el.is_active = 'Y'
+        WHERE ep.player_id = d.id AND ea.account_id = v_account_id AND ea.role IN ('owner','manager')
+      ) THEN 'true' ELSE 'false' END FORMAT JSON,
       'hasPhoto' VALUE CASE WHEN d.photo IS NULL THEN 'false' ELSE 'true' END FORMAT JSON
       RETURNING CLOB) ORDER BY d.created_at, d.player_name RETURNING CLOB), TO_CLOB('[]'))
       INTO v_json
@@ -340,6 +387,12 @@ CREATE OR REPLACE PACKAGE BODY taotl_api AS
     v_account_id := taotl_identity_api.require_account(p_authorization);
     SELECT JSON_OBJECT(
       'id' VALUE d.id, 'name' VALUE d.player_name,
+      'linkedAccount' VALUE CASE WHEN EXISTS (SELECT 1 FROM taotl_account_players ap WHERE ap.player_id = d.id) THEN 'true' ELSE 'false' END FORMAT JSON,
+      'canEdit' VALUE CASE WHEN EXISTS (SELECT 1 FROM taotl_accounts a WHERE a.id = v_account_id AND a.is_admin = 'Y') OR EXISTS (
+        SELECT 1 FROM taotl_leaderboard_players ep JOIN taotl_account_leaderboards ea ON ea.leaderboard_id = ep.leaderboard_id
+        JOIN taotl_leaderboards el ON el.id = ep.leaderboard_id AND el.is_active = 'Y'
+        WHERE ep.player_id = d.id AND ea.account_id = v_account_id AND ea.role IN ('owner','manager')
+      ) THEN 'true' ELSE 'false' END FORMAT JSON,
       'hasPhoto' VALUE CASE WHEN d.photo IS NULL THEN 'false' ELSE 'true' END FORMAT JSON
       RETURNING CLOB) INTO v_json
       FROM player_display_names_v d

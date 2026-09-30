@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.19 — 2026-09-30
+
+- Conferma prima di rimuovere membri o giocatori dalla classifica.
+- Vittorie conservate nello storico e ripristinate nella classifica quando si reinserisce lo stesso profilo.
+- Doppia conferma per rinominare profili collegati; nome visualizzato dell’account aggiornato nella stessa transazione.
+- Nome e foto modificabili soltanto dai gestori di una classifica del giocatore o dal super admin, con controlli server.
+
 ## 1.0.18 — 2026-09-30
 
 - Pannello admin compatto con un solo accesso alle classifiche; creazione e partite manuali nella sezione Classifiche.

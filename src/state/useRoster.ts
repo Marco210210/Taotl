@@ -34,8 +34,8 @@ export function useRoster(leaderboardId?: string | null, enabled = true) {
     return player;
   }, [leaderboardId, token]);
 
-  const renamePlayer = useCallback(async (id: string, name: string) => {
-    await updatePlayerName(id, name, token, leaderboardId);
+  const renamePlayer = useCallback(async (id: string, name: string, confirmation?: { confirmLinkedRename: boolean; expectedName: string }) => {
+    await updatePlayerName(id, name, token, leaderboardId, confirmation);
     setPlayers((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)));
   }, [leaderboardId, token]);
 

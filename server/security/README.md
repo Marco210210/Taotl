@@ -131,3 +131,27 @@ la quota del piano collegato e richiedono una nuova decisione esplicita prima
 dell'esecuzione. Al termine di questa attività nessuna scansione è attiva.
 Vedere [il rapporto della release 1.0.16](REPORT-2026-09-30.md).
 Riferimento: https://github.com/usestrix/strix#sign-in-with-a-chatgpt-subscription
+
+## Rubrica e conservazione dello storico (1.0.19)
+
+Rimuovere dalla rosa elimina solo l'associazione alla classifica: partite e
+risultati rimangono nel database. La classifica attiva mostra i profili della
+rosa corrente. Per recuperare le vittorie, reinserire **lo stesso profilo** da
+“Importa un giocatore esistente”; crearne uno nuovo con lo stesso nome non
+ricollega lo storico. I gestori possono ritrovare anche i profili delle partite
+pregresse della propria classifica.
+
+Nome e foto sono proprietà del profilo condiviso: possono modificarli i gestori
+(owner/manager) di una sua classifica attiva e il super admin. Membri e osservatori
+non hanno questi permessi. Il nome di un profilo collegato richiede due conferme
+nell'interfaccia; il server verifica ruolo, conferma esplicita e nome precedente,
+aggiornando profilo e display name dell'account nella stessa transazione. Taotl ID,
+email, nome e cognome anagrafici non vengono cambiati da questa operazione.
+
+Regressione con fixture temporanee e pulizia finale:
+
+```sh
+python3 server/security/probe_roster_lifecycle.py --run
+# Include anche i dialoghi della versione admin pubblicata (richiede Playwright):
+python3 server/security/probe_roster_lifecycle.py --run --browser
+```

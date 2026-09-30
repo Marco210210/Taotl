@@ -7,6 +7,7 @@ import { Button } from "@/components/Button";
 import { LinearBackButton } from "@/components/LinearBackButton";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useAppSettings } from "@/state/AppSettingsContext";
+import { useAccount } from "@/state/AccountContext";
 import { useRoster } from "@/state/useRoster";
 import { theme, type ThemeColors } from "@/theme";
 
@@ -15,6 +16,8 @@ export default function RosterScreen() {
   const backDestination = from === "setup" ? "/setup/players" : from === "admin" ? "/" : "/";
   const { t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { account, token } = useAccount();
+  const canCreate = !token || account?.isAdmin || account?.leaderboards.some((board) => board.id === leaderboardId && board.canManage);
   const { players, loading, fromCache, reload } = useRoster(leaderboardId);
 
   useFocusEffect(
@@ -22,6 +25,12 @@ export default function RosterScreen() {
       void reload();
     }, [reload]),
   );
+
+  if (token && !account?.isAdmin && !(leaderboardId
+    ? account?.leaderboards.some((board) => board.id === leaderboardId && board.canManage)
+    : account?.leaderboards.some((board) => board.canManage))) {
+    return <SafeAreaView><Text>La gestione della rubrica è riservata ai gestori della classifica.</Text><Button label="Indietro" onPress={() => router.back()} /></SafeAreaView>;
+  }
 
   return (
     <>
@@ -38,16 +47,16 @@ export default function RosterScreen() {
           </Text>
         )}
 
-        <Button
+        {canCreate && <Button
           label={t("roster.add")}
           onPress={() => router.push({
             pathname: "/roster/edit",
             params: { ...(from ? { from } : {}), ...(leaderboardId ? { leaderboardId } : {}) },
           })}
-        />
+        />}
 
         <View style={styles.list}>
-          {players.map((player) => (
+          {players.filter((player) => !token || player.canEdit).map((player) => (
             <Pressable
               key={player.id}
               style={styles.row}

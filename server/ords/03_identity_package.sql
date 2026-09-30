@@ -920,8 +920,10 @@ CREATE OR REPLACE PACKAGE BODY taotl_identity_api AS
              TO_CLOB('[]')
            )
       INTO v_json
-      FROM player_overall_stats_v
-     WHERE leaderboard_id = p_leaderboard_id;
+      FROM player_overall_stats_v stats
+     WHERE leaderboard_id = p_leaderboard_id
+       AND EXISTS (SELECT 1 FROM taotl_leaderboard_players lp
+                    WHERE lp.leaderboard_id = stats.leaderboard_id AND lp.player_id = stats.player_id);
     RETURN v_json;
   END overall_leaderboard;
 

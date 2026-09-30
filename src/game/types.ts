@@ -4,6 +4,8 @@ export interface Player {
   id: string;
   name: string;
   photoUri?: string | null;
+  linkedAccount?: boolean;
+  canEdit?: boolean;
 }
 
 export interface RoundInfo {

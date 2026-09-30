@@ -4,6 +4,8 @@ export interface PlayerDTO {
   id: string;
   name: string;
   hasPhoto: boolean;
+  linkedAccount?: boolean;
+  canEdit?: boolean;
 }
 
 export interface GameSyncPayload {

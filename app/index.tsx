@@ -269,10 +269,10 @@ export default function HomeScreen() {
             <Text style={styles.leaderboardArrow}>›</Text>
           </Pressable>
 
-          <Pressable onPress={() => router.navigate("/roster")} style={styles.rosterLink}>
+          {(!account || account.isAdmin || account.leaderboards.some((board) => board.canManage)) && <Pressable onPress={() => router.navigate("/roster")} style={styles.rosterLink}>
             <Text style={styles.rosterText}>{t("home.manageRoster")}</Text>
             <Text style={styles.rosterArrow}>›</Text>
-          </Pressable>
+          </Pressable>}
 
           {hasActiveGame && (
             <Pressable onPress={deleteActiveGame} style={styles.deleteLink}>

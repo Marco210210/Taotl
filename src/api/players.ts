@@ -29,6 +29,8 @@ function fromDTO(dto: PlayerDTO, photoUri: string | null): Player {
     id: dto.id,
     name: dto.name,
     photoUri,
+    linkedAccount: dto.linkedAccount,
+    canEdit: dto.canEdit,
   };
 }
 
@@ -78,9 +80,9 @@ export async function createPlayer(name: string, token?: string | null, leaderbo
   return player;
 }
 
-export async function updatePlayerName(id: string, name: string, token?: string | null, leaderboardId?: string | null): Promise<void> {
+export async function updatePlayerName(id: string, name: string, token?: string | null, leaderboardId?: string | null, confirmation?: { confirmLinkedRename: boolean; expectedName: string }): Promise<void> {
   if (getApiBaseUrl() && token) {
-    await apiClient.putAuthenticated<void>(`/players/${id}`, token, { name: name.trim() });
+    await apiClient.putAuthenticated<void>(`/players/${id}`, token, { name: name.trim(), ...confirmation });
   }
   const cache = await readCache(leaderboardId);
   await writeCache(cache.map((p) => (p.id === id ? { ...p, name: name.trim() } : p)), leaderboardId);

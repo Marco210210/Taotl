@@ -286,6 +286,11 @@ CREATE OR REPLACE PACKAGE BODY taotl_collaboration_api AS
          SELECT 1 FROM taotl_leaderboard_players lp
          JOIN taotl_account_leaderboards al ON al.leaderboard_id = lp.leaderboard_id
           WHERE lp.player_id = p.id AND al.account_id = v_account_id
+       ) OR EXISTS (
+         SELECT 1 FROM game_players gp JOIN games g ON g.id = gp.game_id
+         JOIN taotl_account_leaderboards al ON al.leaderboard_id = g.leaderboard_id
+         WHERE gp.player_id = p.id AND g.leaderboard_id = p_leaderboard_id
+           AND al.account_id = v_account_id AND al.role IN ('owner','manager')
        ));
     IF v_allowed = 0 THEN RAISE_APPLICATION_ERROR(-20404, 'Giocatore non trovato.'); END IF;
     MERGE INTO taotl_leaderboard_players lp

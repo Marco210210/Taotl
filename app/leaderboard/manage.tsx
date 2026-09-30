@@ -19,6 +19,7 @@ import {
 } from "@/api/leaderboard";
 import { fetchRoster } from "@/api/players";
 import { Button } from "@/components/Button";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card } from "@/components/Card";
 import { LinearBackButton } from "@/components/LinearBackButton";
 import { ScreenContainer } from "@/components/ScreenContainer";
@@ -46,6 +47,7 @@ export default function ManageLeaderboardScreen() {
   const [inviteRole, setInviteRole] = useState<MemberRole>("member");
   const [linkHandle, setLinkHandle] = useState("");
   const [linkPlayerId, setLinkPlayerId] = useState(params.playerId ?? "");
+  const [removal, setRemoval] = useState<{ id: string; name: string; kind: "player" | "member" } | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [boardPlayers, setBoardPlayers] = useState<Player[]>([]);
@@ -80,6 +82,14 @@ export default function ManageLeaderboardScreen() {
 
   return (
     <>
+      <ConfirmDialog visible={!!removal} title="Confermi la rimozione?"
+        description={removal?.kind === "player" ? `Vuoi rimuovere ${removal.name} dalla rosa? Partite e vittorie restano archiviate e torneranno visibili reinserendo questo stesso giocatore.` : `Vuoi revocare a ${removal?.name ?? ""} l’accesso alla classifica? Il profilo e lo storico delle partite non saranno eliminati.`}
+        confirmLabel="Conferma rimozione" cancelLabel="Annulla" destructive
+        onCancel={() => setRemoval(null)} onConfirm={() => {
+          if (!removal || busy) return;
+          const target = removal; setRemoval(null);
+          void run(() => target.kind === "player" ? removeLeaderboardPlayer(token, leaderboardId, target.id) : removeLeaderboardMember(token, leaderboardId, target.id));
+        }} />
       <Stack.Screen options={{ title: leaderboardId ? "Gestione classifica" : "Nuova classifica", headerBackVisible: false, headerLeft: () => <LinearBackButton destination="/leaderboard" preferHistory /> }} />
       <ScreenContainer>
         <ScreenIntro title={leaderboardName || "Nuova classifica"} description="Classifica privata: scegli chi invitare e quali giocatori includere. Il super admin dell’app può accedere per assistenza." />
@@ -134,7 +144,7 @@ export default function ManageLeaderboardScreen() {
                 <View style={styles.flex}><Text style={styles.memberName}>{member.displayName}</Text><Text style={styles.help}>@{member.handle} · {{ owner: "Proprietario", manager: "Gestore", member: "Membro", viewer: "Osservatore" }[member.role]}</Text></View>
                 {member.role !== "owner" && <>
                   <Pressable onPress={() => void run(() => updateLeaderboardMember(token, leaderboardId, member.accountId, member.role === "viewer" ? "member" : "viewer"))}><Text style={styles.action}>{member.role === "viewer" ? "Promuovi" : "Solo lettura"}</Text></Pressable>
-                  <Pressable onPress={() => void run(() => removeLeaderboardMember(token, leaderboardId, member.accountId))}><Text style={styles.remove}>Rimuovi</Text></Pressable>
+                  <Pressable onPress={() => setRemoval({ id: member.accountId, name: member.displayName, kind: "member" })}><Text style={styles.remove}>Rimuovi</Text></Pressable>
                 </>}
               </View>)}
             </Card>
@@ -144,7 +154,8 @@ export default function ManageLeaderboardScreen() {
               <Text style={styles.help}>Aggiungi o rimuovi i giocatori disponibili per le partite. Un giocatore può appartenere a più classifiche; rimuoverlo dalla rosa non elimina il suo profilo.</Text>
               {boardPlayers.map((player) => <View key={player.id} style={styles.member}>
                 <Text style={[styles.memberName, styles.flex]}>{player.name}</Text>
-                <Pressable onPress={() => void run(() => removeLeaderboardPlayer(token, leaderboardId, player.id))}><Text style={styles.remove}>Rimuovi dalla rosa</Text></Pressable>
+                <Pressable onPress={() => router.push({ pathname: "/roster/edit", params: { id: player.id, leaderboardId, leaderboardName, from: "manage" } })}><Text style={styles.action}>Nome e foto</Text></Pressable>
+                <Pressable onPress={() => setRemoval({ id: player.id, name: player.name, kind: "player" })}><Text style={styles.remove}>Rimuovi dalla rosa</Text></Pressable>
               </View>)}
               {boardPlayers.length === 0 && <Text style={styles.help}>La rosa è vuota.</Text>}
               <Button label="Crea un nuovo giocatore" variant="secondary" onPress={() => router.push({ pathname: "/roster/edit", params: { leaderboardId, leaderboardName, from: "manage" } })} />

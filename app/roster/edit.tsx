@@ -4,6 +4,7 @@ import type { Href } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/Button";
 import { LinearBackButton } from "@/components/LinearBackButton";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
@@ -13,7 +14,6 @@ import { useAppSettings } from "@/state/AppSettingsContext";
 import { useRoster } from "@/state/useRoster";
 import { theme, type ThemeColors } from "@/theme";
 
-type AccountLinkStatus = "not-applicable" | "checking" | "linked" | "unlinked" | "unavailable";
 
 export default function EditPlayerScreen() {
   const { t, colors } = useAppSettings();
@@ -36,7 +36,6 @@ export default function EditPlayerScreen() {
   const [photoType, setPhotoType] = useState<string | undefined>();
   const [loadedPlayerId, setLoadedPlayerId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [accountLinkStatus, setAccountLinkStatus] = useState<AccountLinkStatus>("not-applicable");
 
   useEffect(() => {
     if (existing && loadedPlayerId !== existing.id) {
@@ -46,21 +45,12 @@ export default function EditPlayerScreen() {
     }
   }, [existing, loadedPlayerId]);
 
-  useEffect(() => {
-    if (!existing) {
-      setAccountLinkStatus("not-applicable");
-      return;
-    }
-    if (account?.linkedPlayerId === existing.id) {
-      setAccountLinkStatus("linked");
-      return;
-    }
-    setAccountLinkStatus("not-applicable");
-  }, [account?.linkedPlayerId, existing]);
-
-  const isNameLocked = accountLinkStatus === "linked"
-    || accountLinkStatus === "checking"
-    || accountLinkStatus === "unavailable";
+  const isLinked = existing?.linkedAccount === true;
+  const canEdit = !token || existing?.canEdit === true;
+  const canCreate = !token || account?.isAdmin || account?.leaderboards.some((board) => board.id === leaderboardId && board.canManage);
+  const isNameLocked = !!existing && !canEdit;
+  const [renameStep, setRenameStep] = useState<0 | 1 | 2>(0);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const pickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -83,16 +73,20 @@ export default function EditPlayerScreen() {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (confirmed = false) => {
     const trimmed = name.trim();
-    if (!trimmed) return;
+    if (!trimmed || saving || (existing ? !canEdit : !canCreate)) return;
+    if (existing && isLinked && trimmed !== existing.name && !confirmed) {
+      setRenameStep(1); return;
+    }
+    setSaveError(null);
     setSaving(true);
     try {
       let playerId: string;
       if (existing) {
         playerId = existing.id;
         if (!isNameLocked && trimmed !== existing.name) {
-          await renamePlayer(playerId, trimmed);
+          await renamePlayer(playerId, trimmed, isLinked ? { confirmLinkedRename: true, expectedName: existing.name } : undefined);
         }
       } else {
         if (id) {
@@ -106,6 +100,7 @@ export default function EditPlayerScreen() {
       }
       router.dismissTo(rosterDestination);
     } catch (error) {
+      setSaveError(error instanceof Error ? error.message : t("player.saveFailed"));
       Alert.alert(
         t("player.saveFailed"),
         error instanceof Error ? error.message : t("history.retry"),
@@ -114,6 +109,10 @@ export default function EditPlayerScreen() {
       setSaving(false);
     }
   };
+
+  if (!loading && (existing ? !canEdit : !id && !canCreate)) {
+    return <ScreenContainer><Text>Solo il gestore della classifica o l’amministratore globale può modificare nome e foto.</Text><Button label="Indietro" onPress={() => router.dismissTo(rosterDestination)} /></ScreenContainer>;
+  }
 
   if (id && loading && !existing) {
     return (
@@ -142,6 +141,14 @@ export default function EditPlayerScreen() {
   return (
     <>
     <Stack.Screen options={{ headerLeft: () => <LinearBackButton destination={rosterDestination} /> }} />
+    <ConfirmDialog visible={renameStep !== 0}
+      title={renameStep === 1 ? "Modificare il nome collegato?" : "Conferma definitiva"}
+      description={renameStep === 1 ? `Stai rinominando “${existing?.name ?? ""}” in “${name.trim()}”. Il nuovo nome comparirà anche sull’account e nelle altre classifiche.` : "Confermi di aggiornare sia il giocatore sia il nome visualizzato dell’account? Il Taotl ID di accesso non cambia."}
+      confirmLabel={renameStep === 1 ? "Continua" : "Conferma nuovo nome"} cancelLabel="Annulla"
+      onCancel={() => setRenameStep(0)} onConfirm={() => {
+        if (renameStep === 1) setRenameStep(2);
+        else { setRenameStep(0); void handleSave(true); }
+      }} />
     <ScreenContainer style={styles.content}>
       <Pressable onPress={pickImage} style={styles.avatarWrapper}>
         <PlayerAvatar name={name || "?"} photoUri={photoUri} size={96} />
@@ -160,15 +167,13 @@ export default function EditPlayerScreen() {
           placeholderTextColor={colors.textMuted as string}
           style={[styles.input, isNameLocked && styles.inputLocked]}
         />
-        {accountLinkStatus === "linked" && (
-          <Text style={styles.fieldHint}>{t("player.linkedNameLocked")}</Text>
-        )}
-        {accountLinkStatus === "unavailable" && (
-          <Text style={styles.fieldError}>{t("player.accountLinkUnavailable")}</Text>
+        {isLinked && (
+          <Text style={styles.fieldHint}>Il nome è condiviso con l’account collegato e con le altre classifiche. La modifica richiede due conferme.</Text>
         )}
       </View>
 
-      <Button label={t("common.save")} onPress={handleSave} loading={saving} disabled={!name.trim()} />
+      {!!saveError && <Text style={styles.error}>{saveError}</Text>}
+      <Button label={t("common.save")} onPress={() => void handleSave()} loading={saving} disabled={!name.trim() || (existing ? !canEdit : !canCreate)} />
 
     </ScreenContainer>
     </>
