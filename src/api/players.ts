@@ -6,6 +6,7 @@ import type { Player } from "@/game/types";
 import { reportError } from "@/monitoring/errorReporter";
 import { STORAGE_KEYS } from "@/state/storageKeys";
 import { generateId } from "@/utils/id";
+import { persistPhoto } from "@/utils/persistPhoto";
 
 import { apiClient } from "./client";
 import { FALLBACK_REQUEST_TIMEOUT_MS, getApiBaseUrl } from "./config";
@@ -42,7 +43,9 @@ async function fetchProtectedPhoto(id: string, token: string): Promise<string | 
     if (Platform.OS === "web") {
       const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       if (!response.ok) return null;
-      return URL.createObjectURL(await response.blob());
+      const uri = URL.createObjectURL(await response.blob());
+      try { return await persistPhoto(uri); }
+      finally { URL.revokeObjectURL(uri); }
     }
     const directory = FileSystem.cacheDirectory;
     if (!directory) return null;
@@ -95,6 +98,8 @@ export async function uploadPlayerPhoto(
   token?: string | null,
   leaderboardId?: string | null,
 ): Promise<string | null> {
+  // Su web non salvare URL blob temporanei nella rubrica o nelle partite.
+  localUri = await persistPhoto(localUri);
   const baseUrl = getApiBaseUrl();
   if (!baseUrl || !token) {
     const cache = await readCache(leaderboardId);

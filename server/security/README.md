@@ -36,11 +36,25 @@ La modifica di `isAdmin` nella cache del browser non concede accesso.
 
 ## Pubblicazione
 
+La build web amministrativa include un'icona con **ADMIN**, un favicon e un
+manifest separati dall'app pubblica. Generarla con:
+
+```sh
+npm run build:web:admin
+```
+
+Il risultato completo si trova in `.local/admin-web-build/`. Questo comando
+applica anche i metadati per il collegamento sulla Home di iPhone/Android;
+usare soltanto `expo export` non applica questa personalizzazione HTML/manifest.
+File e prompt dell'icona: [admin/ICON.md](../../admin/ICON.md).
+
 Esportare in una directory nuova prima di cambiare il collegamento `current`:
 
 ```sh
-TAOTL_ADMIN_BUILD=1 npx expo export --platform web --output-dir /home/ubuntu/.local/share/taotl-admin/release-1.0.15-final
-ln -sfn /home/ubuntu/.local/share/taotl-admin/release-1.0.15-final /home/ubuntu/.local/share/taotl-admin/current
+npm run build:web:admin
+# Scegliere ogni volta un nome release nuovo.
+cp -R .local/admin-web-build /home/ubuntu/.local/share/taotl-admin/release-admin-web
+ln -sfn /home/ubuntu/.local/share/taotl-admin/release-admin-web /home/ubuntu/.local/share/taotl-admin/current
 cp server/security/taotl-admin.service /home/ubuntu/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user enable --now taotl-admin.service
@@ -48,7 +62,7 @@ systemctl --user restart taotl-admin.service
 ```
 
 Il server risolve la directory all'avvio: riavviarlo dopo aver cambiato il link.
-Per il client Expo Go pubblico riavviare `taotl-expo-go.service` dopo la pubblicazione.
+Pubblicare solo icone o metadati admin non richiede di riavviare il client Expo Go.
 Il bundle admin non deve essere caricato nel frontend pubblico Expo, su EAS o su
 GitHub Pages. La configurazione del dominio dedicato è in `admin.Caddyfile`,
 integrata nel Caddyfile del server. Caddy termina TLS e inoltra al servizio locale.

@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { PropsWithChildren } from "react";
 
 import type { GameMode, Player } from "@/game/types";
+import { readSetupDraft, writeSetupDraft } from "./setupDraft";
 
 interface SetupContextValue {
   leaderboardId: string | null;
@@ -20,11 +21,16 @@ interface SetupContextValue {
 const SetupContext = createContext<SetupContextValue | null>(null);
 
 export function SetupProvider({ children }: PropsWithChildren) {
-  const [leaderboardId, setLeaderboardId] = useState<string | null>(null);
-  const [leaderboardName, setLeaderboardName] = useState("");
-  const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
-  const [mode, setModeState] = useState<GameMode | null>(null);
-  const [dealerId, setDealerIdState] = useState<string | null>(null);
+  const [draft] = useState(readSetupDraft);
+  const [leaderboardId, setLeaderboardId] = useState<string | null>(draft?.leaderboardId ?? null);
+  const [leaderboardName, setLeaderboardName] = useState(draft?.leaderboardName ?? "");
+  const [selectedPlayers, setSelectedPlayers] = useState<Player[]>(draft?.selectedPlayers ?? []);
+  const [mode, setModeState] = useState<GameMode | null>(draft?.mode ?? null);
+  const [dealerId, setDealerIdState] = useState<string | null>(draft?.dealerId ?? null);
+
+  useEffect(() => {
+    writeSetupDraft({ leaderboardId, leaderboardName, selectedPlayers, mode, dealerId });
+  }, [leaderboardId, leaderboardName, selectedPlayers, mode, dealerId]);
 
   const togglePlayer = useCallback((player: Player) => {
     setSelectedPlayers((prev) => {

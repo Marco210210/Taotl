@@ -44,6 +44,8 @@ google-oauth-token*.json
 
 # typescript
 *.tsbuildinfo
+test-results/
+playwright-report/
 
 # generated native folders
 /ios

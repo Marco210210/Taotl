@@ -1,7 +1,7 @@
 # Taotl — Conteggio punti
 
 App per contare i punti del gioco di carte Taotl al tavolo con gli amici, senza blocco
-note. Frontend Expo/React Native (iOS + Android da un'unica codebase), backend Oracle
+note. Frontend Expo/React Native (iOS + Android + Web da un'unica codebase), backend Oracle
 Database + ORDS.
 
 ## Struttura del progetto
@@ -30,6 +30,23 @@ Scansiona il QR code con l'app **Expo Go** (iOS/Android) per vedere l'app in tem
 mentre modifichi il codice. Senza backend configurato, l'app funziona comunque:
 rubrica giocatori e storico partite restano salvati solo sul telefono (AsyncStorage)
 finché non colleghi il backend Oracle (vedi sotto).
+
+## Versione web
+
+La stessa app è disponibile come sito utilizzabile dal browser, senza Expo Go.
+Le schermate e il motore di gioco restano condivisi con iOS e Android.
+
+**Apri l’app:** [Taotl Web](https://web-taotl.130.110.16.97.sslip.io/).
+
+```bash
+npm run web         # sviluppo web su porta 8090
+npm run build:web   # build indipendente in web-build/
+npm run serve:web   # anteprima su http://127.0.0.1:8096
+```
+
+Account e dati sincronizzati usano lo stesso backend. I salvataggi locali sul
+telefono e quelli nel browser restano separati. Dettagli, test e pubblicazione:
+[web/README.md](web/README.md).
 
 ## Collegare il backend Oracle
 

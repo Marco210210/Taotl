@@ -1,8 +1,26 @@
 module.exports = ({ config }) => {
+  if (process.env.TAOTL_WEB_BUILD === "1") {
+    return {
+      ...config,
+      web: { ...config.web, bundler: "metro", output: "single" },
+      plugins: config.plugins.map((plugin) =>
+        plugin === "expo-router" ? ["expo-router", { sitemap: false }] : plugin
+      ),
+    };
+  }
   if (process.env.TAOTL_ADMIN_BUILD === "1") {
     return {
       ...config,
       name: "Taotl Amministrazione",
+      web: {
+        ...config.web,
+        name: "Taotl Admin",
+        shortName: "Taotl Admin",
+        description: "Taotl Admin: pannello di amministrazione.",
+        favicon: "./admin/public/admin-icon-512.png",
+        bundler: "metro",
+        output: "single",
+      },
       plugins: config.plugins.map((plugin) =>
         plugin === "expo-router" ? ["expo-router", { root: "./admin/app", sitemap: false }] : plugin
       ),

@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -39,13 +39,14 @@ function buildDrafts(game: ActiveGame | null): Record<string, PendingResultDraft
 export default function ScoringScreen() {
   const { resolvedLanguage, t, colors } = useAppSettings();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { game, currentRoundInfo, confirmRoundResults, reopenBids, setResultDraft } = useGame();
+  const { game, isHydrated, currentRoundInfo, confirmRoundResults, reopenBids, setResultDraft } = useGame();
   const [drafts, setDrafts] = useState<Record<string, PendingResultDraft>>(() => buildDrafts(game));
   const [showRedealConfirm, setShowRedealConfirm] = useState(false);
   const isSubmitting = useRef(false);
   const gameStatus = game?.status;
 
   useEffect(() => {
+    if (!isHydrated) return;
     if (!gameStatus) {
       router.replace("/");
       return;
@@ -53,7 +54,7 @@ export default function ScoringScreen() {
     if (gameStatus !== "scoring" && !isSubmitting.current) {
       router.replace("/game/bids");
     }
-  }, [gameStatus]);
+  }, [gameStatus, isHydrated]);
 
   useEffect(() => {
     setDrafts(buildDrafts(game));
@@ -81,6 +82,9 @@ export default function ScoringScreen() {
   const canConfirm = allPlayersDecided && hasMissedBid;
 
   const setRespected = (playerId: string, respected: boolean) => {
+    // Nel browser il refresh può avvenire senza passare dalla classifica.
+    // Il percorso nativo continua a salvare quando si lascia la schermata.
+    if (Platform.OS === "web") setResultDraft(playerId, respected, getDraft(playerId).scarto);
     setDrafts((current) => ({
       ...current,
       [playerId]: {
@@ -91,6 +95,7 @@ export default function ScoringScreen() {
   };
 
   const setScarto = (playerId: string, scarto: number) => {
+    if (Platform.OS === "web") setResultDraft(playerId, getDraft(playerId).respected ?? false, scarto);
     setDrafts((current) => {
       const draft = current[playerId] ?? { playerId, respected: null, scarto: 1 };
       return {

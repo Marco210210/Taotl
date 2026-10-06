@@ -1,0 +1,16 @@
+{
+  "id": "/",
+  "name": "Taotl Admin",
+  "short_name": "Taotl Admin",
+  "description": "Pannello di amministrazione Taotl.",
+  "lang": "it",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#17784B",
+  "background_color": "#F8F8F5",
+  "icons": [
+    { "src": "/admin-icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
+    { "src": "/admin-icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any" }
+  ]
+}

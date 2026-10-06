@@ -2,7 +2,7 @@ import * as ImagePicker from "expo-image-picker";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import type { Href } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/Button";
@@ -53,23 +53,27 @@ export default function EditPlayerScreen() {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const pickImage = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(
-        t("player.permissionTitle"),
-        t("player.permissionBody"),
-      );
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setPhotoUri(result.assets[0].uri);
-      setPhotoType(result.assets[0].mimeType ?? "image/jpeg");
+    try {
+      // Il browser deve aprire il selettore nello stesso gesto dell'utente.
+      if (Platform.OS !== "web") {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+          Alert.alert(t("player.permissionTitle"), t("player.permissionBody"));
+          return;
+        }
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        setPhotoUri(result.assets[0].uri);
+        setPhotoType(result.assets[0].mimeType ?? "image/jpeg");
+      }
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : t("player.saveFailed"));
     }
   };
 

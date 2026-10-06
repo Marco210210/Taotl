@@ -1,6 +1,6 @@
 import { Stack, router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { Image, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { FontGate } from "../../app/_layout";
@@ -41,7 +41,12 @@ function AdminNavigation() {
     if (token && verifiedToken === token) router.replace("/admin");
   }, [token, verifiedToken]);
   return <>
-    <Stack screenOptions={{ title: "Amministrazione", headerBackTitle: "Indietro", headerBackVisible: false, headerStyle: { backgroundColor: colors.background }, headerTintColor: colors.text }}>
+    <Stack screenOptions={{ title: "Amministrazione", headerBackTitle: "Indietro", headerBackVisible: false, headerStyle: { backgroundColor: colors.background }, headerTintColor: colors.text,
+      headerTitle: ({ children, tintColor }) => <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <Image source={require("../public/admin-icon-192.png")} accessibilityLabel="Taotl Admin" style={{ width: 40, height: 40, borderRadius: 8 }} />
+        <Text numberOfLines={1} style={{ color: tintColor, fontWeight: "700", fontSize: 16, flexShrink: 1 }}>{children}</Text>
+      </View>,
+    }}>
       <Stack.Screen name="account/index" options={{ title: "Accesso amministratore" }} />
       <Stack.Screen name="account/forgot-password" options={{ title: "Recupera password" }} />
       <Stack.Screen name="account/reset-password" options={{ title: "Reimposta password" }} />

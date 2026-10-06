@@ -20,6 +20,7 @@ import { theme, type ThemeColors } from "@/theme";
 export default function BidsScreen() {
   const {
     game,
+    isHydrated,
     currentRoundInfo,
     previousCardsDealt,
     setPendingCards,
@@ -32,10 +33,11 @@ export default function BidsScreen() {
   const [showCorrectPreviousConfirm, setShowCorrectPreviousConfirm] = useState(false);
 
   useEffect(() => {
+    if (!isHydrated) return;
     if (!game) router.replace("/");
     else if (game.status === "scoring") router.replace("/game/scoring");
     else if (game.status === "finished") router.replace("/game/end");
-  }, [game]);
+  }, [game, isHydrated]);
 
   if (!game) return null;
 

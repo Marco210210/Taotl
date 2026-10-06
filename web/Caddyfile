@@ -1,0 +1,21 @@
+# Sito indipendente dal tunnel Expo Go e dall'amministrazione.
+web-taotl.130.110.16.97.sslip.io {
+    root * /srv/taotl-web/current
+    encode zstd gzip
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        X-Frame-Options DENY
+        Content-Security-Policy "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+    }
+    @assets path /assets/* /_expo/*
+    handle @assets {
+        header Cache-Control "public, max-age=31536000, immutable"
+        file_server
+    }
+    handle {
+        header Cache-Control "no-cache"
+        try_files {path} /index.html
+        file_server
+    }
+}
