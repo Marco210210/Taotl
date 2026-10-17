@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
+import { ApiRequestError } from "@/api/client";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -199,8 +200,8 @@ export default function AccountScreen() {
         errors.email = t("account.invalidEmail");
       }
     }
-    if (!isPasswordValid(password)) {
-      errors.password = t("account.invalidPassword");
+    if (mode === "register" ? !isPasswordValid(password) : !password) {
+      errors.password = t(mode === "register" ? "account.invalidPassword" : "account.passwordRequired");
     }
     if (mode === "register" && (!confirmPassword || password !== confirmPassword)) {
       errors.confirmPassword = t("account.passwordMismatch");
@@ -235,6 +236,12 @@ export default function AccountScreen() {
       setPassword("");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : authError;
+      if (mode === "login") {
+        setMessage(error instanceof ApiRequestError && error.status === 401
+          ? t("account.invalidCredentials")
+          : errorMessage || t("account.loginFailed"));
+        return;
+      }
       const normalizedError = errorMessage?.toLocaleLowerCase("it") ?? "";
       const serverField =
         normalizedError.includes("email")
@@ -362,7 +369,7 @@ export default function AccountScreen() {
               ))}
             </View>
 
-            <Card>
+            <Card style={{ backgroundColor: colors.surfaceSolid }}>
               <Text style={styles.label}>{t(mode === "login" ? "account.loginIdentifier" : "account.handle")}</Text>
               <TextInput
                 ref={handleRef}
@@ -474,7 +481,9 @@ export default function AccountScreen() {
                   setPassword(value);
                   updateVisibleFieldError(
                     "password",
-                    isPasswordValid(value) ? null : t("account.invalidPassword"),
+                    mode === "register"
+                      ? isPasswordValid(value) ? null : t("account.invalidPassword")
+                      : value ? null : t("account.passwordRequired"),
                   );
                   if (mode === "register") {
                     updateVisibleFieldError(
@@ -525,7 +534,7 @@ export default function AccountScreen() {
                 </Pressable>
               )}
 
-              {!!message && <Text style={styles.error}>{message}</Text>}
+              {!!message && <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{message}</Text>}
               <Button
                 label={t(mode === "register" ? "account.create" : "account.enter")}
                 onPress={submitAuth}
@@ -634,7 +643,7 @@ export default function AccountScreen() {
                   <Button label={t("account.changeRoom")} onPress={clearRoom} loading={loading} variant="ghost" />
                 </>
               )}
-              {!!message && <Text style={styles.error}>{message}</Text>}
+              {!!message && <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{message}</Text>}
             </Card>
           </>
         )}

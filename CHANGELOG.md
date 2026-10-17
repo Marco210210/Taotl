@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.0.22 — 2026-10-17
+
+- Barra di sistema, colore del browser e sfondo esterno sincronizzati al tema e alla schermata, su web pubblico e admin.
+- Tema applicato prima del caricamento per evitare la fascia chiara all’avvio e durante l’uso offline.
+
+## 1.0.21 — 2026-10-17
+
+- Web app avviabile offline dopo il primo caricamento completo, anche da collegamenti diretti.
+- Partite, chiamate, esiti, rubrica, foto e storico locali disponibili dopo riapertura senza rete.
+- Ultime classifiche consultate conservate per la sessione corrente; cache rimossa all’uscita o al rifiuto dei permessi.
+- Stato offline visibile e disponibilità controllabile nelle impostazioni.
+- Aggiornamenti web senza ricaricare automaticamente una partita in corso.
+
+## 1.0.20 — 2026-10-15
+
+- Errori di accesso sempre visibili e riquadri iniziali opachi anche nel tema scuro.
+- Scelta esplicita per salvare senza classifica, anche con account e classifica selezionata.
+- Dettagli dei turni ordinati per classifica cumulativa al termine di ciascun turno.
+- Classica a tre giocatori: 24, 18, 8, 3, 2, 1 carte.
+- Nomi lunghi adattati a due righe nelle chiamate e negli esiti, su web e nativo.
+- Risolto il ritorno in cima alla lista web dopo aver visitato la classifica durante la partita.
+
 ## 1.0.19 — 2026-09-30
 
 - Conferma prima di rimuovere membri o giocatori dalla classifica.

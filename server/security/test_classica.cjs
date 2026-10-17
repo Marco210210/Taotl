@@ -10,6 +10,7 @@ const exportsObject = {};
 new Function('exports', compiled)(exportsObject);
 const table = exportsObject.CLASSICA_TABLE;
 
+assert.deepEqual(table[3], [24, 18, 8, 3, 2, 1]);
 assert.deepEqual(table[7], [10, 8, 5, 3, 2, 1]);
 for (let players = 2; players <= 12; players++) {
   const rounds = table[players];
@@ -20,4 +21,4 @@ for (let players = 2; players <= 12; players++) {
     if (index) assert(cards < rounds[index - 1]);
   });
 }
-console.log('Classica: seven-player regression and deck limits passed');
+console.log('Classica: three/seven-player regressions and deck limits passed');

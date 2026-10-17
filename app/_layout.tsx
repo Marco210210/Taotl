@@ -18,6 +18,7 @@ import { Text, TextInput } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { OfflineBanner } from "@/components/WebOffline";
 import { GameProvider } from "@/state/GameContext";
 import { SetupProvider } from "@/state/SetupContext";
 import { LinearBackButton } from "@/components/LinearBackButton";
@@ -84,6 +85,7 @@ function AppNavigation() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background as string }}>
       <SafeAreaProvider style={{ backgroundColor: colors.background as string }}>
+        <OfflineBanner />
         <AccountProvider>
           <GameProvider>
             <SetupProvider>

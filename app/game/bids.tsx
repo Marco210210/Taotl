@@ -1,11 +1,12 @@
-import { router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { NumberStepper } from "@/components/NumberStepper";
+import { PlayerName } from "@/components/PlayerName";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
@@ -32,12 +33,13 @@ export default function BidsScreen() {
   const { t } = useAppSettings();
   const [showCorrectPreviousConfirm, setShowCorrectPreviousConfirm] = useState(false);
 
-  useEffect(() => {
+  const gameStatus = game?.status;
+  useFocusEffect(useCallback(() => {
     if (!isHydrated) return;
-    if (!game) router.replace("/");
-    else if (game.status === "scoring") router.replace("/game/scoring");
-    else if (game.status === "finished") router.replace("/game/end");
-  }, [game, isHydrated]);
+    if (!gameStatus) router.replace("/");
+    else if (gameStatus === "scoring") router.replace("/game/scoring");
+    else if (gameStatus === "finished") router.replace("/game/end");
+  }, [gameStatus, isHydrated]));
 
   if (!game) return null;
 
@@ -316,7 +318,7 @@ function BiddingStep({
               <View style={[styles.callIdentity, !useCompactRows && styles.callIdentityRegular]}>
                 <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={36} />
                 <View style={styles.callInfo}>
-                  <Text style={styles.callName}>{player.name}</Text>
+                  <PlayerName name={player.name} style={styles.callName} />
                   <Text style={[styles.callMeta, isDealer && styles.dealerMeta]}>
                     {isDealer
                       ? `${t("game.dealer")} · ${t("game.cannotBid")} ${forbiddenBid ?? "—"}`

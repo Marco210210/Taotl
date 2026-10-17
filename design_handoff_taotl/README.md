@@ -1,5 +1,10 @@
 # Handoff: Taotl — app segnapunti
 
+Archivio del design iniziale e delle risorse vettoriali originali. Le indicazioni
+funzionali qui sotto descrivono il prototipo e non sono la specifica attuale:
+per regole e modalità usare `src/game/` e `app/rules/`, per avvio e distribuzione
+il [README del progetto](../README.md).
+
 ## Overview
 Taotl è un segnapunti da telefono per un gioco di carte fisico a chiamate (2–12 giocatori).
 L'app sostituisce il foglio di carta: si scelgono i giocatori, l'ordine, il mazziere e la modalità,
@@ -200,15 +205,10 @@ Ombre: nessuna nell'app (solo il frame del device nel prototipo). Le superfici s
   Instrument Serif letter-spacing .14em e sottotitolo "SEGNAPUNTI" Manrope 600 ls .28em.
   Da produrre in PNG 1024 per gli store; nell'app icona 52px radius 14.
 
-## Files
-- `Taotl.dc.html` — prototipo interattivo completo (tutte le schermate, logica di punteggio reale) + contesto di design e logo.
-  Si apre in un browser. La logica è nella classe `Component` in fondo al file; il markup è nel template.
-- `ios-frame.jsx` — solo il finto telefono usato per la presentazione, NON fa parte dell'app.
-- `assets/` — semi e carte vettoriali.
+## File conservati
 
-## Note
-- Da confermare con il cliente: sequenza esatta della modalità Classica (assunta 1→6), numero reale di carte del mazzo
-  (assunto 55, configurabile), e il fatto che chi sbaglia non prenda il bonus.
-- Roadmap dichiarata: account con login, password amministratore per le eliminazioni, statistiche estese,
-  classifiche generali, tornei, tutorial delle regole, partite online e sincronizzazione multi-dispositivo.
-  Conviene isolare da subito la logica di punteggio e il repository dei dati dal layer UI.
+- `assets/` contiene i semi e le carte originali in formato vettoriale.
+- Questa guida conserva le scelte grafiche iniziali come riferimento.
+
+Il prototipo HTML, il relativo supporto JavaScript e il frame di presentazione
+sono stati rimossi: l'interfaccia corrente è in `app/` e `src/`.

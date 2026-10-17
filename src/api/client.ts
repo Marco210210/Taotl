@@ -1,3 +1,4 @@
+import { isBrowserOffline } from "@/utils/networkStatus";
 import { getApiBaseUrl, REQUEST_TIMEOUT_MS } from "./config";
 import { reportError } from "@/monitoring/errorReporter";
 
@@ -82,6 +83,7 @@ export async function request<T>(
   options: RequestInit = {},
   timeoutMs: number = REQUEST_TIMEOUT_MS,
 ): Promise<T> {
+  if (isBrowserOffline()) throw new ApiUnavailableError("Sei offline. Questa operazione richiede una connessione.");
   const baseUrl = getApiBaseUrl();
   if (!baseUrl) {
     throw new ApiUnavailableError();

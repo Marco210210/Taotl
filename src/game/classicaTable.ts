@@ -2,7 +2,7 @@
 // Ogni sequenza ha sempre 6 turni e termina sempre con 3, 2, 1.
 export const CLASSICA_TABLE: Record<number, number[]> = {
   2: [25, 15, 10, 3, 2, 1],
-  3: [22, 18, 8, 3, 2, 1],
+  3: [24, 18, 8, 3, 2, 1],
   4: [18, 12, 7, 3, 2, 1],
   5: [14, 11, 7, 3, 2, 1],
   6: [12, 9, 6, 3, 2, 1],

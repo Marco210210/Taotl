@@ -5,9 +5,11 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { PlayerName } from "@/components/PlayerName";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
+import { rankResultsByRound } from "@/game/scoring";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useGame } from "@/state/GameContext";
 import { theme, type ThemeColors } from "@/theme";
@@ -17,6 +19,11 @@ export default function StandingsScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { game, ranked, undoLastRound } = useGame();
   const [showUndoConfirm, setShowUndoConfirm] = useState(false);
+
+  const roundRankings = useMemo(() => rankResultsByRound(
+    game?.rounds.map((round) => ({ index: round.info.index, results: round.results })) ?? [],
+    game?.players.map((player) => player.id) ?? [],
+  ), [game]);
 
   if (!game) {
     return (
@@ -86,7 +93,7 @@ export default function StandingsScreen() {
               <Text style={[styles.position, index === 0 && styles.firstPosition]}>{index + 1}</Text>
               <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={38} />
               <View style={styles.playerInfo}>
-                <Text style={styles.name}>{player.name}</Text>
+                <PlayerName name={player.name} style={styles.name} />
                 {delta !== undefined && (
                   <Text style={[styles.delta, delta < 0 && styles.negative]}>
                     {t("standings.lastRound")} {delta >= 0 ? "+" : ""}
@@ -112,7 +119,7 @@ export default function StandingsScreen() {
                 </Text>
               </View>
               <View style={styles.resultChips}>
-                {round.results.map((result) => (
+                {(roundRankings.get(round.info.index) ?? round.results).map((result) => (
                   <View
                     key={result.playerId}
                     style={[styles.resultChip, result.score < 0 ? styles.negativeChip : styles.positiveChip]}

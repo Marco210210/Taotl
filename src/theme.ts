@@ -6,6 +6,7 @@ export interface ThemeColors {
   backgroundFaint: ColorValue;
   backgroundSoft: ColorValue;
   surface: ColorValue;
+  surfaceSolid: ColorValue;
   surfaceAlt: ColorValue;
   border: ColorValue;
   borderStrong: ColorValue;
@@ -49,6 +50,7 @@ export function getThemeColors(isDark: boolean): ThemeColors {
     backgroundFaint: semanticColor("rgba(248, 248, 245, 0.42)", "rgba(22, 23, 27, 0.4)"),
     backgroundSoft: semanticColor("rgba(248, 248, 245, 0.08)", "rgba(22, 23, 27, 0.08)"),
     surface: semanticColor("#FFFFFF", "rgba(244, 241, 232, 0.06)"),
+    surfaceSolid: semanticColor("#FFFFFF", "#24262A"),
     surfaceAlt: semanticColor("#F0F0EC", "rgba(244, 241, 232, 0.08)"),
     border: semanticColor("rgba(23, 24, 29, 0.11)", "rgba(244, 241, 232, 0.10)"),
     borderStrong: semanticColor("rgba(23, 24, 29, 0.15)", "rgba(244, 241, 232, 0.14)"),

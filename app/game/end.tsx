@@ -1,11 +1,12 @@
 import { router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { cacheFinishedGame, syncFinishedGame } from "@/api/games";
 import { BrandMark } from "@/components/BrandMark";
 import { Button } from "@/components/Button";
+import { PlayerName } from "@/components/PlayerName";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { useAppSettings } from "@/state/AppSettingsContext";
 import { useAccount } from "@/state/AccountContext";
@@ -19,6 +20,7 @@ export default function GameEndScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { game, ranked, resetGame } = useGame();
   const { account, token, room, clearRoom } = useAccount();
+  const saving = useRef(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("idle");
   const [verifiedCount, setVerifiedCount] = useState(0);
   const [unmatchedCount, setUnmatchedCount] = useState(0);
@@ -27,7 +29,7 @@ export default function GameEndScreen() {
   const [tieBreakWinnerId, setTieBreakWinnerId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (game) void cacheFinishedGame(game, game.saveToAlbo ? game.leaderboardId : null);
+    if (game) void cacheFinishedGame(game, null);
   }, [game?.id]);
 
   if (!game) {
@@ -55,8 +57,9 @@ export default function GameEndScreen() {
     .filter((name): name is string => !!name)
     .join(` ${t("common.and")} `);
 
-  const saveAndGoHome = async () => {
-    if (syncStatus === "syncing") return;
+  const saveAndGoHome = async (includeInLeaderboard: boolean) => {
+    if (saving.current) return;
+    saving.current = true;
     setSyncStatus("syncing");
     try {
       if (!token) {
@@ -67,10 +70,10 @@ export default function GameEndScreen() {
           (participant) => participant.userId === account?.id && participant.isHost,
         );
         const verifiedRoom =
-          token && room && isRoomHost && game.verifiedRoomId === room.id
+          includeInLeaderboard && token && room && isRoomHost && game.verifiedRoomId === room.id
             ? { token, roomId: room.id }
             : undefined;
-        const destination = game.saveToAlbo && game.leaderboardId ? game.leaderboardId : null;
+        const destination = includeInLeaderboard && game.saveToAlbo && game.leaderboardId ? game.leaderboardId : null;
         const result = await syncFinishedGame(game, token, destination, verifiedRoom, tieBreakWinnerId);
         setVerifiedCount(result.verifiedCount);
         setUnmatchedCount(result.unmatchedCount);
@@ -89,6 +92,8 @@ export default function GameEndScreen() {
       router.replace("/");
     } catch {
       setSyncStatus("error");
+    } finally {
+      saving.current = false;
     }
   };
 
@@ -121,7 +126,7 @@ export default function GameEndScreen() {
                   style={({ pressed }) => [styles.row, pressed && styles.tieRowPressed]}
                 >
                   <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={38} />
-                  <Text style={styles.name}>{player.name}</Text>
+                  <PlayerName name={player.name} style={styles.name} />
                   <Text style={styles.total}>{entry.total}</Text>
                 </Pressable>
               );
@@ -148,9 +153,7 @@ export default function GameEndScreen() {
           {t(displayedWinnerIds.length > 1 ? "end.winWithPlural" : "end.winsWith")} {ranked[0]?.total ?? 0} {t("end.points")} · {game.rounds.length} {t("end.rounds")} · {game.players.length} {t("home.players")}
         </Text>
         <Text style={styles.sync}>
-          {syncStatus === "idle" && (game.saveToAlbo
-            ? `La partita verrà salvata in ${game.leaderboardName}.`
-            : t("end.chooseSave"))}
+          {syncStatus === "idle" && t("end.chooseSave")}
           {syncStatus === "syncing" && t("end.saving")}
           {syncStatus === "synced" && t("end.savedOnline")}
           {syncStatus === "verified" && (
@@ -173,7 +176,7 @@ export default function GameEndScreen() {
               <View key={entry.playerId} style={styles.row}>
                 <Text style={[styles.position, index === 0 && styles.first]}>{index + 1}</Text>
                 <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={38} />
-                <Text style={styles.name}>{player.name}</Text>
+                <PlayerName name={player.name} style={styles.name} />
                 <Text style={styles.total}>{entry.total}</Text>
               </View>
             );
@@ -182,11 +185,19 @@ export default function GameEndScreen() {
 
         <View style={styles.actions}>
           <Button label={t("end.review")} variant="ghost" onPress={() => router.push("/game/standings")} />
+          {token && game.saveToAlbo && game.leaderboardId && (
+            <Button
+              label={`Salva in ${game.leaderboardName}`}
+              variant="yellow"
+              loading={syncStatus === "syncing"}
+              onPress={() => void saveAndGoHome(true)}
+            />
+          )}
           <Button
-            label={game.saveToAlbo ? `Salva in ${game.leaderboardName}` : token ? "Salva nel mio storico" : "Salva sul telefono"}
-            variant={game.saveToAlbo ? "yellow" : "secondary"}
+            label={game.saveToAlbo ? t("end.saveWithoutLeaderboard") : token ? "Salva nel mio storico" : "Salva sul telefono"}
+            variant="secondary"
             loading={syncStatus === "syncing"}
-            onPress={() => void saveAndGoHome()}
+            onPress={() => void saveAndGoHome(false)}
           />
           {!token && <Button label="Accedi per usare le classifiche" variant="ghost" onPress={() => router.push({ pathname: "/account", params: { from: "home" } })} />}
         </View>

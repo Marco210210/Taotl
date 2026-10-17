@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
+import { PlayerName } from "@/components/PlayerName";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { useAppSettings } from "@/state/AppSettingsContext";
@@ -56,7 +57,7 @@ export default function CorrectDealerScreen() {
             style={[styles.row, currentDealerId === player.id && styles.rowSelected]}
           >
             <PlayerAvatar name={player.name} photoUri={player.photoUri} size={42} />
-            <Text style={styles.name}>{player.name}</Text>
+            <PlayerName name={player.name} style={styles.name} />
             {currentDealerId === player.id && <Text style={styles.tag}>{t("fixDealer.current")}</Text>}
           </Pressable>
         ))}

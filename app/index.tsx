@@ -407,6 +407,7 @@ function makeStyles(colors: ThemeColors) {
       backgroundColor: "rgba(0, 0, 0, 0.58)",
     },
     promptCard: {
+      backgroundColor: colors.surfaceSolid,
       width: "100%",
       maxWidth: 440,
       alignSelf: "center",

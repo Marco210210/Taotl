@@ -34,3 +34,23 @@ export function computeTotals(
   }
   return totals;
 }
+
+/** Classifica cumulativa alla fine di ciascun turno, senza cambiare l'ordine di gioco. */
+export function rankResultsByRound<Result extends { playerId: string; score: number }>(
+  rounds: readonly { index: number; results: readonly Result[] }[],
+  playerIds: readonly string[],
+): Map<number, Result[]> {
+  const totals = new Map<string, number>();
+  const seats = new Map(playerIds.map((id, index) => [id, index]));
+  const ranked = new Map<number, Result[]>();
+  for (const round of [...rounds].sort((a, b) => a.index - b.index)) {
+    for (const result of round.results) {
+      totals.set(result.playerId, (totals.get(result.playerId) ?? 0) + result.score);
+    }
+    ranked.set(round.index, [...round.results].sort((a, b) =>
+      (totals.get(b.playerId) ?? 0) - (totals.get(a.playerId) ?? 0)
+      || (seats.get(a.playerId) ?? Infinity) - (seats.get(b.playerId) ?? Infinity),
+    ));
+  }
+  return ranked;
+}

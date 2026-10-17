@@ -1,3 +1,4 @@
+import { clearOfflineReads } from "@/api/offlineReads";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
@@ -124,7 +125,7 @@ export function AccountProvider({ children }: PropsWithChildren) {
           // Si elimina la sessione solo se il server la dichiara davvero non
           // valida; timeout/aereo/rete estera conservano account e token.
           if (error instanceof ApiRequestError && (error.status === 401 || error.status === 403)) {
-            await Promise.all([writeSecret(null), AsyncStorage.removeItem(ACCOUNT_CACHE_KEY)]);
+            await Promise.all([writeSecret(null), AsyncStorage.removeItem(ACCOUNT_CACHE_KEY), clearOfflineReads(storedToken)]);
             if (active) {
               setToken(null);
               setAccount(null);
@@ -208,6 +209,7 @@ export function AccountProvider({ children }: PropsWithChildren) {
       writeSecret(null),
       AsyncStorage.removeItem(ROOM_KEY),
       AsyncStorage.removeItem(ACCOUNT_CACHE_KEY),
+      token ? clearOfflineReads(token) : Promise.resolve(),
     ]);
     setToken(null);
     setAccount(null);

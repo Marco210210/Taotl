@@ -1,3 +1,4 @@
+import { offlineRead } from "./offlineReads";
 import { apiClient } from "./client";
 
 export interface LeaderboardEntryDTO {
@@ -20,7 +21,8 @@ export interface LeaderboardDTO {
 
 
 export function fetchLeaderboards(token: string): Promise<LeaderboardDTO[]> {
-  return apiClient.getAuthenticated<LeaderboardDTO[]>("/taotl/leaderboards/", token);
+  const path = "/taotl/leaderboards/";
+  return offlineRead(token, path, (timeoutMs) => apiClient.getAuthenticated<LeaderboardDTO[]>(path, token, timeoutMs));
 }
 
 export function createLeaderboard(token: string, name: string): Promise<LeaderboardDTO> {
@@ -34,7 +36,8 @@ export function renameLeaderboard(token: string, id: string, name: string): Prom
 }
 
 export function fetchLeaderboard(token: string, leaderboardId: string): Promise<LeaderboardEntryDTO[]> {
-  return apiClient.getAuthenticated<LeaderboardEntryDTO[]>(`/taotl/leaderboards/${encodeURIComponent(leaderboardId)}/`, token);
+  const path = `/taotl/leaderboards/${encodeURIComponent(leaderboardId)}/`;
+  return offlineRead(token, path, (timeoutMs) => apiClient.getAuthenticated<LeaderboardEntryDTO[]>(path, token, timeoutMs));
 }
 
 export function addLeaderboardPlayer(token: string, id: string, playerId: string): Promise<void> {

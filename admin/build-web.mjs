@@ -1,3 +1,4 @@
+import { normalizeThemeMetadata } from "../web/theme-html.mjs";
 import { spawnSync } from "node:child_process";
 import { cp, copyFile, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
@@ -27,9 +28,10 @@ let html = await readFile(indexPath, "utf8");
 if (!html.includes('href="/logo192.png"') || !html.includes("</head>")) {
   throw new Error("Template HTML cambiato: verificare i metadati dell'app admin prima di pubblicare.");
 }
-html = html.replace(/<title>[^<]*<\/title>/, "<title>Taotl Admin</title>")
+html = html.replace("<html ", '<html data-taotl-admin="true" ')
+  .replace(/<title>[^<]*<\/title>/, "<title>Taotl Admin</title>")
   .replace('href="/logo192.png"', 'href="/admin-icon-180.png"')
   .replace('href="/favicon.ico"', 'href="/admin-favicon.ico"')
   .replace("</head>", '<meta name="apple-mobile-web-app-title" content="Taotl Admin" /></head>');
-await writeFile(indexPath, html);
+await writeFile(indexPath, normalizeThemeMetadata(html));
 console.log(`Build Taotl Admin pronta: ${output}`);

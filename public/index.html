@@ -4,6 +4,21 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="theme-color" content="#F8F8F5" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      // Applica il tema salvato prima del primo disegno e del caricamento dei font.
+      (function () {
+        var preference = "system";
+        try { preference = JSON.parse(localStorage.getItem("taotl:app-settings:v1") || "{}").theme || "system"; } catch (_) {}
+        var dark = preference === "dark" || (preference !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+        var home = location.pathname === "/" && document.documentElement.dataset.taotlAdmin !== "true";
+        var color = home ? (dark ? "#125C3B" : "#17784B") : (dark ? "#16171B" : "#F8F8F5");
+        document.documentElement.style.setProperty("--taotl-viewport-background", color);
+        document.documentElement.style.colorScheme = dark ? "dark" : "light";
+        document.querySelector('meta[name="theme-color"]').content = color;
+        document.querySelector('meta[name="color-scheme"]').content = dark ? "dark" : "light";
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -16,11 +31,12 @@
       body {
         margin: 0;
         height: 100%;
+        background: var(--taotl-viewport-background, #f8f8f5);
       }
 
       body {
         overflow: hidden;
-        background: #f8f8f5;
+        background: var(--taotl-viewport-background, #f8f8f5);
       }
 
       #root {

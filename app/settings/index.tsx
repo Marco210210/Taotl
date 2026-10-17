@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { APP_VERSION, BUILD_STAMP } from "@/buildInfo";
+import { OfflineSettings } from "@/components/WebOffline";
 import { Card } from "@/components/Card";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ToggleRow } from "@/components/ToggleRow";
@@ -81,6 +82,7 @@ export default function SettingsScreen() {
         />
       </Card>
 
+      <OfflineSettings />
       <Text style={styles.note}>{t("settings.accountNote")}</Text>
       <Text style={styles.buildStamp}>{t("settings.build")} {APP_VERSION} · {BUILD_STAMP}</Text>
     </ScreenContainer>

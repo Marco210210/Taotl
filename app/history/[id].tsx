@@ -3,6 +3,7 @@ import type { Href } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 
+import { rankResultsByRound } from "@/game/scoring";
 import { fetchGameHistoryDetail } from "@/api/games";
 import type { GameHistoryDetailDTO } from "@/api/types";
 import { Button } from "@/components/Button";
@@ -71,6 +72,11 @@ export default function HistoryDetailScreen() {
     [game],
   );
 
+  const roundRankings = useMemo(
+    () => rankResultsByRound(game?.rounds ?? [], game?.players.map((player) => player.id) ?? []),
+    [game],
+  );
+
   if (loading) {
     return (
       <>
@@ -135,7 +141,7 @@ export default function HistoryDetailScreen() {
             {t("history.dealer")}: {playerById.get(round.dealerId) ?? "—"} · {t("game.trick")} ±{round.presaValue} · {t("game.respect")} +{" "}
             {round.rispettoValue}
           </Text>
-          {round.results.map((result) => (
+          {(roundRankings.get(round.index) ?? round.results).map((result) => (
             <View key={result.playerId} style={styles.resultRow}>
               <View style={styles.resultInfo}>
                 <Text style={styles.name}>{result.name}</Text>

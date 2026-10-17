@@ -25,6 +25,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run build:web
       - run: npm run test:web
+      - name: Verify admin web build
+        run: npm run build:web:admin
       - name: Verify native bundles for Expo Go
         run: TAOTL_EXPO_GO=1 npx expo export --platform ios --platform android --output-dir .local/web-native-check --max-workers 2
       - uses: actions/upload-artifact@v4

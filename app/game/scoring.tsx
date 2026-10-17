@@ -1,11 +1,12 @@
-import { router } from "expo-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { NumberStepper } from "@/components/NumberStepper";
+import { PlayerName } from "@/components/PlayerName";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { ScreenIntro } from "@/components/ScreenIntro";
@@ -45,7 +46,7 @@ export default function ScoringScreen() {
   const isSubmitting = useRef(false);
   const gameStatus = game?.status;
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (!isHydrated) return;
     if (!gameStatus) {
       router.replace("/");
@@ -54,7 +55,7 @@ export default function ScoringScreen() {
     if (gameStatus !== "scoring" && !isSubmitting.current) {
       router.replace("/game/bids");
     }
-  }, [gameStatus, isHydrated]);
+  }, [gameStatus, isHydrated]));
 
   useEffect(() => {
     setDrafts(buildDrafts(game));
@@ -106,9 +107,8 @@ export default function ScoringScreen() {
   };
 
   const openStandings = () => {
-    // La classifica deve conservare gli esiti già inseriti, ma aggiorniamo lo
-    // stato globale una sola volta quando si lascia la schermata: farlo a ogni
-    // tap rimontava l'intera navigazione e riportava la lista in cima.
+    // Conserva anche i draft nativi prima di aprire la classifica.
+    // Sul web sono già persistiti a ogni modifica per resistere al refresh.
     for (const bid of game.pendingBids) {
       const draft = getDraft(bid.playerId);
       setResultDraft(bid.playerId, draft.respected, draft.scarto);
@@ -209,7 +209,7 @@ export default function ScoringScreen() {
             <View style={styles.playerHeader}>
               <PlayerAvatar name={player.name} photoUri={player.photoUri} colorKey={player.id} size={36} />
               <View style={styles.playerInfo}>
-                <Text style={styles.playerName}>{player.name}</Text>
+                <PlayerName name={player.name} style={styles.playerName} />
                 <Text style={styles.helper}>
                   {t("game.called")}{" "}
                   <Text style={styles.calledValue}>{bid.bid}</Text>{" "}

@@ -1,3 +1,4 @@
+import { addOfflineSupport } from "./build-offline.mjs";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
@@ -15,4 +16,7 @@ const result = spawnSync(process.execPath, [require.resolve("expo/bin/cli"), ...
   env: { ...process.env, TAOTL_WEB_BUILD: "1", TAOTL_ADMIN_BUILD: "0", TAOTL_EXPO_GO: "0" },
 });
 if (result.error) throw result.error;
+if (result.status === 0 && action === "build") {
+  await addOfflineSupport(fileURLToPath(new URL("../web-build/", import.meta.url)));
+}
 process.exit(result.status ?? 1);

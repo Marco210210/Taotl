@@ -1,8 +1,9 @@
+import { BrowserTheme } from "@/components/BrowserTheme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getLocales } from "expo-localization";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { PropsWithChildren } from "react";
-import { useColorScheme } from "react-native";
+import { useSystemTheme } from "@/utils/useSystemTheme";
 
 import { translations, type AppLanguage, type TranslationKey } from "@/i18n/translations";
 import { getAvatarColors, getThemeColors, type ThemeColors } from "@/theme";
@@ -47,7 +48,7 @@ function deviceLanguage(): AppLanguage {
 }
 
 export function AppSettingsProvider({ children, languageOverride }: PropsWithChildren<{ languageOverride?: AppLanguage }>) {
-  const systemScheme = useColorScheme();
+  const systemScheme = useSystemTheme();
   const [settings, setSettings] = useState<StoredSettings>(DEFAULT_SETTINGS);
   const [hydrated, setHydrated] = useState(false);
 
@@ -101,7 +102,7 @@ export function AppSettingsProvider({ children, languageOverride }: PropsWithChi
     [avatarColors, colors, hydrated, resolvedLanguage, resolvedTheme, settings, update],
   );
 
-  return <AppSettingsContext.Provider value={value}>{children}</AppSettingsContext.Provider>;
+  return <AppSettingsContext.Provider value={value}><BrowserTheme />{children}</AppSettingsContext.Provider>;
 }
 
 export function useAppSettings(): AppSettingsContextValue {
