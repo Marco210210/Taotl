@@ -197,9 +197,9 @@ def notify_error(record: dict[str, Any]) -> None:
     with lock:
         # La telemetria mobile è input pubblico, mai una fonte autenticata.
         # Limite globale per evitare spam con messaggi sempre diversi.
-        if now - last_notifications.get("__all__", 0.0) < NOTIFICATION_COOLDOWN_SECONDS:
+        if now - last_notifications.get("__all__", float("-inf")) < NOTIFICATION_COOLDOWN_SECONDS:
             return
-        previous = last_notifications.get(fingerprint, 0.0)
+        previous = last_notifications.get(fingerprint, float("-inf"))
         if now - previous < NOTIFICATION_COOLDOWN_SECONDS:
             return
         last_notifications[fingerprint] = now

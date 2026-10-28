@@ -35,7 +35,7 @@ class HealthTests(unittest.TestCase):
             self.assertEqual(send.call_count, 2)
 
     def test_network_reports_do_not_alert_or_throttle_real_errors(self):
-        with patch.dict(last_notifications, {}, clear=True), patch("error_collector.send_telegram") as send:
+        with patch.dict(last_notifications, {}, clear=True), patch("error_collector.time.monotonic", return_value=10), patch("error_collector.send_telegram") as send:
             for source in ("api.timeout", "api.network"):
                 notify_error({"source": source})
             send.assert_not_called()
