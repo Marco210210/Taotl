@@ -3,12 +3,21 @@
 Il collector gira sulla VPS esistente e non crea servizi Oracle o risorse cloud.
 Riceve gli errori già ripuliti dall'app, li salva nel file locale
 `~/.local/state/taotl-monitor/errors.jsonl` e, se configurato, invia un avviso Telegram.
+I timeout e gli errori di rete client (`api.timeout`, `api.network`) restano nel
+registro consultabile senza generare allarmi Telegram: possono dipendere dalla
+connessione del dispositivo. Gli errori HTTP 5xx e i controlli indipendenti di
+disponibilità del backend continuano a generare avvisi.
 
 Comandi del bot disponibili soltanto nella chat configurata:
 
 - `/status`: stato Expo Go e Oracle/ORDS, compatibilità SDK e data dell'ultimo controllo riuscito;
 - `/ultimi`: ultimi cinque errori;
 - `/errore ID`: dettaglio di uno specifico errore.
+
+Dopo un allarme Expo, il primo controllo positivo invia una sola conferma di
+ripristino, anche se il servizio è tornato online senza intervento automatico.
+Lo stato dell’allarme è conservato in `expo-outage.json` anche al riavvio del
+monitor; gli invii falliti vengono ritentati al controllo successivo.
 
 Il watchdog può riavviare soltanto il servizio Expo Go dopo due controlli falliti.
 Non riavvia e non modifica mai Oracle automaticamente.

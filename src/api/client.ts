@@ -151,12 +151,12 @@ export async function request<T>(
   } catch (err) {
     if (err instanceof ApiUnavailableError || err instanceof ApiRequestError) throw err;
     if (err instanceof Error && err.name === "AbortError") {
-      const timeoutError = new Error("Il server non ha risposto in tempo.");
+      const timeoutError = new ApiUnavailableError("La connessione o il server sono lenti. Riprova tra poco.");
       reportError("api.timeout", timeoutError, { path, method: options.method ?? "GET" });
       throw timeoutError;
     }
     reportError("api.network", err, { path, method: options.method ?? "GET" });
-    throw err;
+    throw new ApiUnavailableError("Connessione interrotta. Controlla la rete e riprova.");
   } finally {
     clearTimeout(timeout);
   }

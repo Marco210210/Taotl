@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.23 — 2026-10-28
+
+- Migrazione a Expo SDK 58, React 19.3 e React Native 0.88 con dipendenze allineate.
+- Timeout e interruzioni di rete conservati nel registro del monitor senza allarmi Telegram; restano attivi gli avvisi per errori server e indisponibilità del backend.
+- Conferma del ripristino Expo anche senza riavvio automatico, con memoria degli allarmi conservata tra riavvii del monitor.
+- Messaggi di connessione comprensibili e verifica della conservazione della sessione su rete lenta.
+
 ## 1.0.22 — 2026-10-17
 
 - Barra di sistema, colore del browser e sfondo esterno sincronizzati al tema e alla schermata, su web pubblico e admin.

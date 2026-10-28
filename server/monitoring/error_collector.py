@@ -55,6 +55,7 @@ AUTO_RECOVERY_COOLDOWN_SECONDS = 600
 WATCHDOG_STARTUP_GRACE_SECONDS = 300
 ORACLE_MAINTENANCE_FLAG = Path("/run/taotl-oracle-maintenance")
 watchdog_started_monotonic = time.monotonic()
+EXPO_ALERT_STATE_PATH = LOG_PATH.parent / "expo-outage.json"
 
 EMAIL_RE = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.IGNORECASE)
 BEARER_RE = re.compile(r"Bearer\s+[A-Za-z0-9._~-]+", re.IGNORECASE)
@@ -81,6 +82,12 @@ health_state: dict[str, Any] = {
     "expoCompatibilityDetail": "non ancora verificata",
     "expoCompatibilityCheckedAt": None,
 }
+
+
+try:
+    health_state["expoAlerted"] = json.loads(EXPO_ALERT_STATE_PATH.read_text()).get("alerted") is True
+except (OSError, ValueError, AttributeError):
+    health_state["expoAlerted"] = False
 
 
 def redact_text(value: Any, limit: int = 4_000) -> str:
@@ -180,6 +187,11 @@ def send_telegram(text: str) -> bool:
 
 
 def notify_error(record: dict[str, Any]) -> None:
+    # Un timeout client non prova un guasto: rete debole e fallback offline
+    # sono normali. Il record resta consultabile; i controlli server separati
+    # continuano ad avvisare quando Oracle/ORDS non risponde.
+    if record.get("source") in {"api.timeout", "api.network"}:
+        return
     fingerprint = record["fingerprint"]
     now = time.monotonic()
     with lock:
@@ -266,6 +278,28 @@ def check_url(
         return False, redact_text(f"{type(error).__name__}: {error}", 300)
 
 
+def notify_expo_health(online: bool, message: str | None = None) -> None:
+    """Chiude ogni allarme consegnato, anche dopo un riavvio del monitor."""
+    alerted = health_state["expoAlerted"]
+    if online:
+        if not alerted:
+            return
+        message = message or "✅ Expo Go Taotl è tornato online."
+    elif message is None:
+        if alerted:
+            return
+        message = "⚠️ Expo Go Taotl non risponde. Ritento prima del recupero automatico."
+    if not send_telegram(message):
+        return  # Un invio fallito viene ritentato al prossimo controllo.
+    with lock:
+        health_state["expoAlerted"] = not online
+        EXPO_ALERT_STATE_PATH.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        temporary = EXPO_ALERT_STATE_PATH.with_suffix(".tmp")
+        temporary.write_text(json.dumps({"alerted": not online}))
+        temporary.chmod(0o600)
+        temporary.replace(EXPO_ALERT_STATE_PATH)
+
+
 def watchdog_loop() -> None:
     while True:
         expo_ok, expo_detail = check_url(
@@ -276,7 +310,6 @@ def watchdog_loop() -> None:
         in_startup_grace = time.monotonic() - watchdog_started_monotonic < WATCHDOG_STARTUP_GRACE_SECONDS
         oracle_maintenance = ORACLE_MAINTENANCE_FLAG.exists()
         with lock:
-            previous_expo = health_state["expo"]
             ords_alerted = health_state["ordsAlerted"]
             health_state["expo"] = "online" if expo_ok else "offline"
             health_state["ords"] = "online" if ords_ok else "offline"
@@ -309,15 +342,16 @@ def watchdog_loop() -> None:
                     EXPO_HEALTH_URL,
                     {"Accept": "application/expo+json", "Expo-Platform": "android"},
                 )
-                send_telegram(
+                notify_expo_health(
+                    recovered,
                     "✅ Expo Go Taotl riavviato automaticamente e di nuovo online."
                     if recovered
                     else "⚠️ Ho riavviato Expo Go, ma il servizio risulta ancora offline. Serve un controllo manuale."
                 )
             except Exception:
-                send_telegram("⚠️ Expo Go è offline e il riavvio automatico non è riuscito.")
-        elif previous_expo == "online" and not expo_ok:
-            send_telegram("⚠️ Expo Go Taotl non risponde. Ritento prima del recupero automatico.")
+                notify_expo_health(False, "⚠️ Expo Go è offline e il riavvio automatico non è riuscito.")
+        else:
+            notify_expo_health(expo_ok)
 
         should_alert_ords = not in_startup_grace and not oracle_maintenance
         ords_message = None

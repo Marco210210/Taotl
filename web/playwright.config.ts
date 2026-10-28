@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const deployedURL = process.env.TAOTL_WEB_TEST_URL;
+const port = process.env.TAOTL_WEB_TEST_PORT || "8097";
 
 export default defineConfig({
   testDir: "./tests",
@@ -11,7 +12,7 @@ export default defineConfig({
   outputDir: "../test-results/web",
   use: {
     actionTimeout: 10_000,
-    baseURL: deployedURL || "http://127.0.0.1:8097",
+    baseURL: deployedURL || `http://127.0.0.1:${port}`,
     locale: "it-IT",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
@@ -23,8 +24,8 @@ export default defineConfig({
   webServer: deployedURL ? undefined : {
     command: "node web/serve.mjs",
     cwd: "..",
-    env: { PORT: "8097" },
-    url: "http://127.0.0.1:8097",
+    env: { PORT: port },
+    url: `http://127.0.0.1:${port}`,
     reuseExistingServer: false,
   },
 });

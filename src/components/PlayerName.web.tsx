@@ -1,3 +1,4 @@
+import type { ComponentRef } from "react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { StyleSheet, Text } from "react-native";
 import type { PlayerNameProps } from "./PlayerName";
@@ -5,7 +6,7 @@ import type { PlayerNameProps } from "./PlayerName";
 // React Native Web non implementa adjustsFontSizeToFit: misuriamo il testo
 // con il font effettivo e riduciamo solo i nomi che supererebbero due righe.
 export function PlayerName({ name, style }: PlayerNameProps) {
-  const ref = useRef<Text>(null);
+  const ref = useRef<ComponentRef<typeof Text>>(null);
   const [width, setWidth] = useState(0);
   const baseSize = StyleSheet.flatten(style)?.fontSize ?? 14.5;
   const [fontSize, setFontSize] = useState(baseSize);

@@ -14,6 +14,7 @@ jobs:
     timeout-minutes: 20
     env:
       EXPO_PUBLIC_API_BASE_URL: https://api.example.test/ords/taotl_app
+      EXPO_PUBLIC_ERROR_REPORT_URL: https://monitor.example.test/errors
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

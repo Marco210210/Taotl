@@ -1,3 +1,4 @@
+import type { ComponentRef } from "react";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -96,13 +97,13 @@ export default function AccountScreen() {
   const [leaderboardsError, setLeaderboardsError] = useState<string | null>(null);
   const [savingLeaderboards, setSavingLeaderboards] = useState(false);
   const [linkRequests, setLinkRequests] = useState<ProfileLinkRequestDTO[]>([]);
-  const handleRef = useRef<TextInput>(null);
-  const firstNameRef = useRef<TextInput>(null);
-  const lastNameRef = useRef<TextInput>(null);
-  const displayNameRef = useRef<TextInput>(null);
-  const emailRef = useRef<TextInput>(null);
-  const passwordRef = useRef<TextInput>(null);
-  const confirmPasswordRef = useRef<TextInput>(null);
+  const handleRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const firstNameRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const lastNameRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const displayNameRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const emailRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const passwordRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const confirmPasswordRef = useRef<ComponentRef<typeof TextInput>>(null);
 
   const normalizedHandle = useMemo(() => sanitizeHandleInput(handle), [handle]);
   const loginIdentifier = handle.trim().toLowerCase();

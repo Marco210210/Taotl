@@ -129,5 +129,5 @@ Su un altro hosting statico pubblica il contenuto di `web-build/` alla radice
 di un dominio e configura il fallback SPA verso `/index.html`. Questa build
 non è configurata per una sottocartella come `/Taotl/` su GitHub Pages.
 
-Riferimenti: [Expo SDK 57](https://docs.expo.dev/versions/v57.0.0/),
+Riferimenti: [Expo SDK 58](https://docs.expo.dev/versions/v58.0.0/),
 [pubblicazione web Expo](https://docs.expo.dev/guides/publishing-websites/).

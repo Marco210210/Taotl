@@ -99,6 +99,22 @@ async function cachedReadKeys(page: Page) {
   return page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith("taotl:offline-reads:v1:")));
 }
 
+test("il timeout del controllo sessione conserva account e token locali", async ({ page, context }) => {
+  await cacheAccount(page);
+  const reports: { source: string }[] = [];
+  await context.route("**/taotl/auth/me/", () => new Promise(() => {}));
+  await context.route("**/*", async route => {
+    if (route.request().method() === "POST" && route.request().postData()?.includes('"source":"api.timeout"')) {
+      reports.push(route.request().postDataJSON());
+      await route.fulfill({ json: { ok: true } });
+    } else await route.fallback();
+  });
+  await page.goto("/account");
+  await expect.poll(() => reports.some(report => report.source === "api.timeout"), { timeout: 15_000 }).toBe(true);
+  expect(await page.evaluate(() => localStorage.getItem("taotl.auth-session.v1"))).toBe("offline-session");
+  await expect(page.getByRole("button", { name: /Esci/ }).first()).toBeVisible();
+});
+
 test("account e classifica in memoria; salvataggio offline e sincronizzazione al rientro", async ({ page, context }) => {
   await cacheAccount(page);
   await context.route("**/taotl/auth/me/", route => route.fulfill({ json: account }));
